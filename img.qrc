@@ -1,0 +1,11 @@
+<RCC>
+    <qresource prefix="/im">
+        <file>image/a.png</file>
+        <file>image/crear_tabla.png</file>
+        <file>image/disenio.png</file>
+        <file>image/formulario.png</file>
+        <file>image/tabla.png</file>
+        <file>image/relaciones.png</file>
+        <file>image/llave.png</file>
+    </qresource>
+</RCC>

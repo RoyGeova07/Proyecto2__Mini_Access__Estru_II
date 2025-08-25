@@ -1,0 +1,16 @@
+debug/cintaopciones.o
+debug/main.o
+debug/mainwindow.o
+debug/panelobjetos.o
+debug/pestanatabla.o
+debug/ventanaprincipal.o
+debug/vistadisenio.o
+debug/vistahojadatos.o
+debug/qrc_img.o
+debug/moc_cintaopciones.o
+debug/moc_mainwindow.o
+debug/moc_panelobjetos.o
+debug/moc_pestanatabla.o
+debug/moc_ventanaprincipal.o
+debug/moc_vistadisenio.o
+debug/moc_vistahojadatos.o
