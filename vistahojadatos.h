@@ -10,6 +10,7 @@ class QTableView;
 class QStandardItemModel;
 class TipoHojaDelegate : public QStyledItemDelegate {
     Q_OBJECT
+
 public:
     explicit TipoHojaDelegate(const QString& tipo, QObject* parent=nullptr);
     QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem&, const QModelIndex&) const override;
@@ -26,7 +27,8 @@ public:
 
 public slots:
     void reconstruirColumnas(const QList<Campo>& campos);
-
+signals:
+    void renombrarCampoSolicitado(int columna, const QString& nuevoNombre);
 private:
     QTableView* m_tabla;
     QStandardItemModel* m_modelo;

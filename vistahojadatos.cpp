@@ -9,6 +9,8 @@
 #include <QDoubleValidator>
 #include <QComboBox>
 #include <QDateEdit>
+#include <QInputDialog>
+#include <QHeaderView>
 
 TipoHojaDelegate::TipoHojaDelegate(const QString& tipo, QObject* parent)
     : QStyledItemDelegate(parent), tipo_(tipo.trimmed()) {}
@@ -62,14 +64,15 @@ void TipoHojaDelegate::setModelData(QWidget* editor, QAbstractItemModel* model, 
     }
 }
 
-VistaHojaDatos::VistaHojaDatos(const QString& /*nombreTabla*/,QWidget*parent):QWidget(parent)
+VistaHojaDatos::VistaHojaDatos(const QString& /*nombreTabla*/, QWidget* parent)
+    : QWidget(parent)
 {
-    auto*lay=new QVBoxLayout(this);
+    auto* lay = new QVBoxLayout(this);
     lay->setContentsMargins(6,6,6,6);
     lay->setSpacing(0);
 
-    m_tabla=new QTableView(this);
-    m_modelo=new QStandardItemModel(this);
+    m_tabla  = new QTableView(this);
+    m_modelo = new QStandardItemModel(this);
 
     m_modelo->setColumnCount(1);
     m_modelo->setHeaderData(0, Qt::Horizontal, QStringLiteral("Id"));
@@ -80,9 +83,27 @@ VistaHojaDatos::VistaHojaDatos(const QString& /*nombreTabla*/,QWidget*parent):QW
     m_tabla->verticalHeader()->setVisible(true);
     m_tabla->setEditTriggers(QAbstractItemView::AllEditTriggers);
     lay->addWidget(m_tabla);
-    connect(m_modelo, &QStandardItemModel::dataChanged, this, [this](const QModelIndex& topLeft, const QModelIndex&){
-        Q_UNUSED(topLeft);
-        asegurarFilaNuevaAlFinal_();
+
+    connect(m_modelo, &QStandardItemModel::dataChanged, this,
+            [this](const QModelIndex&, const QModelIndex&){
+                asegurarFilaNuevaAlFinal_();
+            });
+
+    auto* hh = m_tabla->horizontalHeader();
+    hh->setSectionsClickable(true);
+    connect(hh, &QHeaderView::sectionDoubleClicked, this, [this](int col){
+        if (col <= 0) return;
+
+        const QString actual = m_modelo->headerData(col, Qt::Horizontal).toString();
+        bool ok = false;
+        QString nuevo = QInputDialog::getText(
+                            this, tr("Renombrar campo"),
+                            tr("Nuevo nombre para %1:").arg(actual),
+                            QLineEdit::Normal, actual, &ok
+                            ).trimmed();
+
+        if (!ok || nuevo.isEmpty() || nuevo == actual) return;
+        emit renombrarCampoSolicitado(col, nuevo);
     });
 }
 

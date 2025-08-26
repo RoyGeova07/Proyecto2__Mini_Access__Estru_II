@@ -25,6 +25,26 @@ public:
             model->setData(index, cb->currentText());
     }
 };
+bool VistaDisenio::renombrarCampo(int fila, const QString& nuevoNombre) {
+    if (fila <= 0) return false; // no renombrar PK
+    const QString nn = nuevoNombre.trimmed();
+    if (nn.isEmpty()) return false;
+
+    // Unicidad (case-insensitive)
+    for (int r = 0; r < m_modelo->rowCount(); ++r) {
+        if (r == fila) continue;
+        const QString ex = m_modelo->index(r,1).data().toString().trimmed();
+        if (QString::compare(ex, nn, Qt::CaseInsensitive) == 0)
+            return false;
+    }
+
+    QStandardItem* it = m_modelo->item(fila, 1);
+    if (!it) { it = new QStandardItem(nn); m_modelo->setItem(fila,1,it); }
+    else     { it->setText(nn); }
+
+    emit esquemaCambiado();
+    return true;
+}
 
 VistaDisenio::VistaDisenio(QWidget*parent):QWidget(parent)
 {

@@ -38,6 +38,9 @@ constexpr auto qt_meta_stringdata_CLASSVistaDisenioENDCLASS = QtMocHelpers::stri
     "VistaDisenio",
     "esquemaCambiado",
     "",
+    "renombrarCampo",
+    "fila",
+    "nuevoNombre",
     "agregarFilaCampo",
     "eliminarCampoSeleccionado",
     "eliminarCampoPorNombre",
@@ -54,7 +57,7 @@ Q_CONSTINIT static const uint qt_meta_data_CLASSVistaDisenioENDCLASS[] = {
       12,       // revision
        0,       // classname
        0,    0, // classinfo
-       4,   14, // methods
+       5,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
@@ -62,20 +65,22 @@ Q_CONSTINIT static const uint qt_meta_data_CLASSVistaDisenioENDCLASS[] = {
        1,       // signalCount
 
  // signals: name, argc, parameters, tag, flags, initial metatype offsets
-       1,    0,   38,    2, 0x06,    1 /* Public */,
+       1,    0,   44,    2, 0x06,    1 /* Public */,
 
  // slots: name, argc, parameters, tag, flags, initial metatype offsets
-       3,    0,   39,    2, 0x0a,    2 /* Public */,
-       4,    0,   40,    2, 0x0a,    3 /* Public */,
-       5,    1,   41,    2, 0x0a,    4 /* Public */,
+       3,    2,   45,    2, 0x0a,    2 /* Public */,
+       6,    0,   50,    2, 0x0a,    5 /* Public */,
+       7,    0,   51,    2, 0x0a,    6 /* Public */,
+       8,    1,   52,    2, 0x0a,    7 /* Public */,
 
  // signals: parameters
     QMetaType::Void,
 
  // slots: parameters
+    QMetaType::Bool, QMetaType::Int, QMetaType::QString,    4,    5,
     QMetaType::Void,
     QMetaType::Bool,
-    QMetaType::Bool, QMetaType::QString,    6,
+    QMetaType::Bool, QMetaType::QString,    9,
 
        0        // eod
 };
@@ -91,6 +96,10 @@ Q_CONSTINIT const QMetaObject VistaDisenio::staticMetaObject = { {
         QtPrivate::TypeAndForceComplete<VistaDisenio, std::true_type>,
         // method 'esquemaCambiado'
         QtPrivate::TypeAndForceComplete<void, std::false_type>,
+        // method 'renombrarCampo'
+        QtPrivate::TypeAndForceComplete<bool, std::false_type>,
+        QtPrivate::TypeAndForceComplete<int, std::false_type>,
+        QtPrivate::TypeAndForceComplete<const QString &, std::false_type>,
         // method 'agregarFilaCampo'
         QtPrivate::TypeAndForceComplete<void, std::false_type>,
         // method 'eliminarCampoSeleccionado'
@@ -109,10 +118,12 @@ void VistaDisenio::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id
         (void)_t;
         switch (_id) {
         case 0: _t->esquemaCambiado(); break;
-        case 1: _t->agregarFilaCampo(); break;
-        case 2: { bool _r = _t->eliminarCampoSeleccionado();
+        case 1: { bool _r = _t->renombrarCampo((*reinterpret_cast< std::add_pointer_t<int>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2])));
             if (_a[0]) *reinterpret_cast< bool*>(_a[0]) = std::move(_r); }  break;
-        case 3: { bool _r = _t->eliminarCampoPorNombre((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])));
+        case 2: _t->agregarFilaCampo(); break;
+        case 3: { bool _r = _t->eliminarCampoSeleccionado();
+            if (_a[0]) *reinterpret_cast< bool*>(_a[0]) = std::move(_r); }  break;
+        case 4: { bool _r = _t->eliminarCampoPorNombre((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])));
             if (_a[0]) *reinterpret_cast< bool*>(_a[0]) = std::move(_r); }  break;
         default: ;
         }
@@ -147,13 +158,13 @@ int VistaDisenio::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 4)
+        if (_id < 5)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 4;
+        _id -= 5;
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 4)
+        if (_id < 5)
             *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
-        _id -= 4;
+        _id -= 5;
     }
     return _id;
 }

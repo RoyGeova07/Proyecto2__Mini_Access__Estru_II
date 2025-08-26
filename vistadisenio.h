@@ -24,6 +24,7 @@ public:
 
     QList<Campo> esquema() const;
 public slots:
+    bool renombrarCampo(int fila, const QString& nuevoNombre);
     void agregarFilaCampo();
     bool eliminarCampoSeleccionado();
     bool eliminarCampoPorNombre(const QString& nombre);
