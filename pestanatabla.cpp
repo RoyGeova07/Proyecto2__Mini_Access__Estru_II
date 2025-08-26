@@ -47,6 +47,11 @@ PestanaTabla::PestanaTabla(const QString& nombreInicial, QWidget* parent)
 
     connect(m_disenio, &VistaDisenio::esquemaCambiado, this, [this](){
         syncHojaConDisenio_();
+        emit estadoCambioSolicitado();
+    });
+
+    connect(m_hoja, &VistaHojaDatos::datosCambiaron, this, [this](){
+        emit estadoCambioSolicitado();
     });
 
     connect(m_hoja, &VistaHojaDatos::renombrarCampoSolicitado, this,
@@ -64,6 +69,19 @@ PestanaTabla::PestanaTabla(const QString& nombreInicial, QWidget* parent)
      m_pila->setCurrentIndex(0);
 }
 
+QList<Campo> PestanaTabla::esquemaActual() const {
+    return m_disenio->esquema();
+}
+
+QVector<QVector<QVariant>> PestanaTabla::filasActuales() const {
+    return m_hoja->snapshotFilas(); // lo añadimos en VistaHojaDatos
+}
+
+void PestanaTabla::cargarSnapshot(const QList<Campo>& schema, const QVector<QVector<QVariant>>& rows) {
+    m_disenio->establecerEsquema(schema); // lo añadimos en VistaDisenio
+    syncHojaConDisenio_();
+    m_hoja->cargarFilas(rows);            // lo añadimos en VistaHojaDatos
+}
 
 void PestanaTabla::mostrarHojaDatos() {
     syncHojaConDisenio_();

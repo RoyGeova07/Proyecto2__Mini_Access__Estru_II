@@ -19,6 +19,7 @@ public:
 
 signals:
 
+    void eliminarTablaPulsado();
     void verHojaDatos();
     void verDisenio();
     void verPulsado();
@@ -27,6 +28,7 @@ signals:
     void relacionesPulsado();
     void agregarColumnaPulsado();
     void eliminarColumnaPulsado();
+
 public slots:
 
     void cambiarSeccion(Seccion s);

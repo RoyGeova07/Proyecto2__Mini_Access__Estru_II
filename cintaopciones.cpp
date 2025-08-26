@@ -163,57 +163,69 @@ QWidget*CintaOpciones::crearPaginaInicio()
 
 }
 
-QWidget*CintaOpciones::crearPaginaCrear()
+QWidget* CintaOpciones::crearPaginaCrear()
 {
-
-    auto*w=new QWidget(this);
-
-    auto*lay=new QHBoxLayout(w);
+    auto* w   = new QWidget(this);
+    auto* lay = new QHBoxLayout(w);
     lay->setContentsMargins(0,0,0,0);
     lay->setSpacing(10);
 
-    auto*btnTabla=new QToolButton(w);
+    // Botón: Tabla
+    auto* btnTabla = new QToolButton(w);
     btnTabla->setText("Tabla");
-    btnTabla->setIcon(QIcon(":/im/image/crear_tabla.png"));     // o :/im/crear_tabla.png
+    btnTabla->setIcon(QIcon(":/im/image/crear_tabla.png"));
     btnTabla->setIconSize(QSize(24,24));
     btnTabla->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
 
-    auto*btnForm=new QToolButton(w);
+    // Botón: Formulario (placeholder)
+    auto* btnForm = new QToolButton(w);
     btnForm->setText("Formulario");
     btnForm->setIcon(QIcon(":/im/image/formulario.png"));
     btnForm->setIconSize(QSize(24,24));
     btnForm->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
 
-    lay->addWidget(btnTabla);
-    lay->addWidget(btnForm);
-
-    auto*btnAddCol = new QToolButton(w);
+    // Botón: Agregar columna
+    auto* btnAddCol = new QToolButton(w);
     btnAddCol->setText("Agregar columna");
     btnAddCol->setProperty("rol","accion");
     btnAddCol->setIcon(QIcon(":/im/image/col_add.png"));
     btnAddCol->setIconSize(QSize(24,24));
     btnAddCol->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
 
-    auto*btnDelCol = new QToolButton(w);
+    // Botón: Eliminar columna
+    auto* btnDelCol = new QToolButton(w);
     btnDelCol->setText("Eliminar columna");
     btnDelCol->setProperty("rol","accion");
     btnDelCol->setIcon(QIcon(":/im/image/col_del.png"));
     btnDelCol->setIconSize(QSize(24,24));
     btnDelCol->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
 
+    // **NUEVO** Botón: Eliminar tabla
+    auto* btnDelTabla = new QToolButton(w);
+    btnDelTabla->setText("Eliminar tabla");
+    btnDelTabla->setProperty("rol","accion");
+    btnDelTabla->setIcon(QIcon(":/im/image/tabla_eliminar.png")); // opcional
+    btnDelTabla->setIconSize(QSize(24,24));
+    btnDelTabla->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+
+    // Orden en la fila
+    lay->addWidget(btnTabla);
+    lay->addWidget(btnForm);
     lay->addWidget(btnAddCol);
     lay->addWidget(btnDelCol);
+    lay->addWidget(btnDelTabla);
     lay->addStretch();
 
-
-    connect(btnAddCol, &QToolButton::clicked, this, &CintaOpciones::agregarColumnaPulsado);
-    connect(btnDelCol, &QToolButton::clicked, this, &CintaOpciones::eliminarColumnaPulsado);
-    connect(btnTabla,&QToolButton::clicked,this,&CintaOpciones::tablaPulsado);
-    connect(btnForm,&QToolButton::clicked,this,&CintaOpciones::formularioPulsado);
+    // Conexiones
+    connect(btnTabla,    &QToolButton::clicked, this, &CintaOpciones::tablaPulsado);
+    connect(btnForm,     &QToolButton::clicked, this, &CintaOpciones::formularioPulsado);
+    connect(btnAddCol,   &QToolButton::clicked, this, &CintaOpciones::agregarColumnaPulsado);
+    connect(btnDelCol,   &QToolButton::clicked, this, &CintaOpciones::eliminarColumnaPulsado);
+    connect(btnDelTabla, &QToolButton::clicked, this, &CintaOpciones::eliminarTablaPulsado); // <--
 
     return w;
-
 }
+
 
 QWidget*CintaOpciones::crearPaginaHBD()
 {

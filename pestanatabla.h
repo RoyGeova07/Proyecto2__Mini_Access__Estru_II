@@ -1,6 +1,7 @@
 #ifndef PESTANATABLA_H
 #define PESTANATABLA_H
 
+#include "vistadisenio.h"
 #include <QWidget>
 #include<QString>
 #include <QMessageBox>
@@ -13,11 +14,15 @@ class QTabWidget;
 class PestanaTabla:public QWidget {
     Q_OBJECT
 public:
+    QList<Campo> esquemaActual() const;
+    QVector<QVector<QVariant>> filasActuales() const;
+    void cargarSnapshot(const QList<Campo>& schema, const QVector<QVector<QVariant>>& rows);
     explicit PestanaTabla(const QString&nombreInicial,QWidget*parent=nullptr);
     QString nombreTabla()const{return m_nombre;}
     bool tieneNombre()const{return m_tieneNombre; }
     void establecerNombre(const QString& n){m_nombre=n;m_tieneNombre=true;}
-
+signals:
+    void estadoCambioSolicitado();
 public slots:
     void mostrarHojaDatos();
     void mostrarDisenio();
@@ -28,7 +33,6 @@ public slots:
 private:
     QString m_nombre;
     bool m_tieneNombre=false;
-
     QStackedWidget*m_pila;
     QWidget*m_paginaDisenio;
     QTabWidget* m_panelProp;

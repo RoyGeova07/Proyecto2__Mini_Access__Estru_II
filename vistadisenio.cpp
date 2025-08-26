@@ -13,7 +13,7 @@ public:
     using QStyledItemDelegate::QStyledItemDelegate;
     QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem&, const QModelIndex&) const override {
         auto* cb = new QComboBox(parent);
-        cb->addItems({"Texto","Entero","Real","Fecha","Booleano"});
+        cb->addItems({"Texto","Entero","Real","Fecha","Booleano","Moneda"});
         return cb;
     }
     void setEditorData(QWidget* editor, const QModelIndex& index) const override {
@@ -26,11 +26,10 @@ public:
     }
 };
 bool VistaDisenio::renombrarCampo(int fila, const QString& nuevoNombre) {
-    if (fila <= 0) return false; // no renombrar PK
+    if (fila <= 0) return false;
     const QString nn = nuevoNombre.trimmed();
     if (nn.isEmpty()) return false;
 
-    // Unicidad (case-insensitive)
     for (int r = 0; r < m_modelo->rowCount(); ++r) {
         if (r == fila) continue;
         const QString ex = m_modelo->index(r,1).data().toString().trimmed();
@@ -45,6 +44,37 @@ bool VistaDisenio::renombrarCampo(int fila, const QString& nuevoNombre) {
     emit esquemaCambiado();
     return true;
 }
+void VistaDisenio::establecerEsquema(const QList<Campo>& campos) {
+    m_modelo->clear();
+    m_modelo->setColumnCount(3);
+    m_modelo->setHeaderData(0, Qt::Horizontal, QString());
+    m_modelo->setHeaderData(1, Qt::Horizontal, QStringLiteral("Nombre del campo"));
+    m_modelo->setHeaderData(2, Qt::Horizontal, QStringLiteral("Tipo de datos"));
+
+    m_modelo->setRowCount(campos.size());
+    for (int r=0; r<campos.size(); ++r) {
+        auto* it0 = new QStandardItem();
+        it0->setEditable(false);
+        m_modelo->setItem(r, 0, it0);
+
+        auto* it1 = new QStandardItem(campos[r].nombre);
+        auto* it2 = new QStandardItem(campos[r].tipo);
+        if (r == 0) {
+            it1->setText("Id");
+            it1->setEditable(false);
+            it2->setText("Entero");
+            it2->setEditable(false);
+        } else {
+            it1->setFlags(it1->flags() | Qt::ItemIsEditable);
+            it2->setFlags(it2->flags() | Qt::ItemIsEditable);
+        }
+        m_modelo->setItem(r, 1, it1);
+        m_modelo->setItem(r, 2, it2);
+    }
+    ponerIconoLlave(QIcon(":/im/image/llave.png"));
+
+    emit esquemaCambiado();
+}
 
 VistaDisenio::VistaDisenio(QWidget*parent):QWidget(parent)
 {
@@ -55,13 +85,11 @@ VistaDisenio::VistaDisenio(QWidget*parent):QWidget(parent)
     m_tabla=new QTableView(this);
     m_modelo=new QStandardItemModel(this);
 
-    // [llave] | Nombre del campo | Tipo de datos
     m_modelo->setColumnCount(3);
     m_modelo->setHeaderData(0,Qt::Horizontal,QString());
     m_modelo->setHeaderData(1,Qt::Horizontal,QStringLiteral("Nombre del campo"));
     m_modelo->setHeaderData(2,Qt::Horizontal,QStringLiteral("Tipo de datos"));
 
-    // Primera fila: PK Id, tipo Entero (bloquea edición del icono)
     m_modelo->setRowCount(1);
     auto*it=new QStandardItem();
     it->setEditable(false);
@@ -79,13 +107,11 @@ VistaDisenio::VistaDisenio(QWidget*parent):QWidget(parent)
     m_tabla->horizontalHeader()->setSectionResizeMode(1,QHeaderView::Stretch);
     m_tabla->horizontalHeader()->setSectionResizeMode(2,QHeaderView::Stretch);
 
-    // Delegate: columna tipos = combo
     m_tipoDelegate = new TipoDatoDelegate(this);
     m_tabla->setItemDelegateForColumn(2, m_tipoDelegate);
 
     lay->addWidget(m_tabla);
 
-    // Notificar cambios de esquema
     connect(m_modelo, &QStandardItemModel::dataChanged, this, [this](const QModelIndex&, const QModelIndex&){ emit esquemaCambiado(); });
     connect(m_modelo, &QStandardItemModel::rowsInserted, this, [this](const QModelIndex&, int, int){ emit esquemaCambiado(); });
     connect(m_modelo, &QStandardItemModel::rowsRemoved, this, [this](const QModelIndex&, int, int){ emit esquemaCambiado(); });
@@ -131,7 +157,7 @@ void VistaDisenio::agregarFilaCampo() {
 bool VistaDisenio::eliminarCampoPorNombre(const QString& nombre) {
     if (nombre.trimmed().isEmpty()) return false;
     for (int r = 0; r < m_modelo->rowCount(); ++r) {
-        if (r == 0) continue; // no borrar PK
+        if (r == 0) continue;
         if (m_modelo->index(r,1).data().toString().trimmed() == nombre.trimmed()) {
             m_modelo->removeRow(r);
             emit esquemaCambiado();

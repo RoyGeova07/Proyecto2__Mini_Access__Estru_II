@@ -1,40 +1,45 @@
 #ifndef VISTAHOJADATOS_H
 #define VISTAHOJADATOS_H
+
+#include <QWidget>
 #include <QList>
-#include <QStyledItemDelegate>
-#include "vistadisenio.h"
-#include<QWidget>
-#include<QString>
+#include <QVariant>
+#include <QVector>
 
 class QTableView;
 class QStandardItemModel;
-class TipoHojaDelegate : public QStyledItemDelegate {
-    Q_OBJECT
+class QAbstractItemDelegate;
 
-public:
-    explicit TipoHojaDelegate(const QString& tipo, QObject* parent=nullptr);
-    QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem&, const QModelIndex&) const override;
-    void setEditorData(QWidget* editor, const QModelIndex& index) const override;
-    void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const override;
-private:
-    QString tipo_;
-};
+#include "vistadisenio.h" // por struct Campo
 
-class VistaHojaDatos:public QWidget {
+class VistaHojaDatos : public QWidget
+{
     Q_OBJECT
 public:
-    explicit VistaHojaDatos(const QString& nombreTabla,QWidget*parent=nullptr);
+    explicit VistaHojaDatos(const QString& nombreTabla, QWidget* parent=nullptr);
 
 public slots:
+    // Reconstruye columnas según el esquema (preservando datos por nombre)
     void reconstruirColumnas(const QList<Campo>& campos);
-signals:
-    void renombrarCampoSolicitado(int columna, const QString& nuevoNombre);
-private:
-    QTableView* m_tabla;
-    QStandardItemModel* m_modelo;
-     QList<QStyledItemDelegate*> m_delegates;
-    void asegurarFilaNuevaAlFinal_();
-};
 
+signals:
+    // Doble clic en encabezado (no PK) para renombrar una columna
+    void renombrarCampoSolicitado(int columna, const QString& nuevoNombre);
+    // Notifica a la pestaña para que guarde snapshot (datos en memoria)
+    void datosCambiaron();
+
+public:
+    // Utilidades para persistir/restaurar filas
+    QVector<QVector<QVariant>> snapshotFilas(bool excluirUltimaVacia=true) const;
+    void cargarFilas(const QVector<QVector<QVariant>>& rows);
+
+private:
+    QTableView* m_tabla{nullptr};
+    QStandardItemModel* m_modelo{nullptr};
+    QList<QAbstractItemDelegate*> m_delegates;
+
+    void asegurarFilaNuevaAlFinal_();
+    void reconectarSignalsModelo_();
+};
 
 #endif // VISTAHOJADATOS_H

@@ -7,6 +7,14 @@ class CintaOpciones;
 class PanelObjetos;
 class QTabWidget;
 class PestanaTabla;
+#include <QHash>
+#include "vistadisenio.h"   // por 'Campo'
+#include <QVariant>
+
+struct TablaSnapshot {
+    QList<Campo> schema;
+    QVector<QVector<QVariant>> rows;
+};
 
 class VentanaPrincipal:public QMainWindow
 {
@@ -26,13 +34,14 @@ private slots:
     void mostrarDisenioActual();
     void agregarColumnaActual();
     void eliminarColumnaActual();
+    void eliminarTablaActual();
 
 private:
-
+    QHash<QString, TablaSnapshot> m_memTablas;
     CintaOpciones*m_cinta;
     PanelObjetos*m_panel;
     QTabWidget*m_pestanas;
-    int m_contadorTablas=1; // “Tabla1” ya existe por defecto
+    int m_contadorTablas=1;
 
     void abrirOTraerAPrimerPlano(const QString& nombre);
 

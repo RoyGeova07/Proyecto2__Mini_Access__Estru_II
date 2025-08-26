@@ -1,7 +1,6 @@
 #include "VentanaPrincipal.h"
 #include"CintaOpciones.h"
 #include"PanelObjetos.h"
-#include"VistaHojaDatos.h"
 #include"pestanatabla.h"
 #include<QTabWidget>
 #include<QSplitter>
@@ -44,6 +43,7 @@ VentanaPrincipal::VentanaPrincipal(QWidget*parent):QMainWindow(parent)
     abrirOTraerAPrimerPlano("Tabla1");
 
     // Conexiones
+    connect(m_cinta, &CintaOpciones::eliminarTablaPulsado, this, &VentanaPrincipal::eliminarTablaActual);
     connect(m_cinta,&CintaOpciones::tablaPulsado,this,&VentanaPrincipal::crearTablaNueva);
     connect(m_panel,&PanelObjetos::tablaAbiertaSolicitada,this,&VentanaPrincipal::abrirTablaDesdeLista);
     connect(m_pestanas,&QTabWidget::tabCloseRequested,this,&VentanaPrincipal::cerrarPestana);
@@ -62,6 +62,29 @@ void VentanaPrincipal::crearTablaNueva()
     abrirOTraerAPrimerPlano(nombre);
 
 }
+void VentanaPrincipal::eliminarTablaActual() {
+    int idx = m_pestanas->currentIndex();
+    if (idx < 0) return; // no hay pestaña activa
+
+    const QString nombre = m_pestanas->tabText(idx);
+
+    // Confirmación
+    const auto resp = QMessageBox::question(
+        this, tr("Eliminar tabla"),
+        tr("¿Eliminar la tabla '%1'? Esta acción no se puede deshacer.").arg(nombre),
+        QMessageBox::Yes | QMessageBox::No, QMessageBox::No
+        );
+    if (resp != QMessageBox::Yes) return;
+
+    // Cerrar la pestaña si está abierta
+    QWidget* w = m_pestanas->widget(idx);
+    m_pestanas->removeTab(idx);
+    delete w;
+
+    // Quitar del panel izquierdo
+    m_panel->eliminarTabla(nombre);
+    m_memTablas.remove(nombre);
+}
 
 void VentanaPrincipal::abrirTablaDesdeLista(const QString&nombre)
 {
@@ -70,28 +93,42 @@ void VentanaPrincipal::abrirTablaDesdeLista(const QString&nombre)
 
 }
 
-void VentanaPrincipal::abrirOTraerAPrimerPlano(const QString&nombre)
+void VentanaPrincipal::abrirOTraerAPrimerPlano(const QString& nombre)
 {
-
-    for(int i=0;i<m_pestanas->count();++i)
-    {
-
-        if(m_pestanas->tabText(i)==nombre){m_pestanas->setCurrentIndex(i);return;}
-
+    for (int i=0; i<m_pestanas->count(); ++i) {
+        if (m_pestanas->tabText(i) == nombre) { m_pestanas->setCurrentIndex(i); return; }
     }
-    auto*vista=new PestanaTabla(nombre,m_pestanas);
-    const int idx=m_pestanas->addTab(vista,nombre);
-    m_pestanas->setCurrentIndex(idx);
 
+    auto* vista = new PestanaTabla(nombre, m_pestanas);
+
+    if (m_memTablas.contains(nombre)) {
+        const auto& snap = m_memTablas[nombre];
+        vista->cargarSnapshot(snap.schema, snap.rows);
+    }
+
+    connect(vista, &PestanaTabla::estadoCambioSolicitado, this, [this, vista, nombre](){
+        TablaSnapshot s;
+        s.schema = vista->esquemaActual();
+        s.rows   = vista->filasActuales();
+        m_memTablas[nombre] = std::move(s);
+    });
+
+    const int idx = m_pestanas->addTab(vista, nombre);
+    m_pestanas->setCurrentIndex(idx);
 }
 
 void VentanaPrincipal::cerrarPestana(int idx)
 {
+    if (auto* p = qobject_cast<PestanaTabla*>(m_pestanas->widget(idx))) {
+        TablaSnapshot s;
+        s.schema = p->esquemaActual();
+        s.rows   = p->filasActuales();
+        m_memTablas[p->nombreTabla()] = std::move(s);
+    }
 
-    QWidget*w=m_pestanas->widget(idx);
+    QWidget* w = m_pestanas->widget(idx);
     m_pestanas->removeTab(idx);
-    delete w;//solo cierra la vista; la tabla sigue en el panel izquierdo
-
+    delete w;
 }
 
 void VentanaPrincipal::mostrarHojaDatosActual()
@@ -137,7 +174,9 @@ void VentanaPrincipal::mostrarDisenioActual()
             m_panel->renombrarTabla(anterior,nombre);
             int idx=m_pestanas->currentIndex();
             m_pestanas->setTabText(idx,nombre);
-
+            if (m_memTablas.contains(anterior)) {
+                m_memTablas.insert(nombre, m_memTablas.take(anterior));
+            }
         }
 
         p->mostrarDisenio();
