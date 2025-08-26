@@ -24,6 +24,8 @@ private slots:
     void cerrarPestana(int idx);
     void mostrarHojaDatosActual();
     void mostrarDisenioActual();
+    void agregarColumnaActual();
+    void eliminarColumnaActual();
 
 private:
 

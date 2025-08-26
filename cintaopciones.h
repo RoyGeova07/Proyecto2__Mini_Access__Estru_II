@@ -25,7 +25,8 @@ signals:
     void tablaPulsado();
     void formularioPulsado();
     void relacionesPulsado();
-
+    void agregarColumnaPulsado();
+    void eliminarColumnaPulsado();
 public slots:
 
     void cambiarSeccion(Seccion s);

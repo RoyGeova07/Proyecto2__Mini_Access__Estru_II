@@ -186,8 +186,28 @@ QWidget*CintaOpciones::crearPaginaCrear()
 
     lay->addWidget(btnTabla);
     lay->addWidget(btnForm);
+
+    auto*btnAddCol = new QToolButton(w);
+    btnAddCol->setText("Agregar columna");
+    btnAddCol->setProperty("rol","accion");
+    btnAddCol->setIcon(QIcon(":/im/image/col_add.png"));
+    btnAddCol->setIconSize(QSize(24,24));
+    btnAddCol->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+
+    auto*btnDelCol = new QToolButton(w);
+    btnDelCol->setText("Eliminar columna");
+    btnDelCol->setProperty("rol","accion");
+    btnDelCol->setIcon(QIcon(":/im/image/col_del.png"));
+    btnDelCol->setIconSize(QSize(24,24));
+    btnDelCol->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+
+    lay->addWidget(btnAddCol);
+    lay->addWidget(btnDelCol);
     lay->addStretch();
 
+
+    connect(btnAddCol, &QToolButton::clicked, this, &CintaOpciones::agregarColumnaPulsado);
+    connect(btnDelCol, &QToolButton::clicked, this, &CintaOpciones::eliminarColumnaPulsado);
     connect(btnTabla,&QToolButton::clicked,this,&CintaOpciones::tablaPulsado);
     connect(btnForm,&QToolButton::clicked,this,&CintaOpciones::formularioPulsado);
 

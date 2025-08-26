@@ -49,7 +49,8 @@ VentanaPrincipal::VentanaPrincipal(QWidget*parent):QMainWindow(parent)
     connect(m_pestanas,&QTabWidget::tabCloseRequested,this,&VentanaPrincipal::cerrarPestana);
     connect(m_cinta, &CintaOpciones::verHojaDatos,this,&VentanaPrincipal::mostrarHojaDatosActual);
     connect(m_cinta, &CintaOpciones::verDisenio,this,&VentanaPrincipal::mostrarDisenioActual);
-
+    connect(m_cinta, &CintaOpciones::agregarColumnaPulsado, this, &VentanaPrincipal::agregarColumnaActual);
+    connect(m_cinta, &CintaOpciones::eliminarColumnaPulsado, this, &VentanaPrincipal::eliminarColumnaActual);
 }
 
 void VentanaPrincipal::crearTablaNueva()
@@ -142,5 +143,14 @@ void VentanaPrincipal::mostrarDisenioActual()
         p->mostrarDisenio();
     }
 
-
+}
+void VentanaPrincipal::agregarColumnaActual() {
+    if (auto* p = qobject_cast<PestanaTabla*>(m_pestanas->currentWidget())) {
+        QMetaObject::invokeMethod(p, "agregarColumna");
+    }
+}
+void VentanaPrincipal::eliminarColumnaActual() {
+    if (auto* p = qobject_cast<PestanaTabla*>(m_pestanas->currentWidget())) {
+        QMetaObject::invokeMethod(p, "eliminarColumna");
+    }
 }
