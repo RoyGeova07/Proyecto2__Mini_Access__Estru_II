@@ -142,10 +142,14 @@ release/qrc_img.cpp: ../../img.qrc \
 		C:/Qt/6.8.3/mingw_64/bin/rcc.exe \
 		../../image/llave.png \
 		../../image/crear_tabla.png \
+		../../image/agregar_espacio.png \
 		../../image/tabla.png \
+		../../image/eliminar_espacio.png \
 		../../image/formulario.png \
 		../../image/relaciones.png \
+		../../image/eliminar_tabla.png \
 		../../image/disenio.png \
+		../../image/consultas.png \
 		../../image/a.png
 	C:\Qt\6.8.3\mingw_64\bin\rcc.exe -name img --no-zstd ..\..\img.qrc -o release\qrc_img.cpp
 
@@ -748,6 +752,7 @@ release/moc_panelobjetos.cpp: ../../panelobjetos.h \
 	C:\Qt\6.8.3\mingw_64\bin\moc.exe $(DEFINES) --include C:/Users/royum/OneDrive/Documentos/Proyecto2_Estru2_Mini_Access/build/Desktop_Qt_6_8_3_MinGW_64_bit-Debug/release/moc_predefs.h -IC:/Qt/6.8.3/mingw_64/mkspecs/win32-g++ -IC:/Users/royum/OneDrive/Documentos/Proyecto2_Estru2_Mini_Access -IC:/Qt/6.8.3/mingw_64/include -IC:/Qt/6.8.3/mingw_64/include/QtWidgets -IC:/Qt/6.8.3/mingw_64/include/QtGui -IC:/Qt/6.8.3/mingw_64/include/QtCore -I. -IC:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/c++ -IC:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/c++/x86_64-w64-mingw32 -IC:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/c++/backward -IC:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include -IC:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include-fixed -IC:/Qt/Tools/mingw1310_64/x86_64-w64-mingw32/include ..\..\panelobjetos.h -o release\moc_panelobjetos.cpp
 
 release/moc_pestanatabla.cpp: ../../pestanatabla.h \
+		../../vistadisenio.h \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QWidget \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qwidget.h \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qtwidgetsglobal.h \
@@ -939,6 +944,10 @@ release/moc_pestanatabla.cpp: ../../pestanatabla.h \
 		C:/Qt/6.8.3/mingw_64/include/QtCore/qlocale.h \
 		C:/Qt/6.8.3/mingw_64/include/QtGui/qguiapplication_platform.h \
 		C:/Qt/6.8.3/mingw_64/include/QtCore/QString \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QMessageBox \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qmessagebox.h \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qdialog.h \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qdialogbuttonbox.h \
 		release/moc_predefs.h \
 		C:/Qt/6.8.3/mingw_64/bin/moc.exe
 	C:\Qt\6.8.3\mingw_64\bin\moc.exe $(DEFINES) --include C:/Users/royum/OneDrive/Documentos/Proyecto2_Estru2_Mini_Access/build/Desktop_Qt_6_8_3_MinGW_64_bit-Debug/release/moc_predefs.h -IC:/Qt/6.8.3/mingw_64/mkspecs/win32-g++ -IC:/Users/royum/OneDrive/Documentos/Proyecto2_Estru2_Mini_Access -IC:/Qt/6.8.3/mingw_64/include -IC:/Qt/6.8.3/mingw_64/include/QtWidgets -IC:/Qt/6.8.3/mingw_64/include/QtGui -IC:/Qt/6.8.3/mingw_64/include/QtCore -I. -IC:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/c++ -IC:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/c++/x86_64-w64-mingw32 -IC:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/c++/backward -IC:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include -IC:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include-fixed -IC:/Qt/Tools/mingw1310_64/x86_64-w64-mingw32/include ..\..\pestanatabla.h -o release\moc_pestanatabla.cpp
@@ -1136,6 +1145,11 @@ release/moc_ventanaprincipal.cpp: ../../ventanaprincipal.h \
 		C:/Qt/6.8.3/mingw_64/include/QtCore/qlocale.h \
 		C:/Qt/6.8.3/mingw_64/include/QtGui/qguiapplication_platform.h \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qtabwidget.h \
+		C:/Qt/6.8.3/mingw_64/include/QtCore/QHash \
+		../../vistadisenio.h \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QWidget \
+		C:/Qt/6.8.3/mingw_64/include/QtCore/QString \
+		C:/Qt/6.8.3/mingw_64/include/QtCore/QVariant \
 		release/moc_predefs.h \
 		C:/Qt/6.8.3/mingw_64/bin/moc.exe
 	C:\Qt\6.8.3\mingw_64\bin\moc.exe $(DEFINES) --include C:/Users/royum/OneDrive/Documentos/Proyecto2_Estru2_Mini_Access/build/Desktop_Qt_6_8_3_MinGW_64_bit-Debug/release/moc_predefs.h -IC:/Qt/6.8.3/mingw_64/mkspecs/win32-g++ -IC:/Users/royum/OneDrive/Documentos/Proyecto2_Estru2_Mini_Access -IC:/Qt/6.8.3/mingw_64/include -IC:/Qt/6.8.3/mingw_64/include/QtWidgets -IC:/Qt/6.8.3/mingw_64/include/QtGui -IC:/Qt/6.8.3/mingw_64/include/QtCore -I. -IC:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/c++ -IC:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/c++/x86_64-w64-mingw32 -IC:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/c++/backward -IC:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include -IC:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include-fixed -IC:/Qt/Tools/mingw1310_64/x86_64-w64-mingw32/include ..\..\ventanaprincipal.h -o release\moc_ventanaprincipal.cpp
@@ -1331,6 +1345,7 @@ release/moc_vistadisenio.cpp: ../../vistadisenio.h \
 		C:/Qt/6.8.3/mingw_64/include/QtGui/qinputmethod.h \
 		C:/Qt/6.8.3/mingw_64/include/QtCore/qlocale.h \
 		C:/Qt/6.8.3/mingw_64/include/QtGui/qguiapplication_platform.h \
+		C:/Qt/6.8.3/mingw_64/include/QtCore/QString \
 		release/moc_predefs.h \
 		C:/Qt/6.8.3/mingw_64/bin/moc.exe
 	C:\Qt\6.8.3\mingw_64\bin\moc.exe $(DEFINES) --include C:/Users/royum/OneDrive/Documentos/Proyecto2_Estru2_Mini_Access/build/Desktop_Qt_6_8_3_MinGW_64_bit-Debug/release/moc_predefs.h -IC:/Qt/6.8.3/mingw_64/mkspecs/win32-g++ -IC:/Users/royum/OneDrive/Documentos/Proyecto2_Estru2_Mini_Access -IC:/Qt/6.8.3/mingw_64/include -IC:/Qt/6.8.3/mingw_64/include/QtWidgets -IC:/Qt/6.8.3/mingw_64/include/QtGui -IC:/Qt/6.8.3/mingw_64/include/QtCore -I. -IC:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/c++ -IC:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/c++/x86_64-w64-mingw32 -IC:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/c++/backward -IC:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include -IC:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include-fixed -IC:/Qt/Tools/mingw1310_64/x86_64-w64-mingw32/include ..\..\vistadisenio.h -o release\moc_vistadisenio.cpp
@@ -1526,6 +1541,10 @@ release/moc_vistahojadatos.cpp: ../../vistahojadatos.h \
 		C:/Qt/6.8.3/mingw_64/include/QtGui/qinputmethod.h \
 		C:/Qt/6.8.3/mingw_64/include/QtCore/qlocale.h \
 		C:/Qt/6.8.3/mingw_64/include/QtGui/qguiapplication_platform.h \
+		C:/Qt/6.8.3/mingw_64/include/QtCore/QVariant \
+		C:/Qt/6.8.3/mingw_64/include/QtCore/QVector \
+		C:/Qt/6.8.3/mingw_64/include/QtCore/qvector.h \
+		../../vistadisenio.h \
 		C:/Qt/6.8.3/mingw_64/include/QtCore/QString \
 		release/moc_predefs.h \
 		C:/Qt/6.8.3/mingw_64/bin/moc.exe
@@ -1960,7 +1979,12 @@ release/main.o: ../../main.cpp ../../mainwindow.h \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qtabwidget.h \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QApplication \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qapplication.h \
-		../../ventanaprincipal.h
+		../../ventanaprincipal.h \
+		C:/Qt/6.8.3/mingw_64/include/QtCore/QHash \
+		../../vistadisenio.h \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QWidget \
+		C:/Qt/6.8.3/mingw_64/include/QtCore/QString \
+		C:/Qt/6.8.3/mingw_64/include/QtCore/QVariant
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o release\main.o ..\..\main.cpp
 
 release/mainwindow.o: ../../mainwindow.cpp ../../mainwindow.h \
@@ -2398,6 +2422,7 @@ release/panelobjetos.o: ../../panelobjetos.cpp ../../PanelObjetos.h \
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o release\panelobjetos.o ..\..\panelobjetos.cpp
 
 release/pestanatabla.o: ../../pestanatabla.cpp ../../pestanatabla.h \
+		../../vistadisenio.h \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QWidget \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qwidget.h \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qtwidgetsglobal.h \
@@ -2589,8 +2614,14 @@ release/pestanatabla.o: ../../pestanatabla.cpp ../../pestanatabla.h \
 		C:/Qt/6.8.3/mingw_64/include/QtCore/qlocale.h \
 		C:/Qt/6.8.3/mingw_64/include/QtGui/qguiapplication_platform.h \
 		C:/Qt/6.8.3/mingw_64/include/QtCore/QString \
-		../../vistadisenio.h \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QMessageBox \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qmessagebox.h \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qdialog.h \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qdialogbuttonbox.h \
 		../../vistahojadatos.h \
+		C:/Qt/6.8.3/mingw_64/include/QtCore/QVariant \
+		C:/Qt/6.8.3/mingw_64/include/QtCore/QVector \
+		C:/Qt/6.8.3/mingw_64/include/QtCore/qvector.h \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QStackedWidget \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qstackedwidget.h \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qframe.h \
@@ -2601,7 +2632,15 @@ release/pestanatabla.o: ../../pestanatabla.cpp ../../pestanatabla.h \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qgridlayout.h \
 		C:/Qt/6.8.3/mingw_64/include/QtGui/QIcon \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QTabWidget \
-		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qtabwidget.h
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qtabwidget.h \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QInputDialog \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qinputdialog.h \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qlineedit.h \
+		C:/Qt/6.8.3/mingw_64/include/QtGui/qtextcursor.h \
+		C:/Qt/6.8.3/mingw_64/include/QtGui/qtextdocument.h \
+		C:/Qt/6.8.3/mingw_64/include/QtGui/qtextformat.h \
+		C:/Qt/6.8.3/mingw_64/include/QtGui/qpen.h \
+		C:/Qt/6.8.3/mingw_64/include/QtGui/qtextoption.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o release\pestanatabla.o ..\..\pestanatabla.cpp
 
 release/ventanaprincipal.o: ../../ventanaprincipal.cpp ../../VentanaPrincipal.h \
@@ -2797,14 +2836,20 @@ release/ventanaprincipal.o: ../../ventanaprincipal.cpp ../../VentanaPrincipal.h 
 		C:/Qt/6.8.3/mingw_64/include/QtCore/qlocale.h \
 		C:/Qt/6.8.3/mingw_64/include/QtGui/qguiapplication_platform.h \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qtabwidget.h \
-		../../CintaOpciones.h \
+		C:/Qt/6.8.3/mingw_64/include/QtCore/QHash \
+		../../vistadisenio.h \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QWidget \
+		C:/Qt/6.8.3/mingw_64/include/QtCore/QString \
+		C:/Qt/6.8.3/mingw_64/include/QtCore/QVariant \
+		../../CintaOpciones.h \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QButtonGroup \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qbuttongroup.h \
 		../../PanelObjetos.h \
-		../../VistaHojaDatos.h \
-		C:/Qt/6.8.3/mingw_64/include/QtCore/QString \
 		../../pestanatabla.h \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QMessageBox \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qmessagebox.h \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qdialog.h \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qdialogbuttonbox.h \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QTabWidget \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QSplitter \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qsplitter.h \
@@ -2823,7 +2868,6 @@ release/ventanaprincipal.o: ../../ventanaprincipal.cpp ../../VentanaPrincipal.h 
 		C:/Qt/6.8.3/mingw_64/include/QtGui/qtextformat.h \
 		C:/Qt/6.8.3/mingw_64/include/QtGui/qpen.h \
 		C:/Qt/6.8.3/mingw_64/include/QtGui/qtextoption.h \
-		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qdialog.h \
 		C:/Qt/6.8.3/mingw_64/include/QtCore/QRegularExpression \
 		C:/Qt/6.8.3/mingw_64/include/QtCore/qregularexpression.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o release\ventanaprincipal.o ..\..\ventanaprincipal.cpp
@@ -3019,6 +3063,7 @@ release/vistadisenio.o: ../../vistadisenio.cpp ../../vistadisenio.h \
 		C:/Qt/6.8.3/mingw_64/include/QtGui/qinputmethod.h \
 		C:/Qt/6.8.3/mingw_64/include/QtCore/qlocale.h \
 		C:/Qt/6.8.3/mingw_64/include/QtGui/qguiapplication_platform.h \
+		C:/Qt/6.8.3/mingw_64/include/QtCore/QString \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QTableView \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qtableview.h \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qabstractitemview.h \
@@ -3047,7 +3092,11 @@ release/vistadisenio.o: ../../vistadisenio.cpp ../../vistadisenio.h \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qlayout.h \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qlayoutitem.h \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qgridlayout.h \
-		C:/Qt/6.8.3/mingw_64/include/QtGui/QIcon
+		C:/Qt/6.8.3/mingw_64/include/QtGui/QIcon \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QStyledItemDelegate \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qstyleditemdelegate.h \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QComboBox \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qcombobox.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o release\vistadisenio.o ..\..\vistadisenio.cpp
 
 release/vistahojadatos.o: ../../vistahojadatos.cpp ../../VistaHojaDatos.h \
@@ -3241,19 +3290,13 @@ release/vistahojadatos.o: ../../vistahojadatos.cpp ../../VistaHojaDatos.h \
 		C:/Qt/6.8.3/mingw_64/include/QtGui/qinputmethod.h \
 		C:/Qt/6.8.3/mingw_64/include/QtCore/qlocale.h \
 		C:/Qt/6.8.3/mingw_64/include/QtGui/qguiapplication_platform.h \
+		C:/Qt/6.8.3/mingw_64/include/QtCore/QVariant \
+		C:/Qt/6.8.3/mingw_64/include/QtCore/QVector \
+		C:/Qt/6.8.3/mingw_64/include/QtCore/qvector.h \
+		../../vistadisenio.h \
 		C:/Qt/6.8.3/mingw_64/include/QtCore/QString \
-		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QVBoxLayout \
-		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qboxlayout.h \
-		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qlayout.h \
-		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qlayoutitem.h \
-		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qgridlayout.h \
-		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QTableView \
-		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qtableview.h \
-		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qabstractitemview.h \
-		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qabstractscrollarea.h \
-		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qframe.h \
-		C:/Qt/6.8.3/mingw_64/include/QtCore/qabstractitemmodel.h \
-		C:/Qt/6.8.3/mingw_64/include/QtCore/qitemselectionmodel.h \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QStyledItemDelegate \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qstyleditemdelegate.h \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qabstractitemdelegate.h \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qstyleoption.h \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qabstractspinbox.h \
@@ -3265,10 +3308,42 @@ release/vistahojadatos.o: ../../vistahojadatos.cpp ../../VistaHojaDatos.h \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qtabbar.h \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qtabwidget.h \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qrubberband.h \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qframe.h \
+		C:/Qt/6.8.3/mingw_64/include/QtCore/qabstractitemmodel.h \
+		C:/Qt/6.8.3/mingw_64/include/QtCore/QLocale \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QVBoxLayout \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qboxlayout.h \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qlayout.h \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qlayoutitem.h \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qgridlayout.h \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QTableView \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qtableview.h \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qabstractitemview.h \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qabstractscrollarea.h \
+		C:/Qt/6.8.3/mingw_64/include/QtCore/qitemselectionmodel.h \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QHeaderView \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qheaderview.h \
 		C:/Qt/6.8.3/mingw_64/include/QtGui/QStandardItemModel \
-		C:/Qt/6.8.3/mingw_64/include/QtGui/qstandarditemmodel.h
+		C:/Qt/6.8.3/mingw_64/include/QtGui/qstandarditemmodel.h \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QLineEdit \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qlineedit.h \
+		C:/Qt/6.8.3/mingw_64/include/QtGui/qtextcursor.h \
+		C:/Qt/6.8.3/mingw_64/include/QtGui/qtextdocument.h \
+		C:/Qt/6.8.3/mingw_64/include/QtGui/qtextformat.h \
+		C:/Qt/6.8.3/mingw_64/include/QtGui/qpen.h \
+		C:/Qt/6.8.3/mingw_64/include/QtGui/qtextoption.h \
+		C:/Qt/6.8.3/mingw_64/include/QtGui/QIntValidator \
+		C:/Qt/6.8.3/mingw_64/include/QtGui/QDoubleValidator \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QComboBox \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qcombobox.h \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QDateEdit \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qdatetimeedit.h \
+		C:/Qt/6.8.3/mingw_64/include/QtCore/qtimezone.h \
+		C:/Qt/6.8.3/mingw_64/include/QtCore/qdatetime.h \
+		C:/Qt/6.8.3/mingw_64/include/QtCore/qcalendar.h \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QInputDialog \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qinputdialog.h \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qdialog.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o release\vistahojadatos.o ..\..\vistahojadatos.cpp
 
 release/qrc_img.o: release/qrc_img.cpp 

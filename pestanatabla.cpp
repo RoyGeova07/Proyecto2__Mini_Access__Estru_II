@@ -8,9 +8,9 @@
 #include <QInputDialog>
 #include <QMessageBox>
 
-PestanaTabla::PestanaTabla(const QString& nombreInicial, QWidget* parent)
-    : QWidget(parent), m_nombre(nombreInicial)
+PestanaTabla::PestanaTabla(const QString& nombreInicial, QWidget* parent):QWidget(parent), m_nombre(nombreInicial)
 {
+
     auto* base = new QVBoxLayout(this);
     base->setContentsMargins(0,0,0,0);
     base->setSpacing(0);
@@ -45,66 +45,102 @@ PestanaTabla::PestanaTabla(const QString& nombreInicial, QWidget* parent)
 
     base->addWidget(m_pila);
 
-    connect(m_disenio, &VistaDisenio::esquemaCambiado, this, [this](){
+    connect(m_disenio, &VistaDisenio::esquemaCambiado, this, [this]()
+    {
+
         syncHojaConDisenio_();
         emit estadoCambioSolicitado();
+
     });
 
-    connect(m_hoja, &VistaHojaDatos::datosCambiaron, this, [this](){
+    connect(m_hoja, &VistaHojaDatos::datosCambiaron, this, [this]()
+    {
+
         emit estadoCambioSolicitado();
+
     });
 
-    connect(m_hoja, &VistaHojaDatos::renombrarCampoSolicitado, this,
-            [this](int col, const QString& nombre){
-                if (!m_disenio->renombrarCampo(col, nombre)) {
-                    QMessageBox::warning(this, tr("No se pudo renombrar"),
-                                         tr("Nombre inválido, duplicado o es la clave primaria."));
-                    return;
-                }
-                syncHojaConDisenio_();
-            });
+    connect(m_hoja, &VistaHojaDatos::renombrarCampoSolicitado, this,[this](int col, const QString& nombre)
+    {
+        if (!m_disenio->renombrarCampo(col, nombre))
+        {
+
+            QMessageBox::warning(this, tr("No se pudo renombrar"),tr("Nombre inválido, duplicado o es la clave primaria."));
+            return;
+
+        }
+        syncHojaConDisenio_();
+    });
 
     syncHojaConDisenio_();
 
-     m_pila->setCurrentIndex(0);
+    m_pila->setCurrentIndex(0);
 }
 
-QList<Campo> PestanaTabla::esquemaActual() const {
+QList<Campo> PestanaTabla::esquemaActual() const
+{
+
     return m_disenio->esquema();
+
 }
 
-QVector<QVector<QVariant>> PestanaTabla::filasActuales() const {
+QVector<QVector<QVariant>> PestanaTabla::filasActuales() const
+{
+
     return m_hoja->snapshotFilas(); // lo añadimos en VistaHojaDatos
+
 }
 
-void PestanaTabla::cargarSnapshot(const QList<Campo>& schema, const QVector<QVector<QVariant>>& rows) {
+void PestanaTabla::cargarSnapshot(const QList<Campo>& schema, const QVector<QVector<QVariant>>& rows)
+{
+
     m_disenio->establecerEsquema(schema); // lo añadimos en VistaDisenio
     syncHojaConDisenio_();
     m_hoja->cargarFilas(rows);            // lo añadimos en VistaHojaDatos
+
 }
 
-void PestanaTabla::mostrarHojaDatos() {
+void PestanaTabla::mostrarHojaDatos()
+{
+
     syncHojaConDisenio_();
     m_pila->setCurrentIndex(0);
+
 }
-void PestanaTabla::mostrarDisenio(){
+void PestanaTabla::mostrarDisenio()
+{
+
     m_pila->setCurrentIndex(1);
+
 }
 
-void PestanaTabla::syncHojaConDisenio_() {
+void PestanaTabla::syncHojaConDisenio_()
+{
+
     auto campos = m_disenio->esquema();
     m_hoja->reconstruirColumnas(campos);
+
 }
 
-void PestanaTabla::agregarColumna() {
+void PestanaTabla::agregarColumna()
+{
+
     m_disenio->agregarFilaCampo();
     syncHojaConDisenio_();
+
 }
 
-void PestanaTabla::eliminarColumna() {
-    if (m_pila->currentWidget() == m_paginaDisenio) {
-        if (m_disenio->eliminarCampoSeleccionado()) {
+void PestanaTabla::eliminarColumna()
+{
+
+    if (m_pila->currentWidget() == m_paginaDisenio)
+    {
+
+        if (m_disenio->eliminarCampoSeleccionado())
+        {
+
             syncHojaConDisenio_();
+
         }
         return;
     }
@@ -123,7 +159,18 @@ void PestanaTabla::eliminarColumna() {
         );
     if (!ok || elegido.isEmpty()) return;
 
-    if (m_disenio->eliminarCampoPorNombre(elegido)) {
+    if (m_disenio->eliminarCampoPorNombre(elegido))
+    {
+
         syncHojaConDisenio_();
+
     }
+
+}
+
+void PestanaTabla::hacerClavePrimaria()
+{
+
+    if(m_disenio)m_disenio->EstablecerPkSeleccionActual();
+
 }
