@@ -60,7 +60,8 @@ bool VistaDisenio::renombrarCampo(int fila, const QString& nuevoNombre)
     return true;
 
 }
-void VistaDisenio::establecerEsquema(const QList<Campo>& campos) {
+void VistaDisenio::establecerEsquema(const QList<Campo>& campos)
+{
     m_modelo->clear();
     m_modelo->setColumnCount(3);
     m_modelo->setHeaderData(0, Qt::Horizontal, QString());
@@ -89,6 +90,8 @@ void VistaDisenio::establecerEsquema(const QList<Campo>& campos) {
     }
     ponerIconoLlave(QIcon(":/im/image/llave.png"));
 
+    m_pkRow=0;
+    RefrescarIconPk();
     emit esquemaCambiado();
 }
 
@@ -136,16 +139,19 @@ VistaDisenio::VistaDisenio(QWidget*parent):QWidget(parent)
 }
 void VistaDisenio::ponerIconoLlave(const QIcon &icono)
 {
-    auto*it = m_modelo->item(0,0);
-    if (!it) { it = new QStandardItem(); it->setEditable(false); m_modelo->setItem(0,0,it); }
-    it->setIcon(icono);
+
+    m_iconPk=icono;// guardar el icono
+    RefrescarIconPk();
+
 }
 
-QList<Campo> VistaDisenio::esquema() const {
+QList<Campo> VistaDisenio::esquema() const
+{
+
     QList<Campo> out;
     for (int r=0; r<m_modelo->rowCount(); ++r) {
         Campo c;
-        c.pk    = (r==0);
+        c.pk    = (r==m_pkRow);
         c.nombre= m_modelo->index(r,1).data().toString().trimmed();
         c.tipo  = m_modelo->index(r,2).data().toString().trimmed();
         if (c.nombre.isEmpty()) c.nombre = (r==0? "Id" : QString("Campo%1").arg(r));
@@ -242,7 +248,7 @@ void VistaDisenio::RefrescarIconPk()
 Campo VistaDisenio::campoEnFila(int fila) const {
     Campo c;
     if (fila < 0 || fila >= m_modelo->rowCount()) return c;
-    c.pk     = (fila==0);
+    c.pk     = (fila==m_pkRow);
     c.nombre = m_modelo->index(fila,1).data().toString().trimmed();
     c.tipo   = m_modelo->index(fila,2).data().toString().trimmed();
     if (c.nombre.isEmpty()) c.nombre = c.pk ? "Id" : QString("Campo%1").arg(fila);
@@ -263,5 +269,12 @@ void VistaDisenio::EstablecerPkSeleccionActual()
 
     const int fila=m_tabla->currentIndex().row();
     if(fila>=0)EstablecerPkEnFila(fila);
+
+}
+
+int VistaDisenio::filaSeleccionadaActual()const
+{
+
+    return m_tabla->currentIndex().row();
 
 }
