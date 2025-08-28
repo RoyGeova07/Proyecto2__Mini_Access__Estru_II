@@ -46,9 +46,15 @@ constexpr auto qt_meta_stringdata_CLASSCintaOpcionesENDCLASS = QtMocHelpers::str
     "relacionesPulsado",
     "agregarColumnaPulsado",
     "eliminarColumnaPulsado",
+    "ClavePrimarioPulsado",
+    "ConsultaPulsado",
     "cambiarSeccion",
     "Seccion",
-    "s"
+    "s",
+    "MostrarBotonClavePrimaria",
+    "vis",
+    "setIconoVerHojaDatos",
+    "setIconoVerDisenio"
 );
 #else  // !QT_MOC_HAS_STRINGDATA
 #error "qtmochelpers.h not found or too old."
@@ -61,26 +67,31 @@ Q_CONSTINIT static const uint qt_meta_data_CLASSCintaOpcionesENDCLASS[] = {
       12,       // revision
        0,       // classname
        0,    0, // classinfo
-      10,   14, // methods
+      15,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
        0,       // flags
-       9,       // signalCount
+      11,       // signalCount
 
  // signals: name, argc, parameters, tag, flags, initial metatype offsets
-       1,    0,   74,    2, 0x06,    1 /* Public */,
-       3,    0,   75,    2, 0x06,    2 /* Public */,
-       4,    0,   76,    2, 0x06,    3 /* Public */,
-       5,    0,   77,    2, 0x06,    4 /* Public */,
-       6,    0,   78,    2, 0x06,    5 /* Public */,
-       7,    0,   79,    2, 0x06,    6 /* Public */,
-       8,    0,   80,    2, 0x06,    7 /* Public */,
-       9,    0,   81,    2, 0x06,    8 /* Public */,
-      10,    0,   82,    2, 0x06,    9 /* Public */,
+       1,    0,  104,    2, 0x06,    1 /* Public */,
+       3,    0,  105,    2, 0x06,    2 /* Public */,
+       4,    0,  106,    2, 0x06,    3 /* Public */,
+       5,    0,  107,    2, 0x06,    4 /* Public */,
+       6,    0,  108,    2, 0x06,    5 /* Public */,
+       7,    0,  109,    2, 0x06,    6 /* Public */,
+       8,    0,  110,    2, 0x06,    7 /* Public */,
+       9,    0,  111,    2, 0x06,    8 /* Public */,
+      10,    0,  112,    2, 0x06,    9 /* Public */,
+      11,    0,  113,    2, 0x06,   10 /* Public */,
+      12,    0,  114,    2, 0x06,   11 /* Public */,
 
  // slots: name, argc, parameters, tag, flags, initial metatype offsets
-      11,    1,   83,    2, 0x0a,   10 /* Public */,
+      13,    1,  115,    2, 0x0a,   12 /* Public */,
+      16,    1,  118,    2, 0x0a,   14 /* Public */,
+      18,    0,  121,    2, 0x0a,   16 /* Public */,
+      19,    0,  122,    2, 0x0a,   17 /* Public */,
 
  // signals: parameters
     QMetaType::Void,
@@ -92,9 +103,14 @@ Q_CONSTINIT static const uint qt_meta_data_CLASSCintaOpcionesENDCLASS[] = {
     QMetaType::Void,
     QMetaType::Void,
     QMetaType::Void,
+    QMetaType::Void,
+    QMetaType::Void,
 
  // slots: parameters
-    QMetaType::Void, 0x80000000 | 12,   13,
+    QMetaType::Void, 0x80000000 | 14,   15,
+    QMetaType::Void, QMetaType::Bool,   17,
+    QMetaType::Void,
+    QMetaType::Void,
 
        0        // eod
 };
@@ -126,9 +142,20 @@ Q_CONSTINIT const QMetaObject CintaOpciones::staticMetaObject = { {
         QtPrivate::TypeAndForceComplete<void, std::false_type>,
         // method 'eliminarColumnaPulsado'
         QtPrivate::TypeAndForceComplete<void, std::false_type>,
+        // method 'ClavePrimarioPulsado'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>,
+        // method 'ConsultaPulsado'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>,
         // method 'cambiarSeccion'
         QtPrivate::TypeAndForceComplete<void, std::false_type>,
-        QtPrivate::TypeAndForceComplete<Seccion, std::false_type>
+        QtPrivate::TypeAndForceComplete<Seccion, std::false_type>,
+        // method 'MostrarBotonClavePrimaria'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>,
+        QtPrivate::TypeAndForceComplete<bool, std::false_type>,
+        // method 'setIconoVerHojaDatos'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>,
+        // method 'setIconoVerDisenio'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>
     >,
     nullptr
 } };
@@ -148,7 +175,12 @@ void CintaOpciones::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _i
         case 6: _t->relacionesPulsado(); break;
         case 7: _t->agregarColumnaPulsado(); break;
         case 8: _t->eliminarColumnaPulsado(); break;
-        case 9: _t->cambiarSeccion((*reinterpret_cast< std::add_pointer_t<Seccion>>(_a[1]))); break;
+        case 9: _t->ClavePrimarioPulsado(); break;
+        case 10: _t->ConsultaPulsado(); break;
+        case 11: _t->cambiarSeccion((*reinterpret_cast< std::add_pointer_t<Seccion>>(_a[1]))); break;
+        case 12: _t->MostrarBotonClavePrimaria((*reinterpret_cast< std::add_pointer_t<bool>>(_a[1]))); break;
+        case 13: _t->setIconoVerHojaDatos(); break;
+        case 14: _t->setIconoVerDisenio(); break;
         default: ;
         }
     } else if (_c == QMetaObject::IndexOfMethod) {
@@ -216,6 +248,20 @@ void CintaOpciones::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _i
                 return;
             }
         }
+        {
+            using _t = void (CintaOpciones::*)();
+            if (_t _q_method = &CintaOpciones::ClavePrimarioPulsado; *reinterpret_cast<_t *>(_a[1]) == _q_method) {
+                *result = 9;
+                return;
+            }
+        }
+        {
+            using _t = void (CintaOpciones::*)();
+            if (_t _q_method = &CintaOpciones::ConsultaPulsado; *reinterpret_cast<_t *>(_a[1]) == _q_method) {
+                *result = 10;
+                return;
+            }
+        }
     }
 }
 
@@ -238,13 +284,13 @@ int CintaOpciones::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 10)
+        if (_id < 15)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 10;
+        _id -= 15;
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 10)
+        if (_id < 15)
             *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
-        _id -= 10;
+        _id -= 15;
     }
     return _id;
 }
@@ -301,5 +347,17 @@ void CintaOpciones::agregarColumnaPulsado()
 void CintaOpciones::eliminarColumnaPulsado()
 {
     QMetaObject::activate(this, &staticMetaObject, 8, nullptr);
+}
+
+// SIGNAL 9
+void CintaOpciones::ClavePrimarioPulsado()
+{
+    QMetaObject::activate(this, &staticMetaObject, 9, nullptr);
+}
+
+// SIGNAL 10
+void CintaOpciones::ConsultaPulsado()
+{
+    QMetaObject::activate(this, &staticMetaObject, 10, nullptr);
 }
 QT_WARNING_POP

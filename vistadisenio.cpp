@@ -97,25 +97,22 @@ VistaDisenio::VistaDisenio(QWidget*parent):QWidget(parent)
     auto*lay=new QVBoxLayout(this);
     lay->setContentsMargins(0,0,0,0);
     lay->setSpacing(0);
-
     m_tabla=new QTableView(this);
     m_modelo=new QStandardItemModel(this);
-
     m_modelo->setColumnCount(3);
     m_modelo->setHeaderData(0,Qt::Horizontal,QString());
     m_modelo->setHeaderData(1,Qt::Horizontal,QStringLiteral("Nombre del campo"));
     m_modelo->setHeaderData(2,Qt::Horizontal,QStringLiteral("Tipo de datos"));
-
-    m_modelo->setRowCount(1);
-    auto*it=new QStandardItem();
-    it->setEditable(false);
+    m_modelo->setRowCount(2);
+    auto*it=new QStandardItem(); it->setEditable(false);
     m_modelo->setItem(0,0,it);
-
     m_modelo->setItem(0,1,new QStandardItem(QStringLiteral("Id")));
     m_modelo->item(0,1)->setEditable(false);
     m_modelo->setItem(0,2,new QStandardItem(QStringLiteral("Entero")));
     m_modelo->item(0,2)->setEditable(false);
-
+    m_modelo->setItem(1,0,new QStandardItem());
+    m_modelo->setItem(1,1,new QStandardItem(QStringLiteral("Campo1")));
+    m_modelo->setItem(1,2,new QStandardItem(QStringLiteral("Texto")));
     m_tabla->setModel(m_modelo);
     m_tabla->setEditTriggers(QAbstractItemView::AllEditTriggers);
     m_tabla->horizontalHeader()->setSectionResizeMode(0,QHeaderView::Fixed);
@@ -131,14 +128,17 @@ VistaDisenio::VistaDisenio(QWidget*parent):QWidget(parent)
     connect(m_modelo, &QStandardItemModel::dataChanged, this, [this](const QModelIndex&, const QModelIndex&){ emit esquemaCambiado(); });
     connect(m_modelo, &QStandardItemModel::rowsInserted, this, [this](const QModelIndex&, int, int){ emit esquemaCambiado(); });
     connect(m_modelo, &QStandardItemModel::rowsRemoved, this, [this](const QModelIndex&, int, int){ emit esquemaCambiado(); });
+
+    connect(m_tabla->selectionModel(), &QItemSelectionModel::currentRowChanged,
+            this, [this](const QModelIndex& cur, const QModelIndex&){
+                emit filaSeleccionada(cur.isValid()? cur.row() : -1);
+            });
 }
 void VistaDisenio::ponerIconoLlave(const QIcon &icono)
 {
-
-
-    m_iconPk=icono;
-    RefrescarIconPk();
-
+    auto*it = m_modelo->item(0,0);
+    if (!it) { it = new QStandardItem(); it->setEditable(false); m_modelo->setItem(0,0,it); }
+    it->setIcon(icono);
 }
 
 QList<Campo> VistaDisenio::esquema() const {
@@ -239,7 +239,16 @@ void VistaDisenio::RefrescarIconPk()
     }
 
 }
-
+Campo VistaDisenio::campoEnFila(int fila) const {
+    Campo c;
+    if (fila < 0 || fila >= m_modelo->rowCount()) return c;
+    c.pk     = (fila==0);
+    c.nombre = m_modelo->index(fila,1).data().toString().trimmed();
+    c.tipo   = m_modelo->index(fila,2).data().toString().trimmed();
+    if (c.nombre.isEmpty()) c.nombre = c.pk ? "Id" : QString("Campo%1").arg(fila);
+    if (c.tipo.isEmpty())   c.tipo   = c.pk ? "Entero" : "Texto";
+    return c;
+}
 void VistaDisenio::EstablecerPkEnFila(int fila)
 {
 

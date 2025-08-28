@@ -34,26 +34,31 @@ public slots:
 
     void mostrarHojaDatos();
     void mostrarDisenio();
-
     void agregarColumna();
     void eliminarColumna();
     void hacerClavePrimaria();
 
 private:
-
     QString m_nombre;
     bool m_tieneNombre=false;
     QStackedWidget*m_pila;
     QWidget*m_paginaDisenio;
     QTabWidget*m_panelProp;
     QWidget*m_paginaHoja;
-
     VistaHojaDatos*m_hoja;
     VistaDisenio*m_disenio;
-
     void syncHojaConDisenio_();
-
+    QLabel* m_pNombre=nullptr;
+    QLabel* m_pTipo=nullptr;
+    QLabel* m_pTamano=nullptr;
+    QLabel* m_pFormato=nullptr;
+    QLabel* m_pDecimales=nullptr;
+    QLabel* m_pValorDef=nullptr;
+    QLabel* m_pRequerido=nullptr;
+    QLabel* m_pPermiteCero=nullptr;
+    QLabel* m_pIndexado=nullptr;
+    void refrescarGeneral_(int fila);
 };
 
 
-#endif // PESTANATABLA_H
+#endif

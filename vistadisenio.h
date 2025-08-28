@@ -29,9 +29,9 @@ public:
 
     explicit VistaDisenio(QWidget*parent=nullptr);
     void ponerIconoLlave(const QIcon&icono);
-
     QList<Campo> esquema() const;
-
+    Campo campoEnFila(int fila) const;
+    int filaSeleccionadaActual() const;
 public slots:
 
     void establecerEsquema(const QList<Campo>& campos);
@@ -43,9 +43,8 @@ public slots:
     void EstablecerPkSeleccionActual();
 
 signals:
-
     void esquemaCambiado();
-
+     void filaSeleccionada(int fila);
 private:
 
     QTableView* m_tabla;
