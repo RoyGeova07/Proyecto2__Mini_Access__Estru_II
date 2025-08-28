@@ -11,9 +11,13 @@ class VistaHojaDatos;
 class VistaDisenio;
 class QTabWidget;
 
-class PestanaTabla:public QWidget {
+class PestanaTabla:public QWidget
+{
+
     Q_OBJECT
+
 public:
+
     QList<Campo> esquemaActual() const;
     QVector<QVector<QVariant>> filasActuales() const;
     void cargarSnapshot(const QList<Campo>& schema, const QVector<QVector<QVariant>>& rows);
@@ -21,27 +25,34 @@ public:
     QString nombreTabla()const{return m_nombre;}
     bool tieneNombre()const{return m_tieneNombre; }
     void establecerNombre(const QString& n){m_nombre=n;m_tieneNombre=true;}
+
 signals:
+
     void estadoCambioSolicitado();
+
 public slots:
+
     void mostrarHojaDatos();
     void mostrarDisenio();
 
     void agregarColumna();
     void eliminarColumna();
+    void hacerClavePrimaria();
 
 private:
+
     QString m_nombre;
     bool m_tieneNombre=false;
     QStackedWidget*m_pila;
     QWidget*m_paginaDisenio;
-    QTabWidget* m_panelProp;
+    QTabWidget*m_panelProp;
     QWidget*m_paginaHoja;
 
     VistaHojaDatos*m_hoja;
     VistaDisenio*m_disenio;
 
     void syncHojaConDisenio_();
+
 };
 
 

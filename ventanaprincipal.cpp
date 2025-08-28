@@ -51,6 +51,9 @@ VentanaPrincipal::VentanaPrincipal(QWidget*parent):QMainWindow(parent)
     connect(m_cinta, &CintaOpciones::verDisenio,this,&VentanaPrincipal::mostrarDisenioActual);
     connect(m_cinta, &CintaOpciones::agregarColumnaPulsado, this, &VentanaPrincipal::agregarColumnaActual);
     connect(m_cinta, &CintaOpciones::eliminarColumnaPulsado, this, &VentanaPrincipal::eliminarColumnaActual);
+    connect(m_cinta,&CintaOpciones::ClavePrimarioPulsado,this,&VentanaPrincipal::HacerClavePrimariaActual);
+    connect(m_cinta,&CintaOpciones::ConsultaPulsado,this,&VentanaPrincipal::CrearConsultaNueva);
+
 }
 
 void VentanaPrincipal::crearTablaNueva()
@@ -68,13 +71,8 @@ void VentanaPrincipal::eliminarTablaActual() {
 
     const QString nombre = m_pestanas->tabText(idx);
 
-    // Confirmación
-    const auto resp = QMessageBox::question(
-        this, tr("Eliminar tabla"),
-        tr("¿Eliminar la tabla '%1'? Esta acción no se puede deshacer.").arg(nombre),
-        QMessageBox::Yes | QMessageBox::No, QMessageBox::No
-        );
-    if (resp != QMessageBox::Yes) return;
+    const auto resp=QMessageBox::question(this, tr("Eliminar tabla"),tr("¿Eliminar la tabla '%1'? Esta accion no se puede deshacer.").arg(nombre),QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+    if(resp!=QMessageBox::Yes)return;
 
     // Cerrar la pestaña si está abierta
     QWidget* w = m_pestanas->widget(idx);
@@ -140,6 +138,8 @@ void VentanaPrincipal::mostrarHojaDatosActual()
         p->mostrarHojaDatos();
 
     }
+    m_cinta->MostrarBotonClavePrimaria(false);//ocultar boton en hoja de datos
+    m_cinta->setIconoVerHojaDatos();
 
 }
 
@@ -164,6 +164,7 @@ void VentanaPrincipal::mostrarDisenioActual()
                 nombre= QInputDialog::getText(this,tr("Guardar tabla"),tr("Nombre de la tabla:"),QLineEdit::Normal,nombre, &ok).trimmed();
                 if(!ok)return;
                 if(nombre.isEmpty())continue;//no vacio
+
                 if(m_panel->existeTabla(nombre)&&nombre!=anterior)continue;//no repetido
                 break;
 
@@ -181,15 +182,43 @@ void VentanaPrincipal::mostrarDisenioActual()
 
         p->mostrarDisenio();
     }
+    m_cinta->MostrarBotonClavePrimaria(true);//mostrar en esta tabla disenio
+    m_cinta->setIconoVerDisenio();
 
 }
-void VentanaPrincipal::agregarColumnaActual() {
-    if (auto* p = qobject_cast<PestanaTabla*>(m_pestanas->currentWidget())) {
+void VentanaPrincipal::agregarColumnaActual()
+{
+
+    if(auto* p = qobject_cast<PestanaTabla*>(m_pestanas->currentWidget()))
+    {
+
         QMetaObject::invokeMethod(p, "agregarColumna");
+
     }
+
 }
-void VentanaPrincipal::eliminarColumnaActual() {
-    if (auto* p = qobject_cast<PestanaTabla*>(m_pestanas->currentWidget())) {
+void VentanaPrincipal::eliminarColumnaActual()
+{
+
+    if (auto* p = qobject_cast<PestanaTabla*>(m_pestanas->currentWidget()))
+    {
+
         QMetaObject::invokeMethod(p, "eliminarColumna");
+
     }
+
+}
+void VentanaPrincipal::HacerClavePrimariaActual()
+{
+
+    if(auto*p=qobject_cast<PestanaTabla*>(m_pestanas->currentWidget()))
+        QMetaObject::invokeMethod(p,"hacerClavePrimaria");
+
+}
+
+void VentanaPrincipal::CrearConsultaNueva()
+{
+
+    QMessageBox::information(this, tr("Consultas"),tr("Aquí se creará una consulta.\n(Próximamente diseñador de consultas)"));
+
 }

@@ -8,24 +8,39 @@
 #include <QStyledItemDelegate>
 #include <QComboBox>
 
-class TipoDatoDelegate : public QStyledItemDelegate {
+class TipoDatoDelegate : public QStyledItemDelegate
+{
+
 public:
     using QStyledItemDelegate::QStyledItemDelegate;
-    QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem&, const QModelIndex&) const override {
+
+    QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem&, const QModelIndex&) const override
+    {
+
         auto* cb = new QComboBox(parent);
         cb->addItems({"Texto","Entero","Real","Fecha","Booleano","Moneda"});
         return cb;
+
     }
-    void setEditorData(QWidget* editor, const QModelIndex& index) const override {
+    void setEditorData(QWidget* editor, const QModelIndex& index) const override
+    {
+
         if (auto* cb = qobject_cast<QComboBox*>(editor))
             cb->setCurrentText(index.data().toString());
+
     }
-    void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const override {
+    void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const override
+    {
+
         if (auto* cb = qobject_cast<QComboBox*>(editor))
             model->setData(index, cb->currentText());
+
     }
+
 };
-bool VistaDisenio::renombrarCampo(int fila, const QString& nuevoNombre) {
+bool VistaDisenio::renombrarCampo(int fila, const QString& nuevoNombre)
+{
+
     if (fila <= 0) return false;
     const QString nn = nuevoNombre.trimmed();
     if (nn.isEmpty()) return false;
@@ -43,6 +58,7 @@ bool VistaDisenio::renombrarCampo(int fila, const QString& nuevoNombre) {
 
     emit esquemaCambiado();
     return true;
+
 }
 void VistaDisenio::establecerEsquema(const QList<Campo>& campos) {
     m_modelo->clear();
@@ -118,9 +134,11 @@ VistaDisenio::VistaDisenio(QWidget*parent):QWidget(parent)
 }
 void VistaDisenio::ponerIconoLlave(const QIcon &icono)
 {
-    auto*it = m_modelo->item(0,0);
-    if (!it) { it = new QStandardItem(); it->setEditable(false); m_modelo->setItem(0,0,it); }
-    it->setIcon(icono);
+
+
+    m_iconPk=icono;
+    RefrescarIconPk();
+
 }
 
 QList<Campo> VistaDisenio::esquema() const {
@@ -137,11 +155,14 @@ QList<Campo> VistaDisenio::esquema() const {
     return out;
 }
 
-void VistaDisenio::agregarFilaCampo() {
+void VistaDisenio::agregarFilaCampo()
+{
+
     int r = m_modelo->rowCount();
     m_modelo->insertRow(r);
 
     auto *pk = new QStandardItem();
+    pk->setEditable(false);//que la columna de llave no sea editable
     auto *nom = new QStandardItem(QString("Campo%1").arg(r));
     auto *tip = new QStandardItem(QStringLiteral("Texto"));
 
@@ -153,8 +174,11 @@ void VistaDisenio::agregarFilaCampo() {
     m_modelo->setItem(r, 2, tip);
 
     emit esquemaCambiado();
+
 }
-bool VistaDisenio::eliminarCampoPorNombre(const QString& nombre) {
+bool VistaDisenio::eliminarCampoPorNombre(const QString& nombre)
+{
+
     if (nombre.trimmed().isEmpty()) return false;
     for (int r = 0; r < m_modelo->rowCount(); ++r) {
         if (r == 0) continue;
@@ -165,12 +189,70 @@ bool VistaDisenio::eliminarCampoPorNombre(const QString& nombre) {
         }
     }
     return false;
+
 }
-bool VistaDisenio::eliminarCampoSeleccionado() {
+bool VistaDisenio::eliminarCampoSeleccionado()
+{
+
     auto idx = m_tabla->currentIndex();
     int r = idx.isValid() ? idx.row() : -1;
     if (r <= 0) return false;
     m_modelo->removeRow(r);
     emit esquemaCambiado();
     return true;
+
+}
+
+void VistaDisenio::RefrescarIconPk()
+{
+
+    //aqui limpia todas las llaves y coloca en la fila PK
+    for(int i=0;i<m_modelo->rowCount();++i)
+    {
+
+        auto*it=m_modelo->item(i,0);
+        if(!it)
+        {
+
+            it=new QStandardItem();
+            it->setEditable(false);
+            m_modelo->setItem(i,0,it);
+
+        }
+        it->setIcon(QIcon());//sin icono
+
+    }
+    if(m_pkRow>=0&&m_pkRow<m_modelo->rowCount())
+    {
+
+        auto*it=m_modelo->item(m_pkRow,0);
+        if(!it)
+        {
+
+            it=new QStandardItem();
+            it->setEditable(false);
+            m_modelo->setItem(m_pkRow,0,it);
+
+        }
+        it->setIcon(m_iconPk);
+
+    }
+
+}
+
+void VistaDisenio::EstablecerPkEnFila(int fila)
+{
+
+    if(fila<0||fila>=m_modelo->rowCount())return;
+    m_pkRow=fila;
+    RefrescarIconPk();
+    emit esquemaCambiado();
+
+}
+void VistaDisenio::EstablecerPkSeleccionActual()
+{
+
+    const int fila=m_tabla->currentIndex().row();
+    if(fila>=0)EstablecerPkEnFila(fila);
+
 }

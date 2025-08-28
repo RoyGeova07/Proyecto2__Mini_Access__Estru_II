@@ -134,14 +134,28 @@ QWidget*CintaOpciones::crearPaginaInicio()
     lay->setContentsMargins(0,0,0,0);
     lay->setSpacing(10);
 
-    auto*btnVer=new QToolButton(w);
+    btnVer=new QToolButton(w);
     btnVer->setText("Ver");
     btnVer->setProperty("rol","accion");
     btnVer->setIcon(QIcon(":/im/image/disenio.png"));// poner aqui  icono de “Ver”
     btnVer->setIconSize(QSize(24,24));
     btnVer->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
-
     btnVer->setPopupMode(QToolButton::MenuButtonPopup);//flecha que abre el mnu
+
+    //iconos para cada vista
+    m_iconVistaDatos=QIcon(":/im/image/tabla.png");;
+    m_iconVistaDisenio=QIcon(":/im/image/disenio.png");
+    btnVer->setIcon(m_iconVistaDatos);//por defecto
+
+    m_btnClavePrimaria=new QToolButton(w);
+    m_btnClavePrimaria->setText("Clave principal");
+    m_btnClavePrimaria->setProperty("rol","accion");
+    m_btnClavePrimaria->setIcon(QIcon(":/im/image/llave.png"));
+    m_btnClavePrimaria->setIconSize(QSize(24,24));
+    m_btnClavePrimaria->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+    m_btnClavePrimaria->setVisible(false);//Oculto por defecto
+    connect(m_btnClavePrimaria,&QToolButton::clicked,this,&CintaOpciones::ClavePrimarioPulsado);
+
     auto*menuVer=new QMenu(btnVer);
 
     QAction*actHoja=menuVer->addAction(QIcon(":/im/image/tabla.png"),QStringLiteral("Vista Hoja de datos"));
@@ -155,6 +169,7 @@ QWidget*CintaOpciones::crearPaginaInicio()
     connect(actDisenio,&QAction::triggered,this,&CintaOpciones::verDisenio);
 
     lay->addWidget(btnVer);
+    lay->addWidget(m_btnClavePrimaria);
     lay->addStretch();
 
     connect(btnVer,&QToolButton::clicked,this,&CintaOpciones::verPulsado);
@@ -170,12 +185,18 @@ QWidget* CintaOpciones::crearPaginaCrear()
     lay->setContentsMargins(0,0,0,0);
     lay->setSpacing(10);
 
-    // Botón: Tabla
     auto* btnTabla = new QToolButton(w);
-    btnTabla->setText("Tabla");
+    btnTabla->setText("Crear Tabla");
     btnTabla->setIcon(QIcon(":/im/image/crear_tabla.png"));
     btnTabla->setIconSize(QSize(24,24));
     btnTabla->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+
+    auto*btnConsulta=new QToolButton(w);
+    btnConsulta->setText("Diseño Consulta");
+    btnConsulta->setProperty("rol","accion");
+    btnConsulta->setIcon(QIcon(":/im/image/consultas.png"));
+    btnConsulta->setIconSize(QSize(24,24));
+    btnConsulta->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
 
     // Botón: Formulario (placeholder)
     auto* btnForm = new QToolButton(w);
@@ -186,17 +207,17 @@ QWidget* CintaOpciones::crearPaginaCrear()
 
     // Botón: Agregar columna
     auto* btnAddCol = new QToolButton(w);
-    btnAddCol->setText("Agregar columna");
+    btnAddCol->setText("Agregar Campo");
     btnAddCol->setProperty("rol","accion");
-    btnAddCol->setIcon(QIcon(":/im/image/col_add.png"));
+    btnAddCol->setIcon(QIcon(":/im/image/agregar_espacio.png"));
     btnAddCol->setIconSize(QSize(24,24));
     btnAddCol->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
 
     // Botón: Eliminar columna
     auto* btnDelCol = new QToolButton(w);
-    btnDelCol->setText("Eliminar columna");
+    btnDelCol->setText("Eliminar Campo");
     btnDelCol->setProperty("rol","accion");
-    btnDelCol->setIcon(QIcon(":/im/image/col_del.png"));
+    btnDelCol->setIcon(QIcon(":/im/image/eliminar_espacio.png"));
     btnDelCol->setIconSize(QSize(24,24));
     btnDelCol->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
 
@@ -204,12 +225,13 @@ QWidget* CintaOpciones::crearPaginaCrear()
     auto* btnDelTabla = new QToolButton(w);
     btnDelTabla->setText("Eliminar tabla");
     btnDelTabla->setProperty("rol","accion");
-    btnDelTabla->setIcon(QIcon(":/im/image/tabla_eliminar.png")); // opcional
+    btnDelTabla->setIcon(QIcon(":/im/image/eliminar_tabla.png")); // opcional
     btnDelTabla->setIconSize(QSize(24,24));
     btnDelTabla->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
 
     // Orden en la fila
     lay->addWidget(btnTabla);
+    lay->addWidget(btnConsulta);
     lay->addWidget(btnForm);
     lay->addWidget(btnAddCol);
     lay->addWidget(btnDelCol);
@@ -221,7 +243,8 @@ QWidget* CintaOpciones::crearPaginaCrear()
     connect(btnForm,     &QToolButton::clicked, this, &CintaOpciones::formularioPulsado);
     connect(btnAddCol,   &QToolButton::clicked, this, &CintaOpciones::agregarColumnaPulsado);
     connect(btnDelCol,   &QToolButton::clicked, this, &CintaOpciones::eliminarColumnaPulsado);
-    connect(btnDelTabla, &QToolButton::clicked, this, &CintaOpciones::eliminarTablaPulsado); // <--
+    connect(btnDelTabla, &QToolButton::clicked, this, &CintaOpciones::eliminarTablaPulsado);
+    connect(btnConsulta,&QToolButton::clicked,this,&CintaOpciones::ConsultaPulsado);
 
     return w;
 }
@@ -261,5 +284,26 @@ void CintaOpciones::cambiarSeccion(Seccion s)
     if(idx==0)m_btnInicio->setChecked(true);
     if(idx==1)m_btnCrear->setChecked(true);
     if(idx==2)m_btnHBD->setChecked(true);
+
+}
+
+void CintaOpciones::MostrarBotonClavePrimaria(bool vis)
+{
+
+    if(m_btnClavePrimaria)m_btnClavePrimaria->setVisible(vis);
+
+}
+
+void CintaOpciones::setIconoVerHojaDatos()
+{
+
+    if(btnVer)btnVer->setIcon(m_iconVistaDatos);
+
+}
+
+void CintaOpciones::setIconoVerDisenio()
+{
+
+    if(btnVer)btnVer->setIcon(m_iconVistaDisenio);
 
 }

@@ -7,5 +7,9 @@
         <file>image/tabla.png</file>
         <file>image/relaciones.png</file>
         <file>image/llave.png</file>
+        <file>image/consultas.png</file>
+        <file>image/eliminar_tabla.png</file>
+        <file>image/agregar_espacio.png</file>
+        <file>image/eliminar_espacio.png</file>
     </qresource>
 </RCC>

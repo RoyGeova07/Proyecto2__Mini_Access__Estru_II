@@ -11,9 +11,12 @@ class PestanaTabla;
 #include "vistadisenio.h"   // por 'Campo'
 #include <QVariant>
 
-struct TablaSnapshot {
+struct TablaSnapshot
+{
+
     QList<Campo> schema;
     QVector<QVector<QVariant>> rows;
+
 };
 
 class VentanaPrincipal:public QMainWindow
@@ -35,8 +38,11 @@ private slots:
     void agregarColumnaActual();
     void eliminarColumnaActual();
     void eliminarTablaActual();
+    void HacerClavePrimariaActual();
+    void CrearConsultaNueva();
 
 private:
+
     QHash<QString, TablaSnapshot> m_memTablas;
     CintaOpciones*m_cinta;
     PanelObjetos*m_panel;

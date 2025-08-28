@@ -28,17 +28,27 @@ signals:
     void relacionesPulsado();
     void agregarColumnaPulsado();
     void eliminarColumnaPulsado();
+    void ClavePrimarioPulsado();
+    void ConsultaPulsado();
 
 public slots:
 
     void cambiarSeccion(Seccion s);
+    void MostrarBotonClavePrimaria(bool vis);
+    void setIconoVerHojaDatos();
+    void setIconoVerDisenio();
 
 private:
+
     QToolButton*m_btnInicio;
     QToolButton*m_btnCrear;
     QToolButton*m_btnHBD;
     QButtonGroup*m_grupoSecciones;
     QStackedWidget*m_pilaOpciones;
+    QToolButton*m_btnClavePrimaria{nullptr};
+    QToolButton*btnVer{nullptr};
+    QIcon m_iconVistaDatos;
+    QIcon m_iconVistaDisenio;
 
     QWidget*crearPaginaInicio();
     QWidget*crearPaginaCrear();

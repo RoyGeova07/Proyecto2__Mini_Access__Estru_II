@@ -18,10 +18,12 @@ static constexpr int kCurrencyDecimals = 2; // cambia a 4 si quieres estilo Acce
 // ===== Delegate por tipo (incluye Moneda) =====
 class TipoHojaDelegate : public QStyledItemDelegate {
 public:
-    explicit TipoHojaDelegate(const QString& tipo, QObject* parent=nullptr)
-        : QStyledItemDelegate(parent), tipo_(tipo.trimmed().toLower()) {}
 
-    QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem&, const QModelIndex&) const override {
+    explicit TipoHojaDelegate(const QString& tipo, QObject* parent=nullptr):QStyledItemDelegate(parent), tipo_(tipo.trimmed().toLower()) {}
+
+    QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem&, const QModelIndex&) const override
+    {
+
         if (tipo_ == "entero") {
             auto* e = new QLineEdit(parent);
             e->setValidator(new QIntValidator(e));
@@ -53,7 +55,8 @@ public:
         return new QLineEdit(parent);
     }
 
-    void setEditorData(QWidget* editor, const QModelIndex& index) const override {
+    void setEditorData(QWidget* editor, const QModelIndex& index) const override
+    {
         const QVariant v = index.data(Qt::EditRole);
         if (auto* e = qobject_cast<QLineEdit*>(editor)) {
             e->setText(v.toString());
@@ -66,7 +69,8 @@ public:
         }
     }
 
-    void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const override {
+    void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const override
+    {
         if (auto* e = qobject_cast<QLineEdit*>(editor)) {
             const QString t = e->text().trimmed();
             if (tipo_ == "entero") {
@@ -131,20 +135,37 @@ VistaHojaDatos::VistaHojaDatos(const QString& /*nombreTabla*/, QWidget* parent)
 
     reconectarSignalsModelo_();
 
-    // Doble clic en encabezado para renombrar (excepto PK)
     auto* hh = m_tabla->horizontalHeader();
     hh->setSectionsClickable(true);
-    connect(hh, &QHeaderView::sectionDoubleClicked, this, [this](int col){
-        if (col <= 0) return; // no renombrar PK
+    connect(hh, &QHeaderView::sectionDoubleClicked, this, [this](int col)
+    {
+
         const QString actual = m_modelo->headerData(col, Qt::Horizontal).toString();
+
         bool ok = false;
-        QString nuevo = QInputDialog::getText(
-                            this, tr("Renombrar campo"),
-                            tr("Nuevo nombre para %1:").arg(actual),
-                            QLineEdit::Normal, actual, &ok
-                            ).trimmed();
+
+        QString nuevo = QInputDialog::getText(this, tr("Renombrar campo"),tr("Nuevo nombre para %1:").arg(actual),QLineEdit::Normal, actual, &ok).trimmed();
+
         if (!ok || nuevo.isEmpty() || nuevo == actual) return;
+
+        for(int c=0;c<m_modelo->columnCount();++c)
+        {
+
+            if(c==col)continue;
+            if(m_modelo->headerData(c,Qt::Horizontal).toString().compare(nuevo,Qt::CaseInsensitive)==0)
+            {
+
+                return;//ya existe una columna con ese nombre
+
+            }
+
+        }
+        //con esto se refleja de inmediato en vista
+        m_modelo->setHeaderData(col,Qt::Horizontal,nuevo);
+
+        //este me ayuda a notificar a la pestaña, para que actualize la tabla
         emit renombrarCampoSolicitado(col, nuevo);
+
     });
 }
 
