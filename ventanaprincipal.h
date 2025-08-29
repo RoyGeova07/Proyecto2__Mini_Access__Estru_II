@@ -39,7 +39,8 @@ private slots:
     void eliminarColumnaActual();
     void eliminarTablaActual();
     void HacerClavePrimariaActual();
-    void CrearConsultaNueva();
+    void AbrirRelaciones();
+    void AbrirConsultas();
 
 private:
 

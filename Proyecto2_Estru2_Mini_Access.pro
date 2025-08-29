@@ -10,19 +10,23 @@ CONFIG += c++17
 
 SOURCES += \
     cintaopciones.cpp \
+    consultawidget.cpp \
     main.cpp \
     mainwindow.cpp \
     panelobjetos.cpp \
     pestanatabla.cpp \
+    relacioneswidget.cpp \
     ventanaprincipal.cpp \
     vistadisenio.cpp \
     vistahojadatos.cpp
 
 HEADERS += \
     cintaopciones.h \
+    consultawidget.h \
     mainwindow.h \
     panelobjetos.h \
     pestanatabla.h \
+    relacioneswidget.h \
     ventanaprincipal.h \
     vistadisenio.h \
     vistahojadatos.h

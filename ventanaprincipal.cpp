@@ -9,6 +9,8 @@
 #include<QIcon>
 #include<QInputDialog>
 #include<QRegularExpression>
+#include"relacioneswidget.h"
+#include"consultawidget.h"
 
 VentanaPrincipal::VentanaPrincipal(QWidget*parent):QMainWindow(parent)
 {
@@ -52,7 +54,8 @@ VentanaPrincipal::VentanaPrincipal(QWidget*parent):QMainWindow(parent)
     connect(m_cinta, &CintaOpciones::agregarColumnaPulsado, this, &VentanaPrincipal::agregarColumnaActual);
     connect(m_cinta, &CintaOpciones::eliminarColumnaPulsado, this, &VentanaPrincipal::eliminarColumnaActual);
     connect(m_cinta,&CintaOpciones::ClavePrimarioPulsado,this,&VentanaPrincipal::HacerClavePrimariaActual);
-    connect(m_cinta,&CintaOpciones::ConsultaPulsado,this,&VentanaPrincipal::CrearConsultaNueva);
+    connect(m_cinta,&CintaOpciones::relacionesPulsado,this,&VentanaPrincipal::AbrirRelaciones);
+    connect(m_cinta,&CintaOpciones::ConsultaPulsado,this,&VentanaPrincipal::AbrirConsultas);
 
 }
 
@@ -65,9 +68,11 @@ void VentanaPrincipal::crearTablaNueva()
     abrirOTraerAPrimerPlano(nombre);
 
 }
-void VentanaPrincipal::eliminarTablaActual() {
-    int idx = m_pestanas->currentIndex();
-    if (idx < 0) return; // no hay pestaña activa
+void VentanaPrincipal::eliminarTablaActual()
+{
+
+    int idx=m_pestanas->currentIndex();
+    if(idx<0) return; // no hay pestaña activa
 
     const QString nombre = m_pestanas->tabText(idx);
 
@@ -99,19 +104,24 @@ void VentanaPrincipal::abrirOTraerAPrimerPlano(const QString& nombre)
 
     auto* vista = new PestanaTabla(nombre, m_pestanas);
 
-    if (m_memTablas.contains(nombre)) {
+    if (m_memTablas.contains(nombre))
+    {
+
         const auto& snap = m_memTablas[nombre];
         vista->cargarSnapshot(snap.schema, snap.rows);
     }
 
-    connect(vista, &PestanaTabla::estadoCambioSolicitado, this, [this, vista, nombre](){
+    connect(vista, &PestanaTabla::estadoCambioSolicitado, this, [this, vista, nombre]()
+    {
+
         TablaSnapshot s;
         s.schema = vista->esquemaActual();
         s.rows   = vista->filasActuales();
         m_memTablas[nombre] = std::move(s);
+
     });
 
-    const int idx = m_pestanas->addTab(vista, nombre);
+    const int idx = m_pestanas->addTab(vista,QIcon(":/im/image/tabla.png"),nombre);
     m_pestanas->setCurrentIndex(idx);
 }
 
@@ -216,9 +226,49 @@ void VentanaPrincipal::HacerClavePrimariaActual()
 
 }
 
-void VentanaPrincipal::CrearConsultaNueva()
+void VentanaPrincipal::AbrirRelaciones()
 {
 
-    QMessageBox::information(this, tr("Consultas"),tr("Aquí se creará una consulta.\n(Próximamente diseñador de consultas)"));
+    //si ya exite solo se enfoca
+    for(int i=0;i<m_pestanas->count();++i)
+    {
+
+        if(m_pestanas->tabText(i)==tr("Relaciones"))
+        {
+
+            m_pestanas->setCurrentIndex(i);
+            m_cinta->MostrarBotonClavePrimaria(false);//que no se vea el boton de la clave
+            return;
+
+        }
+
+    }
+    auto*w=new RelacionesWidget(m_pestanas);
+    int idx=m_pestanas->addTab(w, QIcon(":/im/image/relaciones.png"), tr("Relaciones"));
+    m_pestanas->setCurrentIndex(idx);
+    m_cinta->MostrarBotonClavePrimaria(false);//no quiero que se muestre la clave
+
+}
+
+void VentanaPrincipal::AbrirConsultas()
+{
+
+    for(int i=0;i<m_pestanas->count();++i)
+    {
+
+        if(m_pestanas->tabText(i)==tr("Consultas"))
+        {
+
+            m_pestanas->setCurrentIndex(i);
+            m_cinta->MostrarBotonClavePrimaria(false);//que no se vea el boton de la clave
+            return;
+
+        }
+
+    }
+    auto*w=new ConsultaWidget(m_pestanas);
+    int idx=m_pestanas->addTab(w,QIcon(":/im/image/consultas.png"),tr("Consultas"));
+    m_pestanas->setCurrentIndex(idx);
+    m_cinta->MostrarBotonClavePrimaria(false);//no quiero que se muestre la clave
 
 }
