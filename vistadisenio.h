@@ -53,6 +53,7 @@ private:
     QTableView* m_tabla;
     QStandardItemModel* m_modelo;
     QStyledItemDelegate* m_tipoDelegate;
+    QStyledItemDelegate* m_nombreDelegate;
 
     int m_pkRow=0;
     QIcon m_iconPk;

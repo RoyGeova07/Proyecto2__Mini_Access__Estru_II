@@ -29,7 +29,8 @@ private slots:
     void filtrar(const QString& texto);
 
 private:
-    QLineEdit*   m_buscar;
+
+    QLineEdit*m_buscar;
     QListWidget* m_listaTablas;
 };
 

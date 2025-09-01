@@ -7,6 +7,8 @@
 #include<QIcon>
 #include <QStyledItemDelegate>
 #include <QComboBox>
+#include<QMessageBox>
+#include<QLineEdit>
 
 class TipoDatoDelegate : public QStyledItemDelegate
 {
@@ -38,23 +40,91 @@ public:
     }
 
 };
+
+class NombreCampoDelegate : public QStyledItemDelegate
+{
+
+public:
+
+    explicit NombreCampoDelegate(QStandardItemModel* model, QWidget* owner):QStyledItemDelegate(owner), model_(model), owner_(owner) {}
+
+    QWidget*createEditor(QWidget* parent, const QStyleOptionViewItem&, const QModelIndex& idx) const override
+    {
+
+        // Fila 0 (PK) ya viene no editable; por si acaso:
+        if(idx.row()==0)return nullptr;
+        auto* e=new QLineEdit(parent);
+        e->setMaxLength(255);
+        return e;
+
+    }
+
+    void setEditorData(QWidget* editor, const QModelIndex& index) const override
+    {
+
+        if(auto*e=qobject_cast<QLineEdit*>(editor))
+            e->setText(index.data().toString());
+
+    }
+
+    void setModelData(QWidget* editor, QAbstractItemModel* /*model*/, const QModelIndex& index) const override
+    {
+
+        auto*e=qobject_cast<QLineEdit*>(editor);
+        if(!e)return;
+        const QString nn=e->text().trimmed();
+        if(nn.isEmpty())
+        {
+
+            QMessageBox::warning(owner_, QObject::tr("Nombre inválido"),QObject::tr("El nombre no puede estar vacío."));
+            return; // conserva el nombre anterior
+        }
+        // comprobar duplicados (case-insensitive)
+        for(int r = 0; r < model_->rowCount(); ++r)
+        {
+
+            if(r==index.row())continue;
+            const QString ex=model_->index(r, 1).data().toString().trimmed();
+            if(QString::compare(ex, nn, Qt::CaseInsensitive)==0)
+            {
+
+                QMessageBox::warning(owner_, QObject::tr("Nombre duplicado"),QObject::tr("Ya existe un campo llamado “%1”.").arg(nn));
+                return; // conserva el nombre anterior
+
+            }
+
+        }
+
+        model_->setData(model_->index(index.row(), 1), nn);
+
+    }
+private:
+
+    QStandardItemModel* model_;
+    QWidget* owner_;
+
+};
+
 bool VistaDisenio::renombrarCampo(int fila, const QString& nuevoNombre)
 {
 
-    if (fila <= 0) return false;
-    const QString nn = nuevoNombre.trimmed();
-    if (nn.isEmpty()) return false;
+    if(fila<=0)return false;
+    const QString nn=nuevoNombre.trimmed();
+    if(nn.isEmpty())return false;
 
-    for (int r = 0; r < m_modelo->rowCount(); ++r) {
+    for(int r = 0; r < m_modelo->rowCount(); ++r)
+    {
+
         if (r == fila) continue;
         const QString ex = m_modelo->index(r,1).data().toString().trimmed();
         if (QString::compare(ex, nn, Qt::CaseInsensitive) == 0)
             return false;
+
     }
 
-    QStandardItem* it = m_modelo->item(fila, 1);
-    if (!it) { it = new QStandardItem(nn); m_modelo->setItem(fila,1,it); }
-    else     { it->setText(nn); }
+    QStandardItem* it=m_modelo->item(fila, 1);
+    if(!it){it=new QStandardItem(nn); m_modelo->setItem(fila,1,it); }
+    else     {it->setText(nn); }
 
     emit esquemaCambiado();
     return true;
@@ -117,6 +187,10 @@ VistaDisenio::VistaDisenio(QWidget*parent):QWidget(parent)
     m_modelo->setItem(1,1,new QStandardItem(QStringLiteral("Campo1")));
     m_modelo->setItem(1,2,new QStandardItem(QStringLiteral("Texto")));
     m_tabla->setModel(m_modelo);
+
+    m_nombreDelegate=new NombreCampoDelegate(m_modelo,this);
+    m_tabla->setItemDelegateForColumn(1,m_nombreDelegate);
+
     m_tabla->setEditTriggers(QAbstractItemView::AllEditTriggers);
     m_tabla->horizontalHeader()->setSectionResizeMode(0,QHeaderView::Fixed);
     m_tabla->setColumnWidth(0,28);
@@ -245,15 +319,18 @@ void VistaDisenio::RefrescarIconPk()
     }
 
 }
-Campo VistaDisenio::campoEnFila(int fila) const {
+Campo VistaDisenio::campoEnFila(int fila) const
+{
+
     Campo c;
     if (fila < 0 || fila >= m_modelo->rowCount()) return c;
-    c.pk     = (fila==m_pkRow);
-    c.nombre = m_modelo->index(fila,1).data().toString().trimmed();
-    c.tipo   = m_modelo->index(fila,2).data().toString().trimmed();
+    c.pk=(fila==m_pkRow);
+    c.nombre=m_modelo->index(fila,1).data().toString().trimmed();
+    c.tipo =m_modelo->index(fila,2).data().toString().trimmed();
     if (c.nombre.isEmpty()) c.nombre = c.pk ? "Id" : QString("Campo%1").arg(fila);
     if (c.tipo.isEmpty())   c.tipo   = c.pk ? "Entero" : "Texto";
     return c;
+
 }
 void VistaDisenio::EstablecerPkEnFila(int fila)
 {

@@ -10,14 +10,19 @@
 PanelObjetos::PanelObjetos(QWidget* parent):QWidget(parent)
 {
 
+    // Para estilos QSS (tema Access)
+    setObjectName("PanelObjetosRoot");
+
     auto*lay=new QVBoxLayout(this);
     lay->setContentsMargins(8,8,8,8);
     lay->setSpacing(6);
 
     auto*titulo=new QLabel("<b>Todos los objetos</b>", this);
+    titulo->setObjectName("PanelTitle");
     lay->addWidget(titulo);
 
     m_buscar=new QLineEdit(this);
+    m_buscar->setObjectName("SearchBox");
     m_buscar->setPlaceholderText("Buscar...");
     lay->addWidget(m_buscar);
 

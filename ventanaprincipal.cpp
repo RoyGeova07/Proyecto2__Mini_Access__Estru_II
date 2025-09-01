@@ -11,9 +11,16 @@
 #include<QRegularExpression>
 #include"relacioneswidget.h"
 #include"consultawidget.h"
+#include"accesstheme.h"
+#include<QFrame>
+#include<QLocale>
+#include<QStatusBar>
 
 VentanaPrincipal::VentanaPrincipal(QWidget*parent):QMainWindow(parent)
 {
+
+    //AccessTheme::apply(*qApp);
+    QLocale::setDefault(QLocale(QLocale::Spanish,QLocale::Honduras));
 
     auto*central=new QWidget(this);
     auto*vlay=new QVBoxLayout(central);
@@ -127,11 +134,14 @@ void VentanaPrincipal::abrirOTraerAPrimerPlano(const QString& nombre)
 
 void VentanaPrincipal::cerrarPestana(int idx)
 {
-    if (auto* p = qobject_cast<PestanaTabla*>(m_pestanas->widget(idx))) {
+    if(auto* p = qobject_cast<PestanaTabla*>(m_pestanas->widget(idx)))
+    {
+
         TablaSnapshot s;
         s.schema = p->esquemaActual();
         s.rows   = p->filasActuales();
         m_memTablas[p->nombreTabla()] = std::move(s);
+
     }
 
     QWidget* w = m_pestanas->widget(idx);
@@ -146,6 +156,13 @@ void VentanaPrincipal::mostrarHojaDatosActual()
     {
 
         p->mostrarHojaDatos();
+        if(statusBar())
+        {
+
+            const int filas=p->filasActuales().size();
+            statusBar()->showMessage(tr("Hoja de datos • %1 registros").arg(filas));
+
+        }
 
     }
     m_cinta->MostrarBotonClavePrimaria(false);//ocultar boton en hoja de datos

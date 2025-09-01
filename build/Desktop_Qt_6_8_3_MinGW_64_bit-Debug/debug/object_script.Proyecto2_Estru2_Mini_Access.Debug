@@ -1,3 +1,4 @@
+debug/accesstheme.o
 debug/cintaopciones.o
 debug/consultawidget.o
 debug/main.o
@@ -5,6 +6,7 @@ debug/mainwindow.o
 debug/panelobjetos.o
 debug/pestanatabla.o
 debug/relacioneswidget.o
+debug/ribbongroup.o
 debug/ventanaprincipal.o
 debug/vistadisenio.o
 debug/vistahojadatos.o
@@ -15,6 +17,7 @@ debug/moc_mainwindow.o
 debug/moc_panelobjetos.o
 debug/moc_pestanatabla.o
 debug/moc_relacioneswidget.o
+debug/moc_ribbongroup.o
 debug/moc_ventanaprincipal.o
 debug/moc_vistadisenio.o
 debug/moc_vistahojadatos.o
