@@ -1,46 +1,72 @@
-#ifndef RELACIONESWIDGET_H
-#define RELACIONESWIDGET_H
-#include<QWidget>
-#include<QPoint>
-#include<QSet>
+#pragma once
+#include <QWidget>
+#include <QGraphicsView>
+#include <QGraphicsScene>
+#include <QMap>
+#include <QSet>
+#include "vistadisenio.h"
+#include "relationitem.h"
+#include "tableitem.h"
 
-class QFrame;
-class QLabel;
+struct Relacion {
+    QString tablaOrigen;
+    QString campoOrigen;
+    QString tablaDestino;
+    QString campoDestino;
+    bool unoAMuchos = true;
+    bool integridad = true;
 
+    bool operator==(const Relacion& o) const {
+        return tablaOrigen  == o.tablaOrigen  &&
+               campoOrigen  == o.campoOrigen  &&
+               tablaDestino == o.tablaDestino &&
+               campoDestino == o.campoDestino &&
+               unoAMuchos   == o.unoAMuchos   &&
+               integridad   == o.integridad;
+    }
+};
+inline uint qHash(const Relacion& r, uint seed=0) {
+    return qHash(r.tablaOrigen, seed) ^
+           qHash(r.campoOrigen,  seed) ^
+           qHash(r.tablaDestino, seed) ^
+           qHash(r.campoDestino, seed) ^
+           uint(r.unoAMuchos) ^ (uint(r.integridad) << 1);
+}
 
-class RelacionesWidget:public QWidget
-{
-
+class RelacionesWidget : public QWidget {
     Q_OBJECT
-
 public:
+    explicit RelacionesWidget(QWidget* parent=nullptr);
 
-   explicit RelacionesWidget(QWidget*parent=nullptr);
+    // UI (selector existente)
+    void MostrarSelectorTablas(const QStringList& tablas, bool soloSiPrimeraVez);
 
 public slots:
+    // Se invoca cuando cambie el esquema de una tabla
+    void aplicarEsquema(const QString& tabla, const QList<Campo>& schema);
 
-    //esta funcion muestra la minitabla
-    void MostrarSelectorTablas(const QStringList&tablas,bool soloSiPrimeraVez=false);
+    // Se invoca cuando el usuario renombra una tabla (para mantener el grafo)
+    void tablaRenombrada(const QString& viejo, const QString& nuevo);
 
-    //Agrega una mini-tabla al lienzo (duplicados permitidos; auto-sufijo _1, _2, …)
-    void agregarMiniTabla(const QString& nombreBase);
+    // Relaciones (puedes llamarlas desde VentanaPrincipal cuando tengas FK reales)
+    void agregarRelacion(const Relacion& r);
+    void eliminarRelacion(const Relacion& r);
 
-    //Genera un titulo unico (Alumnos, Alumnos_1, …) segun lo que ya exista en el canvas.
-    QString tituloUnico(const QString& base) const;
-
-    // Posicionamiento simple en grilla (auto-layout)
-    QPoint proximaPosicion();
-
+protected:
+    void resizeEvent(QResizeEvent* e) override;
+    void contextMenuEvent(QContextMenuEvent* ev) override;
 private:
+    QGraphicsView*  m_view = nullptr;
+    QGraphicsScene* m_scene = nullptr;
 
-    QWidget*m_canvas=nullptr;//lienzo de relaciones
-    mutable QSet<QString>m_titulos;//titulos ya usados
-    QPoint m_siguiente=QPoint(32,32);
-    int m_dx=260;//separacion horizontal
-    int m_dy=200;//separacion vertical
-
-    bool m_selectorMostrado=false;
-
+    QMap<QString, TableItem*> m_items;
+    QSet<Relacion>            m_rels;
+    QList<RelationItem*>      m_relItems;
+    QPoint m_next{32, 32};
+    const int m_dx = 260, m_dy = 180;
+    bool m_selectorMostrado = false;
+    bool pedirRelacionUsuario(Relacion& out) const;
+    QPointF proximaPosicion_();
+    void    asegurarItemTabla_(const QString& nombre);
+    void    rehacerRelItems_();
 };
-
-#endif // RELACIONESWIDGET_H

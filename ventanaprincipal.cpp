@@ -174,7 +174,7 @@ void VentanaPrincipal::abrirOTraerAPrimerPlano(const QString& nombre)
         s.schema = vista->esquemaActual();
         s.rows   = vista->filasActuales();
         m_memTablas[nombre] = std::move(s);
-
+        emit esquemaTablaCambiado(nombre, m_memTablas[nombre].schema);
     });
 
     const int idx = m_pestanas->addTab(vista,QIcon(":/im/image/tabla.png"),nombre);
@@ -294,36 +294,32 @@ void VentanaPrincipal::HacerClavePrimariaActual()
 
 void VentanaPrincipal::AbrirRelaciones()
 {
-
-    //si ya exite solo se enfoca
-    RelacionesWidget*rel=nullptr;
-    for(int i=0;i<m_pestanas->count();++i)
-    {
-
-        rel=qobject_cast<RelacionesWidget*>(m_pestanas->widget(i));
-        if(rel)
-        {
-
-            m_pestanas->setCurrentIndex(i);
-            break;
-
-        }
-
+    RelacionesWidget* rel = nullptr;
+    for (int i=0; i<m_pestanas->count(); ++i) {
+        rel = qobject_cast<RelacionesWidget*>(m_pestanas->widget(i));
+        if (rel) { m_pestanas->setCurrentIndex(i); break; }
     }
-    if(!rel)
-    {
-
-        rel=new RelacionesWidget(m_pestanas);
-        int idx=m_pestanas->addTab(rel,QIcon(":/im/image/relaciones.png"), tr("Relaciones"));
+    if (!rel) {
+        rel = new RelacionesWidget(m_pestanas);
+        int idx = m_pestanas->addTab(rel, QIcon(":/im/image/relaciones.png"), tr("Relaciones"));
         m_pestanas->setCurrentIndex(idx);
 
-    }
-    //Listado de tablas disponibles (usa tu helper del PanelObjetos)
-    const QStringList tablas=m_panel?m_panel->todasLasTablas():QStringList{};
-    rel->MostrarSelectorTablas(tablas,true);
-    m_cinta->MostrarBotonClavePrimaria(false);//no quiero que se muestre la clave
+        // <<< Conexiones NUEVAS
+        connect(this, &VentanaPrincipal::esquemaTablaCambiado,
+                rel,  &RelacionesWidget::aplicarEsquema);
+        connect(this, &VentanaPrincipal::tablaRenombradaSignal,
+                rel,  &RelacionesWidget::tablaRenombrada);
 
+        // Push inicial de todos los esquemas conocidos
+        for (auto it = m_memTablas.begin(); it != m_memTablas.end(); ++it)
+            emit esquemaTablaCambiado(it.key(), it.value().schema);
+    }
+
+    const QStringList tablas = m_panel ? m_panel->todasLasTablas() : QStringList{};
+    rel->MostrarSelectorTablas(tablas, true);
+    m_cinta->MostrarBotonClavePrimaria(false);
 }
+
 
 void VentanaPrincipal::AbrirConsultas()
 {
@@ -378,5 +374,5 @@ void VentanaPrincipal::renombrarTablaPorSolicitud(const QString &viejo, const QS
     }
     //3) Aplicar el cambio en el panel
     m_panel->renombrarTabla(viejo,nuevo);
-
+    emit tablaRenombradaSignal(viejo, nuevo);
 }

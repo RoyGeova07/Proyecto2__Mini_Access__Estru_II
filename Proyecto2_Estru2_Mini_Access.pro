@@ -17,7 +17,9 @@ SOURCES += \
     panelobjetos.cpp \
     pestanatabla.cpp \
     relacioneswidget.cpp \
+    relationitem.cpp \
     ribbongroup.cpp \
+    tableitem.cpp \
     ventanaprincipal.cpp \
     vistadisenio.cpp \
     vistahojadatos.cpp
@@ -30,7 +32,9 @@ HEADERS += \
     panelobjetos.h \
     pestanatabla.h \
     relacioneswidget.h \
+    relationitem.h \
     ribbongroup.h \
+    tableitem.h \
     ventanaprincipal.h \
     vistadisenio.h \
     vistahojadatos.h

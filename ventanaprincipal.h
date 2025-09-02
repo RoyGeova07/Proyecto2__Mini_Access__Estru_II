@@ -42,7 +42,9 @@ private slots:
     void AbrirRelaciones();
     void AbrirConsultas();
     void renombrarTablaPorSolicitud(const QString& viejo, const QString& nuevo);
-
+signals:
+    void esquemaTablaCambiado(const QString& nombre, const QList<Campo>& schema);
+    void tablaRenombradaSignal(const QString& viejo, const QString& nuevo);
 private:
 
     QHash<QString, TablaSnapshot> m_memTablas;
