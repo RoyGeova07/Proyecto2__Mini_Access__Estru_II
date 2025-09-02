@@ -185,16 +185,35 @@ QWidget* CintaOpciones::crearPaginaCrear() { return crearPaginaInicio(); }
 
 QWidget* CintaOpciones::crearPaginaHBD()
 {
+
     auto*w=new QWidget(this);
-    auto*row=new QHBoxLayout(w); row->setContentsMargins(0,0,0,0); row->setSpacing(10);
+    auto*row=new QHBoxLayout(w); row->setContentsMargins(0,0,0,0);
+    row->setSpacing(10);
+
     auto*gRel=new ribbongroup(tr("Relaciones"), w);
-    auto*btnRel=new QToolButton(gRel); btnRel->setProperty("rol","accion");
-    btnRel->setText(tr("Relaciones")); btnRel->setIcon(QIcon(":/im/image/relaciones.png")); btnRel->setIconSize(QSize(24,24)); btnRel->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+    auto*btnRel=new QToolButton(gRel);
+    btnRel->setProperty("rol","accion");
+    btnRel->setText(tr("Relaciones"));
+    btnRel->setIcon(QIcon(":/im/image/relaciones.png"));
+    btnRel->setIconSize(QSize(24,24));
+    btnRel->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
     connect(btnRel, &QToolButton::clicked, this, &CintaOpciones::relacionesPulsado);
     gRel->addWidget(btnRel,0,0);
+
+    auto*gTabla=new ribbongroup(tr("Tabla"), w);
+    auto*btnAgregar=new QToolButton(gTabla); btnAgregar->setProperty("rol","accion");
+    btnAgregar->setText(tr("Agregar tablas"));
+    btnAgregar->setIcon(QIcon(":/im/image/agregar_tablarela.png"));
+    btnAgregar->setIconSize(QSize(24,24));
+    btnAgregar->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+    connect(btnAgregar, &QToolButton::clicked, this, &CintaOpciones::agregarTablaHBDPulsado);
+    gTabla->addWidget(btnAgregar,0,0);
+
     row->addWidget(gRel);
+    row->addWidget(gTabla);
     row->addStretch();
     return w;
+
 }
 
 

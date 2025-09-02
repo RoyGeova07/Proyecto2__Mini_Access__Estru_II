@@ -41,6 +41,7 @@ private slots:
     void HacerClavePrimariaActual();
     void AbrirRelaciones();
     void AbrirConsultas();
+    void renombrarTablaPorSolicitud(const QString& viejo, const QString& nuevo);
 
 private:
 

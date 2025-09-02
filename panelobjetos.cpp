@@ -6,6 +6,9 @@
 #include<QListWidgetItem>
 #include<QIcon>
 #include<QSize>
+#include<QMenu>
+#include<QAction>
+#include<QInputDialog>
 
 PanelObjetos::PanelObjetos(QWidget* parent):QWidget(parent)
 {
@@ -33,6 +36,35 @@ PanelObjetos::PanelObjetos(QWidget* parent):QWidget(parent)
     m_listaTablas->setIconSize(QSize(18,18));
     m_listaTablas->setSpacing(2);
     m_listaTablas->setUniformItemSizes(true);
+
+    m_listaTablas->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(m_listaTablas, &QListWidget::customContextMenuRequested, this,[this](const QPoint& pos){
+
+        auto*it=m_listaTablas->itemAt(pos);
+        if(!it)return;
+        m_listaTablas->setCurrentItem(it);
+
+        QMenu menu(this);
+        QAction*actEditar=menu.addAction(tr("Editar Nombre"));
+        QAction*chosen=menu.exec(m_listaTablas->viewport()->mapToGlobal(pos));
+        if(chosen==actEditar)
+        {
+
+            const QString viejo=it->text();
+            bool ok=false;
+            const QString nuevo=QInputDialog::getText(this, tr("Cambiar nombre de tabla"),tr("Nuevo nombre:"), QLineEdit::Normal, viejo, &ok).trimmed();
+            if(!ok)return;//cancelo
+            if(nuevo.isEmpty())return;//vacio -> ignorar
+            if(nuevo==viejo)return;//sin cambios
+
+            // No renombramos aqui: pedimos a la ventana principal que valide (pestañas abiertas, duplicados, etc.)
+            emit renombrarTablaSolicitado(viejo,nuevo);
+
+
+        }
+
+    });
+
     lay->addWidget(m_listaTablas,1);
 
     connect(m_buscar, &QLineEdit::textChanged, this, &PanelObjetos::filtrar);
@@ -101,3 +133,29 @@ bool PanelObjetos::existeTabla(const QString &nombre) const
     return false;
 
 }
+
+QString PanelObjetos::tablaSeleccionada()const
+{
+
+    auto*it=m_listaTablas?m_listaTablas->currentItem():nullptr;
+    return it?it->text():QString();
+
+}
+
+QStringList PanelObjetos::todasLasTablas()const
+{
+
+    QStringList out;
+    if(!m_listaTablas)return out;
+
+    for(int i=0;i<m_listaTablas->count();++i)
+    {
+
+        out<<m_listaTablas->item(i)->text();
+
+    }
+    return out;
+
+}
+
+

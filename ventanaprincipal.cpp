@@ -63,6 +63,27 @@ VentanaPrincipal::VentanaPrincipal(QWidget*parent):QMainWindow(parent)
     connect(m_cinta,&CintaOpciones::ClavePrimarioPulsado,this,&VentanaPrincipal::HacerClavePrimariaActual);
     connect(m_cinta,&CintaOpciones::relacionesPulsado,this,&VentanaPrincipal::AbrirRelaciones);
     connect(m_cinta,&CintaOpciones::ConsultaPulsado,this,&VentanaPrincipal::AbrirConsultas);
+    connect(m_cinta,&CintaOpciones::agregarTablaHBDPulsado,this,[this]{
+
+        AbrirRelaciones();
+
+        //aqui se obtiene el widget de relaciones y pide el dialogo
+        for(int i=0;i<m_pestanas->count();i++)
+        {
+
+            if(auto*rel=qobject_cast<RelacionesWidget*>(m_pestanas->widget(i)))
+            {
+
+                const QStringList tablas=m_panel?m_panel->todasLasTablas():QStringList{};
+                rel->MostrarSelectorTablas(tablas,false);
+                break;
+
+            }
+
+        }
+
+    });
+    connect(m_panel, &PanelObjetos::renombrarTablaSolicitado,this,&VentanaPrincipal::renombrarTablaPorSolicitud);
 
 }
 
@@ -78,22 +99,50 @@ void VentanaPrincipal::crearTablaNueva()
 void VentanaPrincipal::eliminarTablaActual()
 {
 
-    int idx=m_pestanas->currentIndex();
-    if(idx<0) return; // no hay pestaña activa
+    //1)¿Que tabla desea borrar el usuario?
+    QString nombre=m_panel->tablaSeleccionada();
 
-    const QString nombre = m_pestanas->tabText(idx);
+    //Fallback: si no hay seleccion, se usa el nombre de la pestaña activa si es de tabla
+    if(nombre.isEmpty())
+    {
 
+        if(auto*tab=qobject_cast<PestanaTabla*>(m_pestanas->currentWidget()))
+        {
+
+            nombre=tab->nombreTabla();
+
+        }
+
+    }
+
+    if(nombre.isEmpty())
+    {
+
+        QMessageBox::information(this, tr("Eliminar tabla"),tr("Selecciona una tabla en la lista para eliminarla."));
+        return;
+
+    }
+
+    // 2)¿Esta abierta en alguna pestaña? -> BLOQUEAR
+    for(int i=0;i<m_pestanas->count();++i)
+    {
+
+        if(m_pestanas->tabText(i)==nombre)
+        {
+
+            QMessageBox::information(this, tr("Microsoft Access"),tr("No se puede eliminar el objeto '%1' de la base de datos mientras está abierto.\n""Cierre el objeto de la base de datos y elimínelo.").arg(nombre));
+            return;
+
+        }
+
+    }
+    // 3)Confirmacion y borrado del panel
     const auto resp=QMessageBox::question(this, tr("Eliminar tabla"),tr("¿Eliminar la tabla '%1'? Esta accion no se puede deshacer.").arg(nombre),QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
     if(resp!=QMessageBox::Yes)return;
 
-    // Cerrar la pestaña si está abierta
-    QWidget* w = m_pestanas->widget(idx);
-    m_pestanas->removeTab(idx);
-    delete w;
-
     // Quitar del panel izquierdo
     m_panel->eliminarTabla(nombre);
-    m_memTablas.remove(nombre);
+
 }
 
 void VentanaPrincipal::abrirTablaDesdeLista(const QString&nombre)
@@ -247,22 +296,31 @@ void VentanaPrincipal::AbrirRelaciones()
 {
 
     //si ya exite solo se enfoca
+    RelacionesWidget*rel=nullptr;
     for(int i=0;i<m_pestanas->count();++i)
     {
 
-        if(m_pestanas->tabText(i)==tr("Relaciones"))
+        rel=qobject_cast<RelacionesWidget*>(m_pestanas->widget(i));
+        if(rel)
         {
 
             m_pestanas->setCurrentIndex(i);
-            m_cinta->MostrarBotonClavePrimaria(false);//que no se vea el boton de la clave
-            return;
+            break;
 
         }
 
     }
-    auto*w=new RelacionesWidget(m_pestanas);
-    int idx=m_pestanas->addTab(w, QIcon(":/im/image/relaciones.png"), tr("Relaciones"));
-    m_pestanas->setCurrentIndex(idx);
+    if(!rel)
+    {
+
+        rel=new RelacionesWidget(m_pestanas);
+        int idx=m_pestanas->addTab(rel,QIcon(":/im/image/relaciones.png"), tr("Relaciones"));
+        m_pestanas->setCurrentIndex(idx);
+
+    }
+    //Listado de tablas disponibles (usa tu helper del PanelObjetos)
+    const QStringList tablas=m_panel?m_panel->todasLasTablas():QStringList{};
+    rel->MostrarSelectorTablas(tablas,true);
     m_cinta->MostrarBotonClavePrimaria(false);//no quiero que se muestre la clave
 
 }
@@ -287,5 +345,38 @@ void VentanaPrincipal::AbrirConsultas()
     int idx=m_pestanas->addTab(w,QIcon(":/im/image/consultas.png"),tr("Consultas"));
     m_pestanas->setCurrentIndex(idx);
     m_cinta->MostrarBotonClavePrimaria(false);//no quiero que se muestre la clave
+
+}
+
+void VentanaPrincipal::renombrarTablaPorSolicitud(const QString &viejo, const QString &nuevo)
+{
+
+    //1)¿Esta abierta en alguna pestaña? -> BLOQUEAR
+    for(int i=0;i<m_pestanas->count();++i)
+    {
+        if(m_pestanas->tabText(i).compare(viejo, Qt::CaseSensitive)==0)
+        {
+
+            QMessageBox::information(this, tr("Microsoft Access"),tr("No se puede cambiar el nombre del objeto '%1' porque está abierto.\n""Cierre el objeto y vuelva a intentarlo.").arg(viejo));
+            return;
+
+        }
+    }
+    //2)¿Ya existe otra tabla con ese nombre? (comparacion case-insensitive)
+    const QStringList todas=m_panel->todasLasTablas();
+    for(const QString&t:todas)
+    {
+
+        if(QString::compare(t,nuevo,Qt::CaseInsensitive)==0&&t!=viejo)
+        {
+
+            QMessageBox::warning(this, tr("Nombre duplicado"),tr("Ya existe una tabla llamada “%1”.").arg(nuevo));
+            return;
+
+        }
+
+    }
+    //3) Aplicar el cambio en el panel
+    m_panel->renombrarTabla(viejo,nuevo);
 
 }

@@ -30,6 +30,7 @@ signals:
     void eliminarColumnaPulsado();
     void ClavePrimarioPulsado();
     void ConsultaPulsado();
+    void agregarTablaHBDPulsado();
 
 public slots:
 

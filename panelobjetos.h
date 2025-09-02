@@ -20,10 +20,13 @@ public:
     void eliminarTabla(const QString&nombre);
     void renombrarTabla(const QString& viejo, const QString& nuevo);
     bool existeTabla(const QString& nombre) const;
+    QString tablaSeleccionada()const;
+    QStringList todasLasTablas()const;
 
 signals:
 
     void tablaAbiertaSolicitada(const QString& nombre);
+    void renombrarTablaSolicitado(const QString& viejo, const QString& nuevo);
 
 private slots:
     void filtrar(const QString& texto);

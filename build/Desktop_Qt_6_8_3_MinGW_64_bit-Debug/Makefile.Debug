@@ -172,6 +172,7 @@ debug/qrc_img.cpp: ../../img.qrc \
 		../../image/eliminar_tabla.png \
 		../../image/disenio.png \
 		../../image/consultas.png \
+		../../image/agregar_tablarela.png \
 		../../image/a.png
 	C:\Qt\6.8.3\mingw_64\bin\rcc.exe -name img --no-zstd ..\..\img.qrc -o debug\qrc_img.cpp
 
@@ -2966,7 +2967,8 @@ debug/main.o: ../../main.cpp ../../mainwindow.h \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QWidget \
 		C:/Qt/6.8.3/mingw_64/include/QtCore/QString \
 		C:/Qt/6.8.3/mingw_64/include/QtGui/QIcon \
-		C:/Qt/6.8.3/mingw_64/include/QtCore/QVariant
+		C:/Qt/6.8.3/mingw_64/include/QtCore/QVariant \
+		../../accesstheme.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o debug\main.o ..\..\main.cpp
 
 debug/mainwindow.o: ../../mainwindow.cpp ../../mainwindow.h \
@@ -4493,7 +4495,18 @@ debug/vistadisenio.o: ../../vistadisenio.cpp ../../vistadisenio.h \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QStyledItemDelegate \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qstyleditemdelegate.h \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QComboBox \
-		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qcombobox.h
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qcombobox.h \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QMessageBox \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qmessagebox.h \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qdialog.h \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qdialogbuttonbox.h \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QLineEdit \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qlineedit.h \
+		C:/Qt/6.8.3/mingw_64/include/QtGui/qtextcursor.h \
+		C:/Qt/6.8.3/mingw_64/include/QtGui/qtextdocument.h \
+		C:/Qt/6.8.3/mingw_64/include/QtGui/qtextformat.h \
+		C:/Qt/6.8.3/mingw_64/include/QtGui/qpen.h \
+		C:/Qt/6.8.3/mingw_64/include/QtGui/qtextoption.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o debug\vistadisenio.o ..\..\vistadisenio.cpp
 
 debug/vistahojadatos.o: ../../vistahojadatos.cpp ../../VistaHojaDatos.h \
@@ -4741,7 +4754,16 @@ debug/vistahojadatos.o: ../../vistahojadatos.cpp ../../VistaHojaDatos.h \
 		C:/Qt/6.8.3/mingw_64/include/QtCore/qcalendar.h \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QInputDialog \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qinputdialog.h \
-		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qdialog.h
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qdialog.h \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QMessageBox \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qmessagebox.h \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qdialogbuttonbox.h \
+		C:/Qt/6.8.3/mingw_64/include/QtGui/QPainter \
+		C:/Qt/6.8.3/mingw_64/include/QtGui/qpainter.h \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QStyle \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QApplication \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qapplication.h \
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QStyleOptionButton
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o debug\vistahojadatos.o ..\..\vistahojadatos.cpp
 
 debug/qrc_img.o: debug/qrc_img.cpp 
