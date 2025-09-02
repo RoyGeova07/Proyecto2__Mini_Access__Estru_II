@@ -12,18 +12,21 @@
 #include <QComboBox>
 #include <QDateEdit>
 #include <QInputDialog>
+#include <QPainter>
+#include <QStyleOptionButton>
+#include <QApplication>
+#include <QStyle>
 
 static constexpr int kCurrencyDecimals = 2; // cambia a 4 si quieres estilo Access
 
-// ===== Delegate por tipo (incluye Moneda) =====
+// ===== Delegate por tipo (incluye Moneda y pintura de Booleano) =====
 class TipoHojaDelegate : public QStyledItemDelegate {
 public:
-
-    explicit TipoHojaDelegate(const QString& tipo, QObject* parent=nullptr):QStyledItemDelegate(parent), tipo_(tipo.trimmed().toLower()) {}
+    explicit TipoHojaDelegate(const QString& tipo, QObject* parent=nullptr)
+        : QStyledItemDelegate(parent), tipo_(tipo.trimmed().toLower()) {}
 
     QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem&, const QModelIndex&) const override
     {
-
         if (tipo_ == "entero") {
             auto* e = new QLineEdit(parent);
             e->setValidator(new QIntValidator(e));
@@ -89,7 +92,8 @@ public:
         }
     }
 
-    QString displayText(const QVariant& value, const QLocale& locale) const override {
+    QString displayText(const QVariant& value, const QLocale& locale) const override
+    {
         if (tipo_ == "moneda") {
             bool ok=false; const double dv = value.toDouble(&ok);
             if (ok) return locale.toCurrencyString(dv, locale.currencySymbol(QLocale::CurrencySymbol));
@@ -99,8 +103,31 @@ public:
         return QStyledItemDelegate::displayText(value, locale);
     }
 
+    void paint(QPainter* p, const QStyleOptionViewItem& opt, const QModelIndex& idx) const override
+    {
+        if (tipo_ == "booleano") {
+            QStyleOptionButton cb;
+            cb.state = QStyle::State_Enabled;
+            const QString s = idx.data(Qt::DisplayRole).toString().toLower();
+            const bool on = (s == "true" || s == "sí" || s == "si" || s == "1");
+            cb.state |= on ? QStyle::State_On : QStyle::State_Off;
+            cb.rect = QApplication::style()->subElementRect(QStyle::SE_CheckBoxIndicator, &cb);
+
+            // centrar en la celda
+            const QRect r = opt.rect;
+            const QSize ind = cb.rect.size();
+            cb.rect.moveTopLeft(QPoint(r.center().x()-ind.width()/2, r.center().y()-ind.height()/2));
+
+            QApplication::style()->drawControl(QStyle::CE_CheckBox, &cb, p);
+            return;
+        }
+        QStyledItemDelegate::paint(p, opt, idx);
+    }
+
 protected:
-    void initStyleOption(QStyleOptionViewItem* option, const QModelIndex& index) const override {
+    void initStyleOption(QStyleOptionViewItem* option, const QModelIndex& index) const override
+    {
+        Q_UNUSED(index);
         QStyledItemDelegate::initStyleOption(option, index);
         if (tipo_ == "entero" || tipo_ == "real" || tipo_ == "moneda") {
             option->displayAlignment = Qt::AlignRight | Qt::AlignVCenter;
@@ -128,6 +155,15 @@ VistaHojaDatos::VistaHojaDatos(const QString& /*nombreTabla*/, QWidget* parent)
     m_modelo->setRowCount(1);
 
     m_tabla->setModel(m_modelo);
+
+    // ==== Estilo y comportamiento tipo Access (Hoja de datos) ====
+    m_tabla->setSelectionBehavior(QAbstractItemView::SelectRows);
+    m_tabla->setSelectionMode(QAbstractItemView::SingleSelection);
+    m_tabla->setAlternatingRowColors(true);
+    m_tabla->setShowGrid(true);
+    m_tabla->verticalHeader()->setDefaultSectionSize(22);
+    // ============================================================
+
     m_tabla->horizontalHeader()->setStretchLastSection(true);
     m_tabla->verticalHeader()->setVisible(true);
     m_tabla->setEditTriggers(QAbstractItemView::AllEditTriggers);
@@ -138,35 +174,28 @@ VistaHojaDatos::VistaHojaDatos(const QString& /*nombreTabla*/, QWidget* parent)
     auto* hh = m_tabla->horizontalHeader();
     hh->setSectionsClickable(true);
     connect(hh, &QHeaderView::sectionDoubleClicked, this, [this](int col)
-    {
-
-        const QString actual = m_modelo->headerData(col, Qt::Horizontal).toString();
-
-        bool ok = false;
-
-        QString nuevo = QInputDialog::getText(this, tr("Renombrar campo"),tr("Nuevo nombre para %1:").arg(actual),QLineEdit::Normal, actual, &ok).trimmed();
-
-        if (!ok || nuevo.isEmpty() || nuevo == actual) return;
-
-        for(int c=0;c<m_modelo->columnCount();++c)
-        {
-
-            if(c==col)continue;
-            if(m_modelo->headerData(c,Qt::Horizontal).toString().compare(nuevo,Qt::CaseInsensitive)==0)
             {
+                const QString actual = m_modelo->headerData(col, Qt::Horizontal).toString();
+                bool ok = false;
+                QString nuevo = QInputDialog::getText(this, tr("Renombrar campo"),
+                                                      tr("Nuevo nombre para %1:").arg(actual),
+                                                      QLineEdit::Normal, actual, &ok).trimmed();
+                if (!ok || nuevo.isEmpty() || nuevo == actual) return;
 
-                return;//ya existe una columna con ese nombre
+                for (int c=0; c<m_modelo->columnCount(); ++c) {
+                    if (c==col) continue;
+                    if (m_modelo->headerData(c, Qt::Horizontal).toString()
+                            .compare(nuevo, Qt::CaseInsensitive) == 0) {
+                        // Ya existe una columna con ese nombre
+                        return;
+                    }
+                }
 
-            }
-
-        }
-        //con esto se refleja de inmediato en vista
-        m_modelo->setHeaderData(col,Qt::Horizontal,nuevo);
-
-        //este me ayuda a notificar a la pestaña, para que actualize la tabla
-        emit renombrarCampoSolicitado(col, nuevo);
-
-    });
+                // Refleja de inmediato en la vista
+                m_modelo->setHeaderData(col, Qt::Horizontal, nuevo);
+                // Notifica a la pestaña para que actualice el Diseño
+                emit renombrarCampoSolicitado(col, nuevo);
+            });
 }
 
 void VistaHojaDatos::reconectarSignalsModelo_() {
@@ -221,7 +250,8 @@ void VistaHojaDatos::reconstruirColumnas(const QList<Campo>& campos) {
     if (realRows > 0) {
         bool lastEmpty = true;
         for (int c = 0; c < m_modelo->columnCount(); ++c) {
-            if (oldData[oldRows-1][c].isValid() && !oldData[oldRows-1][c].toString().trimmed().isEmpty()) {
+            if (oldData[oldRows-1][c].isValid() &&
+                !oldData[oldRows-1][c].toString().trimmed().isEmpty()) {
                 lastEmpty = false; break;
             }
         }

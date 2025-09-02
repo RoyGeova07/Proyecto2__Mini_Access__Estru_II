@@ -188,11 +188,14 @@ void PestanaTabla::eliminarColumna()
 
 void PestanaTabla::hacerClavePrimaria()
 {
-    if (m_disenio) {
-        m_disenio->EstablecerPkSeleccionActual();
-        // Tras cambiar PK, refrescamos “General”
-        refrescarGeneral_(0);
-    }
+
+    if(!m_disenio)return;
+    m_disenio->EstablecerPkSeleccionActual();
+    //Refrescar panel “General” con la fila actualmente seleccionada
+    int fila=m_disenio->filaSeleccionadaActual();
+    if(fila<0)fila=0;
+    refrescarGeneral_(fila);
+
 }
 
 // === Helpers internos ===
