@@ -11,5 +11,6 @@
         <file>image/eliminar_tabla.png</file>
         <file>image/agregar_espacio.png</file>
         <file>image/eliminar_espacio.png</file>
+        <file>image/agregar_tablarela.png</file>
     </qresource>
 </RCC>

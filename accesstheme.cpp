@@ -1,13 +1,13 @@
 #include "accesstheme.h"
-
-#include <QApplication>
-#include <QFont>
-#include <QString>
+#include<QApplication>
+#include<QFont>
+#include<QString>
 
 AccessTheme::AccessTheme() {}
 
 QString AccessTheme::qss()
 {
+
     // Tema "Colorful" inspirado en Microsoft Access (acento #A4373A)
     return R"(
 * { font-family: "Segoe UI"; font-size: 9pt; }
@@ -73,10 +73,13 @@ QLineEdit:focus, QComboBox:focus, QDateEdit:focus { border-color: #A4373A; }
 /* --- Status bar --- */
 QStatusBar { background: #f7f7f7; border-top: 1px solid #e1e1e1; }
     )";
+
 }
 
-void AccessTheme::apply(QApplication& app)
+void AccessTheme::apply(QApplication &app)
 {
+
     app.setFont(QFont("Segoe UI", 9));
     app.setStyleSheet(qss());
+
 }

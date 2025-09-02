@@ -11,9 +11,9 @@
 #include <QFormLayout>
 #include <QLabel>
 
-PestanaTabla::PestanaTabla(const QString& nombreInicial, QWidget* parent)
-    : QWidget(parent), m_nombre(nombreInicial)
+PestanaTabla::PestanaTabla(const QString& nombreInicial, QWidget* parent):QWidget(parent), m_nombre(nombreInicial)
 {
+
     auto* base = new QVBoxLayout(this);
     base->setContentsMargins(0,0,0,0);
     base->setSpacing(0);
@@ -22,11 +22,13 @@ PestanaTabla::PestanaTabla(const QString& nombreInicial, QWidget* parent)
 
     // --- Página Hoja de datos ---
     m_hoja = new VistaHojaDatos(nombreInicial, m_pila);
-    m_paginaHoja = new QWidget(m_pila);
+    m_paginaHoja=new QWidget(m_pila);
     {
-        auto* lay = new QVBoxLayout(m_paginaHoja);
+
+        auto*lay=new QVBoxLayout(m_paginaHoja);
         lay->setContentsMargins(0,0,0,0);
         lay->addWidget(m_hoja);
+
     }
     m_pila->addWidget(m_paginaHoja);
 
@@ -41,17 +43,17 @@ PestanaTabla::PestanaTabla(const QString& nombreInicial, QWidget* parent)
     auto* form = new QFormLayout(pagGeneral);
     form->setLabelAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 
-    m_pNombre      = new QLabel("-", pagGeneral);
-    m_pTipo        = new QLabel("-", pagGeneral);
-    m_pTamano      = new QLabel("-", pagGeneral);
-    m_pFormato     = new QLabel("-", pagGeneral);
-    m_pDecimales   = new QLabel("-", pagGeneral);
-    m_pValorDef    = new QLabel("-", pagGeneral);
-    m_pRequerido   = new QLabel("-", pagGeneral);
-    m_pPermiteCero = new QLabel("-", pagGeneral);
-    m_pIndexado    = new QLabel("-", pagGeneral);
+    m_pNombre=new QLabel("-", pagGeneral);
+    m_pTipo=new QLabel("-", pagGeneral);
+    m_pTamano=new QLabel("-", pagGeneral);
+    m_pFormato=new QLabel("-", pagGeneral);
+    m_pDecimales=new QLabel("-", pagGeneral);
+    m_pValorDef=new QLabel("-", pagGeneral);
+    m_pRequerido=new QLabel("-", pagGeneral);
+    m_pPermiteCero=new QLabel("-", pagGeneral);
+    m_pIndexado=new QLabel("-", pagGeneral);
 
-    form->addRow(tr("Nombre del campo:"),        m_pNombre);
+    form->addRow(tr("Nombre del campo:"),m_pNombre);
     form->addRow(tr("Tipo de datos:"),           m_pTipo);
     form->addRow(tr("Tamaño del campo:"),        m_pTamano);
     form->addRow(tr("Formato:"),                 m_pFormato);
@@ -77,35 +79,38 @@ PestanaTabla::PestanaTabla(const QString& nombreInicial, QWidget* parent)
 
     // --- Conexiones de sincronización ---
     connect(m_disenio, &VistaDisenio::esquemaCambiado, this, [this]()
-            {
-                syncHojaConDisenio_();
-                // Actualiza panel General con la fila 0 si no hay selección explícita
-                refrescarGeneral_(0);
-                emit estadoCambioSolicitado();
-            });
+    {
+        syncHojaConDisenio_();
+        // Actualiza panel General con la fila 0 si no hay selección explícita
+        refrescarGeneral_(0);
+        emit estadoCambioSolicitado();
+    });
 
     connect(m_hoja, &VistaHojaDatos::datosCambiaron, this, [this]()
-            {
-                emit estadoCambioSolicitado();
-            });
+    {
+
+
+        emit estadoCambioSolicitado();
+
+    });
 
     // Renombrar campo desde Hoja (doble clic en encabezado)
-    connect(m_hoja, &VistaHojaDatos::renombrarCampoSolicitado, this,
-            [this](int col, const QString& nombre)
-            {
-                if (!m_disenio->renombrarCampo(col, nombre)) {
-                    QMessageBox::warning(this, tr("No se pudo renombrar"),
-                                         tr("Nombre inválido, duplicado o es la clave primaria."));
-                    return;
-                }
-                syncHojaConDisenio_();
-                refrescarGeneral_(col); // refresca General con la columna renombrada
-            });
+    connect(m_hoja, &VistaHojaDatos::renombrarCampoSolicitado, this,[this](int col, const QString& nombre)
+    {
+        if (!m_disenio->renombrarCampo(col, nombre))
+        {
+
+            QMessageBox::warning(this, tr("No se pudo renombrar"),tr("Nombre inválido, duplicado o es la clave primaria."));
+            return;
+
+        }
+        syncHojaConDisenio_();
+        refrescarGeneral_(col); // refresca General con la columna renombrada
+    });
 
     // Refrescar “General” cuando se cambia la selección en Diseño
     // (requiere que VistaDisenio emita filaSeleccionada(int))
-    connect(m_disenio, &VistaDisenio::filaSeleccionada, this,
-            [this](int fila){ refrescarGeneral_(fila < 0 ? 0 : fila); });
+    connect(m_disenio, &VistaDisenio::filaSeleccionada, this,[this](int fila){ refrescarGeneral_(fila < 0 ? 0 : fila); });
 
     // Inicial
     syncHojaConDisenio_();
@@ -116,16 +121,19 @@ PestanaTabla::PestanaTabla(const QString& nombreInicial, QWidget* parent)
 // === API de consulta/persistencia ===
 QList<Campo> PestanaTabla::esquemaActual() const
 {
+
     return m_disenio->esquema();
+
 }
 
 QVector<QVector<QVariant>> PestanaTabla::filasActuales() const
 {
+
     return m_hoja->snapshotFilas();
+
 }
 
-void PestanaTabla::cargarSnapshot(const QList<Campo>& schema,
-                                  const QVector<QVector<QVariant>>& rows)
+void PestanaTabla::cargarSnapshot(const QList<Campo>& schema,const QVector<QVector<QVariant>>& rows)
 {
     m_disenio->establecerEsquema(schema);
     syncHojaConDisenio_();
@@ -156,33 +164,38 @@ void PestanaTabla::agregarColumna()
 void PestanaTabla::eliminarColumna()
 {
     // Si estamos viendo Diseño: eliminar la fila seleccionada
-    if (m_pila->currentWidget() == m_paginaDisenio) {
-        if (m_disenio->eliminarCampoSeleccionado()) {
+    if(m_pila->currentWidget() == m_paginaDisenio)
+    {
+
+        if(m_disenio->eliminarCampoSeleccionado())
+        {
+
             syncHojaConDisenio_();
             refrescarGeneral_(0);
+
         }
         return;
     }
 
     // Si estamos en Hoja: pedir el nombre y eliminar por nombre
-    const auto campos = m_disenio->esquema();
+    const auto campos=m_disenio->esquema();
     QStringList elegibles;
     for (int i = 1; i < campos.size(); ++i) // no permitir PK
         elegibles << campos[i].nombre;
 
     if (elegibles.isEmpty()) return;
 
-    bool ok = false;
-    const QString elegido = QInputDialog::getItem(
-        this, tr("Eliminar columna"),
-        tr("Seleccione el campo a eliminar:"), elegibles, 0, false, &ok
-        );
+    bool ok=false;
+    const QString elegido = QInputDialog::getItem(this, tr("Eliminar columna"),tr("Seleccione el campo a eliminar:"), elegibles, 0, false, &ok);
 
     if (!ok || elegido.isEmpty()) return;
 
-    if (m_disenio->eliminarCampoPorNombre(elegido)) {
+    if(m_disenio->eliminarCampoPorNombre(elegido))
+    {
+
         syncHojaConDisenio_();
         refrescarGeneral_(0);
+
     }
 }
 

@@ -1,7 +1,7 @@
 #include "ribbongroup.h"
-#include <QGridLayout>
-#include <QLabel>
-#include <QVBoxLayout>
+#include<QGridLayout>
+#include<QLabel>
+#include<QVBoxLayout>
 
 ribbongroup::ribbongroup(const QString& title, QWidget* parent) : QWidget(parent) {
     setObjectName("RibbonGroup");
@@ -12,7 +12,11 @@ ribbongroup::ribbongroup(const QString& title, QWidget* parent) : QWidget(parent
     v->addWidget(caption, 0, Qt::AlignHCenter);
     setProperty("gridptr", QVariant::fromValue<void*>(grid));
 }
-void ribbongroup::addWidget(QWidget* w, int r, int c, int rs, int cs) {
+
+void ribbongroup::addWidget(QWidget *w, int r, int c, int rs, int cs)
+{
+
     auto* grid = static_cast<QGridLayout*>(property("gridptr").value<void*>());
     grid->addWidget(w, r, c, rs, cs);
+
 }

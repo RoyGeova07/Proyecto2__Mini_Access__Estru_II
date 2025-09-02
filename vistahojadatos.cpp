@@ -12,21 +12,23 @@
 #include <QComboBox>
 #include <QDateEdit>
 #include <QInputDialog>
-#include <QPainter>
-#include <QStyleOptionButton>
-#include <QApplication>
-#include <QStyle>
+#include<QMessageBox>
+#include<QPainter>
+#include<QStyle>
+#include<QApplication>
+#include<QStyleOptionButton>
 
 static constexpr int kCurrencyDecimals = 2; // cambia a 4 si quieres estilo Access
 
-// ===== Delegate por tipo (incluye Moneda y pintura de Booleano) =====
+// ===== Delegate por tipo (incluye Moneda) =====
 class TipoHojaDelegate : public QStyledItemDelegate {
 public:
-    explicit TipoHojaDelegate(const QString& tipo, QObject* parent=nullptr)
-        : QStyledItemDelegate(parent), tipo_(tipo.trimmed().toLower()) {}
+
+    explicit TipoHojaDelegate(const QString& tipo, QObject* parent=nullptr):QStyledItemDelegate(parent), tipo_(tipo.trimmed().toLower()) {}
 
     QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem&, const QModelIndex&) const override
     {
+
         if (tipo_ == "entero") {
             auto* e = new QLineEdit(parent);
             e->setValidator(new QIntValidator(e));
@@ -92,8 +94,7 @@ public:
         }
     }
 
-    QString displayText(const QVariant& value, const QLocale& locale) const override
-    {
+    QString displayText(const QVariant& value, const QLocale& locale) const override {
         if (tipo_ == "moneda") {
             bool ok=false; const double dv = value.toDouble(&ok);
             if (ok) return locale.toCurrencyString(dv, locale.currencySymbol(QLocale::CurrencySymbol));
@@ -125,9 +126,10 @@ public:
     }
 
 protected:
+
     void initStyleOption(QStyleOptionViewItem* option, const QModelIndex& index) const override
     {
-        Q_UNUSED(index);
+
         QStyledItemDelegate::initStyleOption(option, index);
         if (tipo_ == "entero" || tipo_ == "real" || tipo_ == "moneda") {
             option->displayAlignment = Qt::AlignRight | Qt::AlignVCenter;
@@ -139,15 +141,14 @@ private:
 };
 
 // ===== VistaHojaDatos =====
-VistaHojaDatos::VistaHojaDatos(const QString& /*nombreTabla*/, QWidget* parent)
-    : QWidget(parent)
+VistaHojaDatos::VistaHojaDatos(const QString& /*nombreTabla*/, QWidget* parent):QWidget(parent)
 {
-    auto* lay = new QVBoxLayout(this);
+    auto*lay= new QVBoxLayout(this);
     lay->setContentsMargins(6,6,6,6);
     lay->setSpacing(0);
 
-    m_tabla  = new QTableView(this);
-    m_modelo = new QStandardItemModel(this);
+    m_tabla=new QTableView(this);
+    m_modelo=new QStandardItemModel(this);
 
     // Comienza solo con PK; el esquema real viene del Diseño
     m_modelo->setColumnCount(1);
@@ -155,15 +156,6 @@ VistaHojaDatos::VistaHojaDatos(const QString& /*nombreTabla*/, QWidget* parent)
     m_modelo->setRowCount(1);
 
     m_tabla->setModel(m_modelo);
-
-    // ==== Estilo y comportamiento tipo Access (Hoja de datos) ====
-    m_tabla->setSelectionBehavior(QAbstractItemView::SelectRows);
-    m_tabla->setSelectionMode(QAbstractItemView::SingleSelection);
-    m_tabla->setAlternatingRowColors(true);
-    m_tabla->setShowGrid(true);
-    m_tabla->verticalHeader()->setDefaultSectionSize(22);
-    // ============================================================
-
     m_tabla->horizontalHeader()->setStretchLastSection(true);
     m_tabla->verticalHeader()->setVisible(true);
     m_tabla->setEditTriggers(QAbstractItemView::AllEditTriggers);
@@ -174,46 +166,57 @@ VistaHojaDatos::VistaHojaDatos(const QString& /*nombreTabla*/, QWidget* parent)
     auto* hh = m_tabla->horizontalHeader();
     hh->setSectionsClickable(true);
     connect(hh, &QHeaderView::sectionDoubleClicked, this, [this](int col)
+    {
+
+        const QString actual = m_modelo->headerData(col, Qt::Horizontal).toString();
+
+        bool ok = false;
+
+        QString nuevo = QInputDialog::getText(this, tr("Renombrar campo"),tr("Nuevo nombre para %1:").arg(actual),QLineEdit::Normal, actual, &ok).trimmed();
+
+        if (!ok || nuevo.isEmpty() || nuevo == actual) return;
+
+        for(int c=0;c<m_modelo->columnCount();++c)
+        {
+
+            if(c==col)continue;
+            if(m_modelo->headerData(c,Qt::Horizontal).toString().compare(nuevo,Qt::CaseInsensitive)==0)
             {
-                const QString actual = m_modelo->headerData(col, Qt::Horizontal).toString();
-                bool ok = false;
-                QString nuevo = QInputDialog::getText(this, tr("Renombrar campo"),
-                                                      tr("Nuevo nombre para %1:").arg(actual),
-                                                      QLineEdit::Normal, actual, &ok).trimmed();
-                if (!ok || nuevo.isEmpty() || nuevo == actual) return;
 
-                for (int c=0; c<m_modelo->columnCount(); ++c) {
-                    if (c==col) continue;
-                    if (m_modelo->headerData(c, Qt::Horizontal).toString()
-                            .compare(nuevo, Qt::CaseInsensitive) == 0) {
-                        // Ya existe una columna con ese nombre
-                        return;
-                    }
-                }
+                QMessageBox::warning(this, tr("Nombre duplicado"),tr("Ya existe un campo llamado “%1”.").arg(nuevo));
+                return;//ya existe una columna con ese nombre
 
-                // Refleja de inmediato en la vista
-                m_modelo->setHeaderData(col, Qt::Horizontal, nuevo);
-                // Notifica a la pestaña para que actualice el Diseño
-                emit renombrarCampoSolicitado(col, nuevo);
-            });
+            }
+
+        }
+        //con esto se refleja de inmediato en vista
+        m_modelo->setHeaderData(col,Qt::Horizontal,nuevo);
+
+        //este me ayuda a notificar a la pestaña, para que actualize la tabla
+        emit renombrarCampoSolicitado(col, nuevo);
+
+    });
 }
 
-void VistaHojaDatos::reconectarSignalsModelo_() {
+void VistaHojaDatos::reconectarSignalsModelo_()
+{
     // Evita conexiones duplicadas
     disconnect(m_modelo, nullptr, this, nullptr);
 
-    connect(m_modelo, &QStandardItemModel::dataChanged, this,
-            [this](const QModelIndex&, const QModelIndex&){
-                asegurarFilaNuevaAlFinal_();
-                emit datosCambiaron();
-            });
-    connect(m_modelo, &QStandardItemModel::rowsInserted, this,
-            [this](const QModelIndex&, int, int){ emit datosCambiaron(); });
-    connect(m_modelo, &QStandardItemModel::rowsRemoved, this,
-            [this](const QModelIndex&, int, int){ emit datosCambiaron(); });
+    connect(m_modelo, &QStandardItemModel::dataChanged, this,[this](const QModelIndex&, const QModelIndex&)
+    {
+
+        asegurarFilaNuevaAlFinal_();
+        emit datosCambiaron();
+
+    });
+    connect(m_modelo, &QStandardItemModel::rowsInserted, this,[this](const QModelIndex&, int, int){ emit datosCambiaron(); });
+    connect(m_modelo, &QStandardItemModel::rowsRemoved, this,[this](const QModelIndex&, int, int){ emit datosCambiaron(); });
+
 }
 
-void VistaHojaDatos::asegurarFilaNuevaAlFinal_() {
+void VistaHojaDatos::asegurarFilaNuevaAlFinal_()
+{
     int r = m_modelo->rowCount();
     if (r==0) { m_modelo->setRowCount(1); return; }
     bool ultimaVacia = true;
@@ -222,9 +225,12 @@ void VistaHojaDatos::asegurarFilaNuevaAlFinal_() {
         if (v.isValid() && !v.toString().trimmed().isEmpty()) { ultimaVacia = false; break; }
     }
     if (!ultimaVacia) m_modelo->insertRow(r);
+
 }
 
-void VistaHojaDatos::reconstruirColumnas(const QList<Campo>& campos) {
+void VistaHojaDatos::reconstruirColumnas(const QList<Campo>& campos)
+{
+
     // ---- Capturar estado anterior ----
     QStringList oldHeaders;
     for (int c = 0; c < m_modelo->columnCount(); ++c)
@@ -250,8 +256,7 @@ void VistaHojaDatos::reconstruirColumnas(const QList<Campo>& campos) {
     if (realRows > 0) {
         bool lastEmpty = true;
         for (int c = 0; c < m_modelo->columnCount(); ++c) {
-            if (oldData[oldRows-1][c].isValid() &&
-                !oldData[oldRows-1][c].toString().trimmed().isEmpty()) {
+            if (oldData[oldRows-1][c].isValid() && !oldData[oldRows-1][c].toString().trimmed().isEmpty()) {
                 lastEmpty = false; break;
             }
         }
@@ -260,7 +265,8 @@ void VistaHojaDatos::reconstruirColumnas(const QList<Campo>& campos) {
 
     // Copia por nombre
     newModel->setRowCount(realRows);
-    for (int newC = 0; newC < campos.size(); ++newC) {
+    for (int newC = 0; newC < campos.size(); ++newC)
+    {
         const QString& name = campos[newC].nombre;
         const int oldC = oldHeaders.indexOf(name);
         if (oldC < 0) continue; // columna nueva, queda vacía
@@ -298,7 +304,8 @@ void VistaHojaDatos::reconstruirColumnas(const QList<Campo>& campos) {
     reconectarSignalsModelo_();
 }
 
-QVector<QVector<QVariant>> VistaHojaDatos::snapshotFilas(bool excluirUltimaVacia) const {
+QVector<QVector<QVariant>> VistaHojaDatos::snapshotFilas(bool excluirUltimaVacia) const
+{
     int rows = m_modelo->rowCount();
     const int cols = m_modelo->columnCount();
     if (cols == 0) return {};
@@ -319,7 +326,8 @@ QVector<QVector<QVariant>> VistaHojaDatos::snapshotFilas(bool excluirUltimaVacia
     return out;
 }
 
-void VistaHojaDatos::cargarFilas(const QVector<QVector<QVariant>>& rows) {
+void VistaHojaDatos::cargarFilas(const QVector<QVector<QVariant>>& rows)
+{
     m_modelo->setRowCount(rows.size());
     for (int r=0; r<rows.size(); ++r) {
         const auto& fila = rows[r];

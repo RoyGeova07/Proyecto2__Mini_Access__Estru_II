@@ -1,185 +1,196 @@
 #include "VentanaPrincipal.h"
-#include "CintaOpciones.h"
-#include "PanelObjetos.h"
-#include "pestanatabla.h"
+#include"CintaOpciones.h"
+#include"PanelObjetos.h"
+#include"pestanatabla.h"
+#include<QTabWidget>
+#include<QSplitter>
+#include<QWidget>
+#include<QVBoxLayout>
+#include<QIcon>
+#include<QInputDialog>
+#include<QRegularExpression>
+#include"relacioneswidget.h"
+#include"consultawidget.h"
+#include"accesstheme.h"
+#include<QFrame>
+#include<QLocale>
+#include<QStatusBar>
 
-#include <QTabWidget>
-#include <QSplitter>
-#include <QWidget>
-#include <QVBoxLayout>
-#include <QIcon>
-#include <QInputDialog>
-#include <QRegularExpression>
-#include <QMessageBox>
-#include <QStatusBar>
-#include <QFrame>
-#include <QApplication>
-#include <QLocale>
-
-// Incluye tu tema Access (clase header-only)
-#include "AccessTheme.h"
-
-VentanaPrincipal::VentanaPrincipal(QWidget* parent)
-    : QMainWindow(parent)
+VentanaPrincipal::VentanaPrincipal(QWidget*parent):QMainWindow(parent)
 {
-    // Aplica el tema Access y la fuente Segoe UI
-    AccessTheme::apply(*qApp);
-    // Opcional: regional (fechas/moneda) como Access en ES-HN
-    QLocale::setDefault(QLocale(QLocale::Spanish, QLocale::Honduras));
 
-    // ---------- UI base ----------
-    auto* central = new QWidget(this);
-    auto* vlay    = new QVBoxLayout(central);
+    //AccessTheme::apply(*qApp);
+    QLocale::setDefault(QLocale(QLocale::Spanish,QLocale::Honduras));
+
+    auto*central=new QWidget(this);
+    auto*vlay=new QVBoxLayout(central);
     vlay->setContentsMargins(0,0,0,0);
     vlay->setSpacing(0);
 
-    // Banda de acento (rojo Access) justo debajo de la barra de título
-    auto* accent = new QFrame(central);
-    accent->setObjectName("TopAccent");
-    vlay->addWidget(accent);
-
-    // Cinta estilo Access
-    m_cinta = new CintaOpciones(this);
+    m_cinta=new CintaOpciones(this);
     vlay->addWidget(m_cinta);
 
-    // Splitter: panel de objetos (izquierda) + pestañas (derecha)
-    auto* split = new QSplitter(Qt::Horizontal, central);
-    vlay->addWidget(split, 1);
+    auto*split=new QSplitter(Qt::Horizontal,central);
+    vlay->addWidget(split,1);
 
-    m_panel = new PanelObjetos(split);
+    m_panel=new PanelObjetos(split);
     split->addWidget(m_panel);
 
-    m_pestanas = new QTabWidget(split);
+    m_pestanas=new QTabWidget(split);
     m_pestanas->setTabsClosable(true);
     split->addWidget(m_pestanas);
 
-    split->setStretchFactor(0, 0);
-    split->setStretchFactor(1, 1);
+    split->setStretchFactor(0,0);
+    split->setStretchFactor(1,1);
 
     setCentralWidget(central);
     setWindowTitle("MiniAccess");
     setWindowIcon(QIcon(":/im/image/a.png"));
-    resize(1200, 700);
+    resize(1200,700);
 
-    // Status bar estilo Office/Access
-    auto* sb = new QStatusBar(this);
-    setStatusBar(sb);
-    sb->showMessage(tr("Hoja de datos • %1 registros").arg(0));
-
-    // Abrir Tabla1 por defecto
+    //Abrir Tabla1 por defecto
     abrirOTraerAPrimerPlano("Tabla1");
 
-    // ---------- Conexiones ----------
-    connect(m_cinta, &CintaOpciones::eliminarTablaPulsado,
-            this, &VentanaPrincipal::eliminarTablaActual);
+    // Conexiones
+    connect(m_cinta, &CintaOpciones::eliminarTablaPulsado, this, &VentanaPrincipal::eliminarTablaActual);
+    connect(m_cinta,&CintaOpciones::tablaPulsado,this,&VentanaPrincipal::crearTablaNueva);
+    connect(m_panel,&PanelObjetos::tablaAbiertaSolicitada,this,&VentanaPrincipal::abrirTablaDesdeLista);
+    connect(m_pestanas,&QTabWidget::tabCloseRequested,this,&VentanaPrincipal::cerrarPestana);
+    connect(m_cinta, &CintaOpciones::verHojaDatos,this,&VentanaPrincipal::mostrarHojaDatosActual);
+    connect(m_cinta, &CintaOpciones::verDisenio,this,&VentanaPrincipal::mostrarDisenioActual);
+    connect(m_cinta, &CintaOpciones::agregarColumnaPulsado, this, &VentanaPrincipal::agregarColumnaActual);
+    connect(m_cinta, &CintaOpciones::eliminarColumnaPulsado, this, &VentanaPrincipal::eliminarColumnaActual);
+    connect(m_cinta,&CintaOpciones::ClavePrimarioPulsado,this,&VentanaPrincipal::HacerClavePrimariaActual);
+    connect(m_cinta,&CintaOpciones::relacionesPulsado,this,&VentanaPrincipal::AbrirRelaciones);
+    connect(m_cinta,&CintaOpciones::ConsultaPulsado,this,&VentanaPrincipal::AbrirConsultas);
+    connect(m_cinta,&CintaOpciones::agregarTablaHBDPulsado,this,[this]{
 
-    connect(m_cinta, &CintaOpciones::tablaPulsado,
-            this, &VentanaPrincipal::crearTablaNueva);
+        AbrirRelaciones();
 
-    connect(m_panel, &PanelObjetos::tablaAbiertaSolicitada,
-            this, &VentanaPrincipal::abrirTablaDesdeLista);
+        //aqui se obtiene el widget de relaciones y pide el dialogo
+        for(int i=0;i<m_pestanas->count();i++)
+        {
 
-    connect(m_pestanas, &QTabWidget::tabCloseRequested,
-            this, &VentanaPrincipal::cerrarPestana);
+            if(auto*rel=qobject_cast<RelacionesWidget*>(m_pestanas->widget(i)))
+            {
 
-    connect(m_cinta, &CintaOpciones::verHojaDatos,
-            this, &VentanaPrincipal::mostrarHojaDatosActual);
+                const QStringList tablas=m_panel?m_panel->todasLasTablas():QStringList{};
+                rel->MostrarSelectorTablas(tablas,false);
+                break;
 
-    connect(m_cinta, &CintaOpciones::verDisenio,
-            this, &VentanaPrincipal::mostrarDisenioActual);
+            }
 
-    connect(m_cinta, &CintaOpciones::agregarColumnaPulsado,
-            this, &VentanaPrincipal::agregarColumnaActual);
+        }
 
-    connect(m_cinta, &CintaOpciones::eliminarColumnaPulsado,
-            this, &VentanaPrincipal::eliminarColumnaActual);
+    });
+    connect(m_panel, &PanelObjetos::renombrarTablaSolicitado,this,&VentanaPrincipal::renombrarTablaPorSolicitud);
 
-    connect(m_cinta, &CintaOpciones::ClavePrimarioPulsado,
-            this, &VentanaPrincipal::HacerClavePrimariaActual);
-
-    connect(m_cinta, &CintaOpciones::ConsultaPulsado,
-            this, &VentanaPrincipal::CrearConsultaNueva);
 }
 
 void VentanaPrincipal::crearTablaNueva()
 {
+
     ++m_contadorTablas;
-    const QString nombre = QString("Tabla%1").arg(m_contadorTablas);
+    const QString nombre=QString("Tabla%1").arg(m_contadorTablas);
     m_panel->agregarTabla(nombre);
     abrirOTraerAPrimerPlano(nombre);
-}
 
+}
 void VentanaPrincipal::eliminarTablaActual()
 {
-    const int idx = m_pestanas->currentIndex();
-    if (idx < 0) return; // no hay pestaña activa
 
-    const QString nombre = m_pestanas->tabText(idx);
+    //1)¿Que tabla desea borrar el usuario?
+    QString nombre=m_panel->tablaSeleccionada();
 
-    const auto resp = QMessageBox::question(
-        this,
-        tr("Eliminar tabla"),
-        tr("¿Eliminar la tabla '%1'? Esta acción no se puede deshacer.").arg(nombre),
-        QMessageBox::Yes | QMessageBox::No,
-        QMessageBox::No
-        );
-    if (resp != QMessageBox::Yes) return;
+    //Fallback: si no hay seleccion, se usa el nombre de la pestaña activa si es de tabla
+    if(nombre.isEmpty())
+    {
 
-    // Cerrar la pestaña si está abierta
-    QWidget* w = m_pestanas->widget(idx);
-    m_pestanas->removeTab(idx);
-    delete w;
+        if(auto*tab=qobject_cast<PestanaTabla*>(m_pestanas->currentWidget()))
+        {
 
-    // Quitar del panel izquierdo y memoria
+            nombre=tab->nombreTabla();
+
+        }
+
+    }
+
+    if(nombre.isEmpty())
+    {
+
+        QMessageBox::information(this, tr("Eliminar tabla"),tr("Selecciona una tabla en la lista para eliminarla."));
+        return;
+
+    }
+
+    // 2)¿Esta abierta en alguna pestaña? -> BLOQUEAR
+    for(int i=0;i<m_pestanas->count();++i)
+    {
+
+        if(m_pestanas->tabText(i)==nombre)
+        {
+
+            QMessageBox::information(this, tr("Microsoft Access"),tr("No se puede eliminar el objeto '%1' de la base de datos mientras está abierto.\n""Cierre el objeto de la base de datos y elimínelo.").arg(nombre));
+            return;
+
+        }
+
+    }
+    // 3)Confirmacion y borrado del panel
+    const auto resp=QMessageBox::question(this, tr("Eliminar tabla"),tr("¿Eliminar la tabla '%1'? Esta accion no se puede deshacer.").arg(nombre),QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+    if(resp!=QMessageBox::Yes)return;
+
+    // Quitar del panel izquierdo
     m_panel->eliminarTabla(nombre);
-    m_memTablas.remove(nombre);
+
 }
 
-void VentanaPrincipal::abrirTablaDesdeLista(const QString& nombre)
+void VentanaPrincipal::abrirTablaDesdeLista(const QString&nombre)
 {
+
     abrirOTraerAPrimerPlano(nombre);
+
 }
 
 void VentanaPrincipal::abrirOTraerAPrimerPlano(const QString& nombre)
 {
-    for (int i = 0; i < m_pestanas->count(); ++i) {
-        if (m_pestanas->tabText(i) == nombre) {
-            m_pestanas->setCurrentIndex(i);
-            return;
-        }
+    for (int i=0; i<m_pestanas->count(); ++i) {
+        if (m_pestanas->tabText(i) == nombre) { m_pestanas->setCurrentIndex(i); return; }
     }
 
     auto* vista = new PestanaTabla(nombre, m_pestanas);
 
-    if (m_memTablas.contains(nombre)) {
+    if (m_memTablas.contains(nombre))
+    {
+
         const auto& snap = m_memTablas[nombre];
         vista->cargarSnapshot(snap.schema, snap.rows);
     }
 
-    connect(vista, &PestanaTabla::estadoCambioSolicitado, this, [this, vista, nombre](){
+    connect(vista, &PestanaTabla::estadoCambioSolicitado, this, [this, vista, nombre]()
+    {
+
         TablaSnapshot s;
         s.schema = vista->esquemaActual();
         s.rows   = vista->filasActuales();
         m_memTablas[nombre] = std::move(s);
 
-        // Si quieres actualizar el contador en status bar:
-        if (statusBar()) {
-            const int filas = s.rows.size();
-            statusBar()->showMessage(tr("Hoja de datos • %1 registros").arg(filas));
-        }
     });
 
-    const int idx = m_pestanas->addTab(vista, nombre);
+    const int idx = m_pestanas->addTab(vista,QIcon(":/im/image/tabla.png"),nombre);
     m_pestanas->setCurrentIndex(idx);
 }
 
 void VentanaPrincipal::cerrarPestana(int idx)
 {
-    if (auto* p = qobject_cast<PestanaTabla*>(m_pestanas->widget(idx))) {
+    if(auto* p = qobject_cast<PestanaTabla*>(m_pestanas->widget(idx)))
+    {
+
         TablaSnapshot s;
         s.schema = p->esquemaActual();
         s.rows   = p->filasActuales();
         m_memTablas[p->nombreTabla()] = std::move(s);
+
     }
 
     QWidget* w = m_pestanas->widget(idx);
@@ -189,49 +200,57 @@ void VentanaPrincipal::cerrarPestana(int idx)
 
 void VentanaPrincipal::mostrarHojaDatosActual()
 {
-    if (auto* p = qobject_cast<PestanaTabla*>(m_pestanas->currentWidget())) {
+
+    if(auto*p=qobject_cast<PestanaTabla*>(m_pestanas->currentWidget()))
+    {
+
         p->mostrarHojaDatos();
-        // Actualiza status bar con registros de la hoja actual
-        if (statusBar()) {
-            const int filas = p->filasActuales().size();
+        if(statusBar())
+        {
+
+            const int filas=p->filasActuales().size();
             statusBar()->showMessage(tr("Hoja de datos • %1 registros").arg(filas));
+
         }
+
     }
-    m_cinta->MostrarBotonClavePrimaria(false); // ocultar en hoja de datos
+    m_cinta->MostrarBotonClavePrimaria(false);//ocultar boton en hoja de datos
     m_cinta->setIconoVerHojaDatos();
+
 }
 
 void VentanaPrincipal::mostrarDisenioActual()
 {
-    if (auto* p = qobject_cast<PestanaTabla*>(m_pestanas->currentWidget())) {
-        // Si no tiene nombre confirmado, pedirlo
-        if (!p->tieneNombre()) {
-            QString anterior = m_pestanas->tabText(m_pestanas->currentIndex());
-            QString nombre   = anterior;
 
-            while (true) {
-                bool ok = false;
-                nombre = QInputDialog::getText(
-                             this,
-                             tr("Guardar tabla"),
-                             tr("Nombre de la tabla:"),
-                             QLineEdit::Normal,
-                             nombre,
-                             &ok
-                             ).trimmed();
 
-                if (!ok) return;
-                if (nombre.isEmpty()) continue; // no vacío
-                if (m_panel->existeTabla(nombre) && nombre != anterior) continue; // no repetido
+    if(auto*p=qobject_cast<PestanaTabla*>(m_pestanas->currentWidget()))
+    {
+
+        //si no tiene nombre confirmao pedirloooooo
+        if(!p->tieneNombre())
+        {
+
+            QString anterior=m_pestanas->tabText(m_pestanas->currentIndex());
+            QString nombre=anterior;
+
+            while(true)
+            {
+
+                bool ok=false;
+                nombre= QInputDialog::getText(this,tr("Guardar tabla"),tr("Nombre de la tabla:"),QLineEdit::Normal,nombre, &ok).trimmed();
+                if(!ok)return;
+                if(nombre.isEmpty())continue;//no vacio
+
+                if(m_panel->existeTabla(nombre)&&nombre!=anterior)continue;//no repetido
                 break;
+
             }
 
-            // Confirmar nombre y reflejar en UI
+            //confirmar el nombre y reflejar en UI
             p->establecerNombre(nombre);
-            m_panel->renombrarTabla(anterior, nombre);
-            const int idx = m_pestanas->currentIndex();
-            m_pestanas->setTabText(idx, nombre);
-
+            m_panel->renombrarTabla(anterior,nombre);
+            int idx=m_pestanas->currentIndex();
+            m_pestanas->setTabText(idx,nombre);
             if (m_memTablas.contains(anterior)) {
                 m_memTablas.insert(nombre, m_memTablas.take(anterior));
             }
@@ -239,36 +258,125 @@ void VentanaPrincipal::mostrarDisenioActual()
 
         p->mostrarDisenio();
     }
-    m_cinta->MostrarBotonClavePrimaria(true); // visible en Diseño
+    m_cinta->MostrarBotonClavePrimaria(true);//mostrar en esta tabla disenio
     m_cinta->setIconoVerDisenio();
-}
 
+}
 void VentanaPrincipal::agregarColumnaActual()
 {
-    if (auto* p = qobject_cast<PestanaTabla*>(m_pestanas->currentWidget())) {
-        QMetaObject::invokeMethod(p, "agregarColumna");
-    }
-}
 
+    if(auto* p = qobject_cast<PestanaTabla*>(m_pestanas->currentWidget()))
+    {
+
+        QMetaObject::invokeMethod(p, "agregarColumna");
+
+    }
+
+}
 void VentanaPrincipal::eliminarColumnaActual()
 {
-    if (auto* p = qobject_cast<PestanaTabla*>(m_pestanas->currentWidget())) {
-        QMetaObject::invokeMethod(p, "eliminarColumna");
-    }
-}
 
+    if (auto* p = qobject_cast<PestanaTabla*>(m_pestanas->currentWidget()))
+    {
+
+        QMetaObject::invokeMethod(p, "eliminarColumna");
+
+    }
+
+}
 void VentanaPrincipal::HacerClavePrimariaActual()
 {
-    if (auto* p = qobject_cast<PestanaTabla*>(m_pestanas->currentWidget())) {
-        QMetaObject::invokeMethod(p, "hacerClavePrimaria");
-    }
+
+    if(auto*p=qobject_cast<PestanaTabla*>(m_pestanas->currentWidget()))
+        QMetaObject::invokeMethod(p,"hacerClavePrimaria");
+
 }
 
-void VentanaPrincipal::CrearConsultaNueva()
+void VentanaPrincipal::AbrirRelaciones()
 {
-    QMessageBox::information(
-        this,
-        tr("Consultas"),
-        tr("Aquí se creará una consulta.\n(Próximamente diseñador de consultas)")
-        );
+
+    //si ya exite solo se enfoca
+    RelacionesWidget*rel=nullptr;
+    for(int i=0;i<m_pestanas->count();++i)
+    {
+
+        rel=qobject_cast<RelacionesWidget*>(m_pestanas->widget(i));
+        if(rel)
+        {
+
+            m_pestanas->setCurrentIndex(i);
+            break;
+
+        }
+
+    }
+    if(!rel)
+    {
+
+        rel=new RelacionesWidget(m_pestanas);
+        int idx=m_pestanas->addTab(rel,QIcon(":/im/image/relaciones.png"), tr("Relaciones"));
+        m_pestanas->setCurrentIndex(idx);
+
+    }
+    //Listado de tablas disponibles (usa tu helper del PanelObjetos)
+    const QStringList tablas=m_panel?m_panel->todasLasTablas():QStringList{};
+    rel->MostrarSelectorTablas(tablas,true);
+    m_cinta->MostrarBotonClavePrimaria(false);//no quiero que se muestre la clave
+
+}
+
+void VentanaPrincipal::AbrirConsultas()
+{
+
+    for(int i=0;i<m_pestanas->count();++i)
+    {
+
+        if(m_pestanas->tabText(i)==tr("Consultas"))
+        {
+
+            m_pestanas->setCurrentIndex(i);
+            m_cinta->MostrarBotonClavePrimaria(false);//que no se vea el boton de la clave
+            return;
+
+        }
+
+    }
+    auto*w=new ConsultaWidget(m_pestanas);
+    int idx=m_pestanas->addTab(w,QIcon(":/im/image/consultas.png"),tr("Consultas"));
+    m_pestanas->setCurrentIndex(idx);
+    m_cinta->MostrarBotonClavePrimaria(false);//no quiero que se muestre la clave
+
+}
+
+void VentanaPrincipal::renombrarTablaPorSolicitud(const QString &viejo, const QString &nuevo)
+{
+
+    //1)¿Esta abierta en alguna pestaña? -> BLOQUEAR
+    for(int i=0;i<m_pestanas->count();++i)
+    {
+        if(m_pestanas->tabText(i).compare(viejo, Qt::CaseSensitive)==0)
+        {
+
+            QMessageBox::information(this, tr("Microsoft Access"),tr("No se puede cambiar el nombre del objeto '%1' porque está abierto.\n""Cierre el objeto y vuelva a intentarlo.").arg(viejo));
+            return;
+
+        }
+    }
+    //2)¿Ya existe otra tabla con ese nombre? (comparacion case-insensitive)
+    const QStringList todas=m_panel->todasLasTablas();
+    for(const QString&t:todas)
+    {
+
+        if(QString::compare(t,nuevo,Qt::CaseInsensitive)==0&&t!=viejo)
+        {
+
+            QMessageBox::warning(this, tr("Nombre duplicado"),tr("Ya existe una tabla llamada “%1”.").arg(nuevo));
+            return;
+
+        }
+
+    }
+    //3) Aplicar el cambio en el panel
+    m_panel->renombrarTabla(viejo,nuevo);
+
 }
