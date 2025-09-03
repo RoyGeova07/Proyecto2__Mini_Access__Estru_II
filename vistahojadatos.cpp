@@ -163,28 +163,30 @@ VistaHojaDatos::VistaHojaDatos(const QString& /*nombreTabla*/, QWidget* parent):
 
     reconectarSignalsModelo_();
 
-    auto* hh = m_tabla->horizontalHeader();
+    auto*hh=m_tabla->horizontalHeader();
     hh->setSectionsClickable(true);
     connect(hh, &QHeaderView::sectionDoubleClicked, this, [this](int col)
     {
 
-        const QString actual = m_modelo->headerData(col, Qt::Horizontal).toString();
+        const QString actual=m_modelo->headerData(col, Qt::Horizontal).toString();
 
-        bool ok = false;
+        bool ok=false;
 
-        QString nuevo = QInputDialog::getText(this, tr("Renombrar campo"),tr("Nuevo nombre para %1:").arg(actual),QLineEdit::Normal, actual, &ok).trimmed();
+        QString nuevo=QInputDialog::getText(this, tr("Renombrar campo"),tr("Nuevo nombre para %1:").arg(actual),QLineEdit::Normal, actual, &ok).trimmed();
 
-        if (!ok || nuevo.isEmpty() || nuevo == actual) return;
+        if(!ok||nuevo.isEmpty()||nuevo==actual)return;
 
+        //aqui valida duplicados (case-insensitive) en los DEMAS encabezados
         for(int c=0;c<m_modelo->columnCount();++c)
         {
 
             if(c==col)continue;
-            if(m_modelo->headerData(c,Qt::Horizontal).toString().compare(nuevo,Qt::CaseInsensitive)==0)
+            const QString ex=m_modelo->headerData(c,Qt::Horizontal).toString().trimmed();
+            if(QString::compare(ex,nuevo,Qt::CaseInsensitive)==0)
             {
 
-                QMessageBox::warning(this, tr("Nombre duplicado"),tr("Ya existe un campo llamado “%1”.").arg(nuevo));
-                return;//ya existe una columna con ese nombre
+                QMessageBox::warning(this,tr("Nombre Duplicado"),tr("Ya existe un campo llamado “%1”.").arg(nuevo));
+                return;
 
             }
 

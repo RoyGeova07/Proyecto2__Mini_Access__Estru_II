@@ -108,10 +108,11 @@ private:
 bool VistaDisenio::renombrarCampo(int fila, const QString& nuevoNombre)
 {
 
-    if(fila<=0)return false;
+    if(fila<0)return false;
     const QString nn=nuevoNombre.trimmed();
     if(nn.isEmpty())return false;
 
+    //Duplicados (case-insensitive) en todas las filas excepto la editada
     for(int r = 0; r < m_modelo->rowCount(); ++r)
     {
 
@@ -126,7 +127,7 @@ bool VistaDisenio::renombrarCampo(int fila, const QString& nuevoNombre)
     if(!it){it=new QStandardItem(nn); m_modelo->setItem(fila,1,it); }
     else     {it->setText(nn); }
 
-    emit esquemaCambiado();
+    emit esquemaCambiado();//dispara la sync hacia Hoja/Relaciones
     return true;
 
 }
@@ -139,21 +140,25 @@ void VistaDisenio::establecerEsquema(const QList<Campo>& campos)
     m_modelo->setHeaderData(2, Qt::Horizontal, QStringLiteral("Tipo de datos"));
 
     m_modelo->setRowCount(campos.size());
-    for (int r=0; r<campos.size(); ++r) {
+    for(int r=0; r<campos.size(); ++r)
+    {
         auto* it0 = new QStandardItem();
         it0->setEditable(false);
         m_modelo->setItem(r, 0, it0);
 
         auto* it1 = new QStandardItem(campos[r].nombre);
         auto* it2 = new QStandardItem(campos[r].tipo);
-        if (r == 0) {
-            it1->setText("Id");
+        if(r==0)
+        {
+
             it1->setEditable(false);
-            it2->setText("Entero");
             it2->setEditable(false);
-        } else {
+
+        }else{
+
             it1->setFlags(it1->flags() | Qt::ItemIsEditable);
             it2->setFlags(it2->flags() | Qt::ItemIsEditable);
+
         }
         m_modelo->setItem(r, 1, it1);
         m_modelo->setItem(r, 2, it2);

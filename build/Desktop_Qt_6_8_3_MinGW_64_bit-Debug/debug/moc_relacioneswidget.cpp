@@ -8,6 +8,7 @@
 
 #include "../../../relacioneswidget.h"
 #include <QtCore/qmetatype.h>
+#include <QtCore/QList>
 
 #include <QtCore/qtmochelpers.h>
 
@@ -38,15 +39,19 @@ struct qt_meta_tag_ZN16RelacionesWidgetE_t {};
 #ifdef QT_MOC_HAS_STRINGDATA
 static constexpr auto qt_meta_stringdata_ZN16RelacionesWidgetE = QtMocHelpers::stringData(
     "RelacionesWidget",
-    "MostrarSelectorTablas",
+    "aplicarEsquema",
     "",
-    "tablas",
-    "soloSiPrimeraVez",
-    "agregarMiniTabla",
-    "nombreBase",
-    "tituloUnico",
-    "base",
-    "proximaPosicion"
+    "tabla",
+    "QList<Campo>",
+    "schema",
+    "tablaRenombrada",
+    "viejo",
+    "nuevo",
+    "agregarRelacion",
+    "Relacion",
+    "r",
+    "eliminarRelacion",
+    "eliminarSeleccion"
 );
 #else  // !QT_MOC_HAS_STRINGDATA
 #error "qtmochelpers.h not found or too old."
@@ -67,17 +72,17 @@ Q_CONSTINIT static const uint qt_meta_data_ZN16RelacionesWidgetE[] = {
 
  // slots: name, argc, parameters, tag, flags, initial metatype offsets
        1,    2,   44,    2, 0x0a,    1 /* Public */,
-       1,    1,   49,    2, 0x2a,    4 /* Public | MethodCloned */,
-       5,    1,   52,    2, 0x0a,    6 /* Public */,
-       7,    1,   55,    2, 0x10a,    8 /* Public | MethodIsConst  */,
-       9,    0,   58,    2, 0x0a,   10 /* Public */,
+       6,    2,   49,    2, 0x0a,    4 /* Public */,
+       9,    1,   54,    2, 0x0a,    7 /* Public */,
+      12,    1,   57,    2, 0x0a,    9 /* Public */,
+      13,    0,   60,    2, 0x0a,   11 /* Public */,
 
  // slots: parameters
-    QMetaType::Void, QMetaType::QStringList, QMetaType::Bool,    3,    4,
-    QMetaType::Void, QMetaType::QStringList,    3,
-    QMetaType::Void, QMetaType::QString,    6,
-    QMetaType::QString, QMetaType::QString,    8,
-    QMetaType::QPoint,
+    QMetaType::Void, QMetaType::QString, 0x80000000 | 4,    3,    5,
+    QMetaType::Void, QMetaType::QString, QMetaType::QString,    7,    8,
+    QMetaType::Void, 0x80000000 | 10,   11,
+    QMetaType::Void, 0x80000000 | 10,   11,
+    QMetaType::Void,
 
        0        // eod
 };
@@ -91,21 +96,22 @@ Q_CONSTINIT const QMetaObject RelacionesWidget::staticMetaObject = { {
     qt_incomplete_metaTypeArray<qt_meta_tag_ZN16RelacionesWidgetE_t,
         // Q_OBJECT / Q_GADGET
         QtPrivate::TypeAndForceComplete<RelacionesWidget, std::true_type>,
-        // method 'MostrarSelectorTablas'
-        QtPrivate::TypeAndForceComplete<void, std::false_type>,
-        QtPrivate::TypeAndForceComplete<const QStringList &, std::false_type>,
-        QtPrivate::TypeAndForceComplete<bool, std::false_type>,
-        // method 'MostrarSelectorTablas'
-        QtPrivate::TypeAndForceComplete<void, std::false_type>,
-        QtPrivate::TypeAndForceComplete<const QStringList &, std::false_type>,
-        // method 'agregarMiniTabla'
+        // method 'aplicarEsquema'
         QtPrivate::TypeAndForceComplete<void, std::false_type>,
         QtPrivate::TypeAndForceComplete<const QString &, std::false_type>,
-        // method 'tituloUnico'
-        QtPrivate::TypeAndForceComplete<QString, std::false_type>,
+        QtPrivate::TypeAndForceComplete<const QList<Campo> &, std::false_type>,
+        // method 'tablaRenombrada'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>,
         QtPrivate::TypeAndForceComplete<const QString &, std::false_type>,
-        // method 'proximaPosicion'
-        QtPrivate::TypeAndForceComplete<QPoint, std::false_type>
+        QtPrivate::TypeAndForceComplete<const QString &, std::false_type>,
+        // method 'agregarRelacion'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>,
+        QtPrivate::TypeAndForceComplete<const Relacion &, std::false_type>,
+        // method 'eliminarRelacion'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>,
+        QtPrivate::TypeAndForceComplete<const Relacion &, std::false_type>,
+        // method 'eliminarSeleccion'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>
     >,
     nullptr
 } };
@@ -115,13 +121,11 @@ void RelacionesWidget::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int
     auto *_t = static_cast<RelacionesWidget *>(_o);
     if (_c == QMetaObject::InvokeMetaMethod) {
         switch (_id) {
-        case 0: _t->MostrarSelectorTablas((*reinterpret_cast< std::add_pointer_t<QStringList>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<bool>>(_a[2]))); break;
-        case 1: _t->MostrarSelectorTablas((*reinterpret_cast< std::add_pointer_t<QStringList>>(_a[1]))); break;
-        case 2: _t->agregarMiniTabla((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1]))); break;
-        case 3: { QString _r = _t->tituloUnico((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])));
-            if (_a[0]) *reinterpret_cast< QString*>(_a[0]) = std::move(_r); }  break;
-        case 4: { QPoint _r = _t->proximaPosicion();
-            if (_a[0]) *reinterpret_cast< QPoint*>(_a[0]) = std::move(_r); }  break;
+        case 0: _t->aplicarEsquema((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QList<Campo>>>(_a[2]))); break;
+        case 1: _t->tablaRenombrada((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2]))); break;
+        case 2: _t->agregarRelacion((*reinterpret_cast< std::add_pointer_t<Relacion>>(_a[1]))); break;
+        case 3: _t->eliminarRelacion((*reinterpret_cast< std::add_pointer_t<Relacion>>(_a[1]))); break;
+        case 4: _t->eliminarSeleccion(); break;
         default: ;
         }
     }

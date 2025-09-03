@@ -10,6 +10,7 @@
 #include <QMenu>
 #include <QInputDialog>
 #include <QComboBox>
+#include<QKeyEvent>
 
 RelacionesWidget::RelacionesWidget(QWidget* parent) : QWidget(parent) {
     auto* lay = new QVBoxLayout(this);
@@ -23,6 +24,80 @@ RelacionesWidget::RelacionesWidget(QWidget* parent) : QWidget(parent) {
     m_view->setDragMode(QGraphicsView::RubberBandDrag);
     m_view->setBackgroundBrush(QColor("#e6e6e6"));
     lay->addWidget(m_view, 1);
+
+    //captar tecla Delete cuando el foco esta en la vista
+    m_view->installEventFilter(this);
+    m_view->viewport()->installEventFilter(this);
+
+}
+
+void RelacionesWidget::eliminarSeleccion()
+{
+
+    const auto selected=m_scene->selectedItems();
+    if(selected.isEmpty())return;
+
+    //1)Marcar nombres de tablas a eliminar
+    QSet<QString>tablasAEliminar;
+    for(QGraphicsItem*gi:selected)
+    {
+
+        if(auto*t=qgraphicsitem_cast<TableItem*>(gi))
+        {
+
+            tablasAEliminar.insert(t->nombre());
+
+        }
+        if(tablasAEliminar.isEmpty())return;
+
+        //2)Filtrar relaciones logicas que involucren esas tablas
+        QSet<Relacion>nuevas;
+        for(const auto& r : std::as_const(m_rels))
+        {
+            if (tablasAEliminar.contains(r.tablaOrigen) || tablasAEliminar.contains(r.tablaDestino))
+                continue;
+            nuevas.insert(r);
+        }
+        m_rels.swap(nuevas);
+
+        //3)Quitar TableItem del scene y del indice
+        for(const QString&nombre:tablasAEliminar)
+        {
+
+            if(auto*t=m_items.take(nombre))
+            {
+
+                m_scene->removeItem(t);
+                delete t;
+
+            }
+
+        }
+        //4) Regenerar flechas (RelationItem) con el nuevo set
+        rehacerRelItems_();
+
+    }
+
+}
+
+bool RelacionesWidget::eventFilter(QObject *obj, QEvent *ev)
+{
+
+    if(ev->type()==QEvent::KeyPress)
+    {
+
+        auto*ke=static_cast<QKeyEvent*>(ev);
+        if(ke->key()==Qt::Key_Delete)
+        {
+
+            eliminarSeleccion();
+            return true;//se consume el evento
+
+        }
+
+    }
+    return QWidget::eventFilter(obj,ev);
+
 }
 
 void RelacionesWidget::resizeEvent(QResizeEvent* e) {
@@ -40,36 +115,85 @@ QPointF RelacionesWidget::proximaPosicion_() {
     return pos;
 }
 
-void RelacionesWidget::asegurarItemTabla_(const QString& nombre) {
-    if (m_items.contains(nombre)) return;
-    auto* it = new TableItem(nombre, {});
+void RelacionesWidget::asegurarItemTabla_(const QString& nombre)
+{
+    if(m_items.contains(nombre))return;
+
+    //1)Tomar el esquema guardado si existe; si no, usar fallback "Access-like":
+    QList<Campo>schema=m_schemas.value(nombre);
+    if(schema.isEmpty())
+    {
+
+        Campo pk;  pk.pk=true;  pk.nombre="Id";      pk.tipo="Entero";
+        Campo c1;  c1.pk=false; c1.nombre="Campo1";  c1.tipo="Texto";
+        schema << pk << c1;
+        m_schemas.insert(nombre, schema);//memorizar para futuras actualizaciones
+
+    }
+
+    // 2) Crear la mini–tabla ya con campos
+    auto* it = new TableItem(nombre, schema);
     it->setPos(proximaPosicion_());
     m_scene->addItem(it);
     m_items.insert(nombre, it);
 }
 
-void RelacionesWidget::aplicarEsquema(const QString& tabla, const QList<Campo>& schema) {
-    asegurarItemTabla_(tabla);
-    m_items[tabla]->setCampos(schema);
-    rehacerRelItems_(); // por si cambió un nombre de campo/PK
+void RelacionesWidget::aplicarEsquema(const QString& tabla, const QList<Campo>& schema)
+{
+    //Memoriza el ultimo esquema conocido
+    m_schemas[tabla]=schema;
+
+    //Si la mini-tabla YA existe en el canvas, actualiza sus campos;
+    //si no existe, NO la cra (debe agregarla el usuario).
+    auto*it=m_items.value(tabla,nullptr);
+    if(it)
+    {
+
+        it->setCampos(schema);
+        rehacerRelItems_();//por si cambio algun nombre del campo
+
+    }
+
 }
 
-void RelacionesWidget::tablaRenombrada(const QString& viejo, const QString& nuevo) {
-    if (!m_items.contains(viejo)) return;
-    auto* it = m_items.take(viejo);
-    it->setNombre(nuevo);
-    m_items.insert(nuevo, it);
+void RelacionesWidget::tablaRenombrada(const QString& viejo, const QString& nuevo)
+{
 
-    // Actualizar relaciones lógicas
-    QSet<Relacion> nuevas;
-    for (const auto& r : std::as_const(m_rels)) {
-        Relacion x = r;
-        if (x.tablaOrigen == viejo)  x.tablaOrigen  = nuevo;
-        if (x.tablaDestino == viejo) x.tablaDestino = nuevo;
-        nuevas.insert(x);
+    if(viejo==nuevo)return;
+
+    //mover el esquema memorizado si existia (para mantener claves coherentes)
+    if(m_schemas.contains(viejo))
+    {
+
+        m_schemas.insert(nuevo,m_schemas.take(viejo));
+
     }
-    m_rels = nuevas;
+
+    //Renombrar la mini-tabla si ya esta puesta en escena
+    if(m_items.contains(viejo))
+    {
+
+        auto*it=m_items.take(viejo);
+        it->setNombre(nuevo);//con esto actualiza el header visual
+        m_items.insert(nuevo,it);
+
+    }
+
+
+    //Actualizar relaciones lógicas que apunten al nombre viejo
+    QSet<Relacion>nuevas;
+    for(const auto& r : std::as_const(m_rels))
+    {
+
+        Relacion x=r;
+        if(x.tablaOrigen == viejo)  x.tablaOrigen  = nuevo;
+        if(x.tablaDestino == viejo) x.tablaDestino = nuevo;
+        nuevas.insert(x);
+
+    }
+    m_rels=nuevas;
     rehacerRelItems_();
+
 }
 
 void RelacionesWidget::agregarRelacion(const Relacion& r) {

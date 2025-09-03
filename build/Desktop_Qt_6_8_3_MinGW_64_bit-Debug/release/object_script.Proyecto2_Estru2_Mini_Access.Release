@@ -6,7 +6,9 @@ release/mainwindow.o
 release/panelobjetos.o
 release/pestanatabla.o
 release/relacioneswidget.o
+release/relationitem.o
 release/ribbongroup.o
+release/tableitem.o
 release/ventanaprincipal.o
 release/vistadisenio.o
 release/vistahojadatos.o
@@ -18,6 +20,7 @@ release/moc_panelobjetos.o
 release/moc_pestanatabla.o
 release/moc_relacioneswidget.o
 release/moc_ribbongroup.o
+release/moc_tableitem.o
 release/moc_ventanaprincipal.o
 release/moc_vistadisenio.o
 release/moc_vistahojadatos.o

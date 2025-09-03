@@ -63,7 +63,8 @@ VentanaPrincipal::VentanaPrincipal(QWidget*parent):QMainWindow(parent)
     connect(m_cinta,&CintaOpciones::ClavePrimarioPulsado,this,&VentanaPrincipal::HacerClavePrimariaActual);
     connect(m_cinta,&CintaOpciones::relacionesPulsado,this,&VentanaPrincipal::AbrirRelaciones);
     connect(m_cinta,&CintaOpciones::ConsultaPulsado,this,&VentanaPrincipal::AbrirConsultas);
-    connect(m_cinta,&CintaOpciones::agregarTablaHBDPulsado,this,[this]{
+    connect(m_cinta,&CintaOpciones::agregarTablaHBDPulsado,this,[this]
+    {
 
         AbrirRelaciones();
 
@@ -84,6 +85,19 @@ VentanaPrincipal::VentanaPrincipal(QWidget*parent):QMainWindow(parent)
 
     });
     connect(m_panel, &PanelObjetos::renombrarTablaSolicitado,this,&VentanaPrincipal::renombrarTablaPorSolicitud);
+    connect(m_cinta,&CintaOpciones::eliminarTablasRelPulsado,this,[this]
+    {
+
+       AbrirRelaciones();
+        if(auto*rel=qobject_cast<RelacionesWidget*>(m_pestanas->currentWidget()))
+        {
+
+            rel->eliminarSeleccion();
+
+        }
+
+
+    });
 
 }
 
@@ -154,8 +168,11 @@ void VentanaPrincipal::abrirTablaDesdeLista(const QString&nombre)
 
 void VentanaPrincipal::abrirOTraerAPrimerPlano(const QString& nombre)
 {
-    for (int i=0; i<m_pestanas->count(); ++i) {
+    for(int i=0; i<m_pestanas->count(); ++i)
+    {
+
         if (m_pestanas->tabText(i) == nombre) { m_pestanas->setCurrentIndex(i); return; }
+
     }
 
     auto* vista = new PestanaTabla(nombre, m_pestanas);
@@ -165,20 +182,32 @@ void VentanaPrincipal::abrirOTraerAPrimerPlano(const QString& nombre)
 
         const auto& snap = m_memTablas[nombre];
         vista->cargarSnapshot(snap.schema, snap.rows);
+
     }
 
-    connect(vista, &PestanaTabla::estadoCambioSolicitado, this, [this, vista, nombre]()
+    connect(vista, &PestanaTabla::estadoCambioSolicitado,this,[this,vista]()
     {
 
+        const QString nombreActual=vista->nombreTabla();
         TablaSnapshot s;
-        s.schema = vista->esquemaActual();
-        s.rows   = vista->filasActuales();
-        m_memTablas[nombre] = std::move(s);
-        emit esquemaTablaCambiado(nombre, m_memTablas[nombre].schema);
+        s.schema=vista->esquemaActual();
+        s.rows=vista->filasActuales();
+        m_memTablas[nombreActual]=std::move(s);
+
+        emit esquemaTablaCambiado(nombreActual, m_memTablas[nombreActual].schema);
     });
 
     const int idx = m_pestanas->addTab(vista,QIcon(":/im/image/tabla.png"),nombre);
     m_pestanas->setCurrentIndex(idx);
+
+    //Si ya tenemos esquema guardado, emitir señal inicial
+    if(m_memTablas.contains(nombre))
+    {
+
+        emit esquemaTablaCambiado(nombre,m_memTablas[nombre].schema);
+
+    }
+
 }
 
 void VentanaPrincipal::cerrarPestana(int idx)
@@ -189,7 +218,11 @@ void VentanaPrincipal::cerrarPestana(int idx)
         TablaSnapshot s;
         s.schema = p->esquemaActual();
         s.rows   = p->filasActuales();
+        const QString nombreTabla=p->nombreTabla();
         m_memTablas[p->nombreTabla()] = std::move(s);
+
+        //Emitir señal al cerrar para actualizar relaciones
+        emit esquemaTablaCambiado(nombreTabla,m_memTablas[nombreTabla].schema);
 
     }
 
@@ -251,9 +284,15 @@ void VentanaPrincipal::mostrarDisenioActual()
             m_panel->renombrarTabla(anterior,nombre);
             int idx=m_pestanas->currentIndex();
             m_pestanas->setTabText(idx,nombre);
-            if (m_memTablas.contains(anterior)) {
+            if(m_memTablas.contains(anterior))
+            {
+
                 m_memTablas.insert(nombre, m_memTablas.take(anterior));
+
             }
+            //NOTIFICAR A LAs RELACIONES
+            emit tablaRenombradaSignal(anterior,nombre);
+            emit esquemaTablaCambiado(nombre,m_memTablas.value(nombre).schema);
         }
 
         p->mostrarDisenio();
@@ -294,25 +333,36 @@ void VentanaPrincipal::HacerClavePrimariaActual()
 
 void VentanaPrincipal::AbrirRelaciones()
 {
-    RelacionesWidget* rel = nullptr;
-    for (int i=0; i<m_pestanas->count(); ++i) {
+    RelacionesWidget*rel =nullptr;
+    for(int i=0; i<m_pestanas->count(); ++i)
+    {
+
         rel = qobject_cast<RelacionesWidget*>(m_pestanas->widget(i));
         if (rel) { m_pestanas->setCurrentIndex(i); break; }
+
     }
-    if (!rel) {
+    if(!rel)
+    {
         rel = new RelacionesWidget(m_pestanas);
         int idx = m_pestanas->addTab(rel, QIcon(":/im/image/relaciones.png"), tr("Relaciones"));
         m_pestanas->setCurrentIndex(idx);
 
-        // <<< Conexiones NUEVAS
-        connect(this, &VentanaPrincipal::esquemaTablaCambiado,
-                rel,  &RelacionesWidget::aplicarEsquema);
-        connect(this, &VentanaPrincipal::tablaRenombradaSignal,
-                rel,  &RelacionesWidget::tablaRenombrada);
+        connect(this, &VentanaPrincipal::esquemaTablaCambiado,rel,&RelacionesWidget::aplicarEsquema);
+        connect(this, &VentanaPrincipal::tablaRenombradaSignal,rel,&RelacionesWidget::tablaRenombrada);
 
         // Push inicial de todos los esquemas conocidos
         for (auto it = m_memTablas.begin(); it != m_memTablas.end(); ++it)
             emit esquemaTablaCambiado(it.key(), it.value().schema);
+    }else{
+
+        //Si RelacionesWidget ya existe, re-enviar todos los esquemas
+        for(auto it=m_memTablas.begin();it!=m_memTablas.end();++it)
+        {
+
+            rel->aplicarEsquema(it.key(),it.value().schema);
+
+        }
+
     }
 
     const QStringList tablas = m_panel ? m_panel->todasLasTablas() : QStringList{};
@@ -372,7 +422,21 @@ void VentanaPrincipal::renombrarTablaPorSolicitud(const QString &viejo, const QS
         }
 
     }
-    //3) Aplicar el cambio en el panel
+    //3) Aplicar el cambio de nombre en el panel
     m_panel->renombrarTabla(viejo,nuevo);
+
+    //4)mover el snapshot en memoria (clave vieja -> clave nueva)
+    if(m_memTablas.contains(viejo))
+    {
+
+        auto snap=m_memTablas.take(viejo);//saca y borra la entrada vieja
+        m_memTablas.insert(nuevo,std::move(snap));//inserta con la nueva clase
+        // volver a empujar el esquema al area de Relaciones:
+        emit esquemaTablaCambiado(nuevo,m_memTablas[nuevo].schema);
+
+    }
+
+    //Notificar a Relaciones del renombre
     emit tablaRenombradaSignal(viejo, nuevo);
+
 }
