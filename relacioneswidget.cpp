@@ -201,8 +201,7 @@ bool RelacionesWidget::campoExiste_(const QString& tabla, const QString& campo) 
             return true;
     return false;
 }
-void RelacionesWidget::mostrarDialogoModificarRelacion_(const QString& tablaO_in, const QString& campoO_in,
-                                                        const QString& tablaD_in, const QString& campoD_in)
+void RelacionesWidget::mostrarDialogoModificarRelacion_(const QString& tablaO_in, const QString& campoO_in,const QString& tablaD_in, const QString& campoD_in)
 {
     // ===== 1) Inferencia "estilo Access"
     auto esPk = [&](const QString& t, const QString& c){ return campoEsPk_(t, c); };
