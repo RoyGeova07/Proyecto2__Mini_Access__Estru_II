@@ -47,10 +47,6 @@ static constexpr auto qt_meta_stringdata_ZN16RelacionesWidgetE = QtMocHelpers::s
     "tablaRenombrada",
     "viejo",
     "nuevo",
-    "agregarRelacion",
-    "Relacion",
-    "r",
-    "eliminarRelacion",
     "eliminarSeleccion"
 );
 #else  // !QT_MOC_HAS_STRINGDATA
@@ -63,7 +59,7 @@ Q_CONSTINIT static const uint qt_meta_data_ZN16RelacionesWidgetE[] = {
       12,       // revision
        0,       // classname
        0,    0, // classinfo
-       5,   14, // methods
+       3,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
@@ -71,17 +67,13 @@ Q_CONSTINIT static const uint qt_meta_data_ZN16RelacionesWidgetE[] = {
        0,       // signalCount
 
  // slots: name, argc, parameters, tag, flags, initial metatype offsets
-       1,    2,   44,    2, 0x0a,    1 /* Public */,
-       6,    2,   49,    2, 0x0a,    4 /* Public */,
-       9,    1,   54,    2, 0x0a,    7 /* Public */,
-      12,    1,   57,    2, 0x0a,    9 /* Public */,
-      13,    0,   60,    2, 0x0a,   11 /* Public */,
+       1,    2,   32,    2, 0x0a,    1 /* Public */,
+       6,    2,   37,    2, 0x0a,    4 /* Public */,
+       9,    0,   42,    2, 0x0a,    7 /* Public */,
 
  // slots: parameters
     QMetaType::Void, QMetaType::QString, 0x80000000 | 4,    3,    5,
     QMetaType::Void, QMetaType::QString, QMetaType::QString,    7,    8,
-    QMetaType::Void, 0x80000000 | 10,   11,
-    QMetaType::Void, 0x80000000 | 10,   11,
     QMetaType::Void,
 
        0        // eod
@@ -104,12 +96,6 @@ Q_CONSTINIT const QMetaObject RelacionesWidget::staticMetaObject = { {
         QtPrivate::TypeAndForceComplete<void, std::false_type>,
         QtPrivate::TypeAndForceComplete<const QString &, std::false_type>,
         QtPrivate::TypeAndForceComplete<const QString &, std::false_type>,
-        // method 'agregarRelacion'
-        QtPrivate::TypeAndForceComplete<void, std::false_type>,
-        QtPrivate::TypeAndForceComplete<const Relacion &, std::false_type>,
-        // method 'eliminarRelacion'
-        QtPrivate::TypeAndForceComplete<void, std::false_type>,
-        QtPrivate::TypeAndForceComplete<const Relacion &, std::false_type>,
         // method 'eliminarSeleccion'
         QtPrivate::TypeAndForceComplete<void, std::false_type>
     >,
@@ -123,9 +109,7 @@ void RelacionesWidget::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int
         switch (_id) {
         case 0: _t->aplicarEsquema((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QList<Campo>>>(_a[2]))); break;
         case 1: _t->tablaRenombrada((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2]))); break;
-        case 2: _t->agregarRelacion((*reinterpret_cast< std::add_pointer_t<Relacion>>(_a[1]))); break;
-        case 3: _t->eliminarRelacion((*reinterpret_cast< std::add_pointer_t<Relacion>>(_a[1]))); break;
-        case 4: _t->eliminarSeleccion(); break;
+        case 2: _t->eliminarSeleccion(); break;
         default: ;
         }
     }
@@ -150,14 +134,14 @@ int RelacionesWidget::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 5)
+        if (_id < 3)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 5;
+        _id -= 3;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 5)
+        if (_id < 3)
             *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
-        _id -= 5;
+        _id -= 3;
     }
     return _id;
 }

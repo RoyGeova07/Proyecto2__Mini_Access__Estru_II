@@ -82,6 +82,7 @@ void RelationItem::paint(QPainter* p, const QStyleOptionGraphicsItem* o, QWidget
     QFont f("Segoe UI",9,QFont::DemiBold);
     p->setFont(f);
     p->setPen(QColor("#303030"));
+
     const QPointF pos1=A+nA*12+tA*2;//'1'
     const QPointF posInf=B+nB*12+tB*2;//'∞'
     p->drawText(pos1,"1");

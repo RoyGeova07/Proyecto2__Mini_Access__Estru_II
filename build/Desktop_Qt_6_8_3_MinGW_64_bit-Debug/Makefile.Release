@@ -4149,7 +4149,8 @@ release/relacioneswidget.o: ../../relacioneswidget.cpp ../../relacioneswidget.h 
 		C:/Qt/6.8.3/mingw_64/include/QtGui/qtextcursor.h \
 		C:/Qt/6.8.3/mingw_64/include/QtGui/qtextformat.h \
 		C:/Qt/6.8.3/mingw_64/include/QtWidgets/QComboBox \
-		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qcombobox.h
+		C:/Qt/6.8.3/mingw_64/include/QtWidgets/qcombobox.h \
+		C:/Qt/6.8.3/mingw_64/include/QtGui/QKeyEvent
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o release\relacioneswidget.o ..\..\relacioneswidget.cpp
 
 release/relationitem.o: ../../relationitem.cpp ../../relationitem.h \
