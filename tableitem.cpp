@@ -1,4 +1,6 @@
 #include "tableitem.h"
+#include "qgraphicsscene.h"
+#include "qmimedata.h"
 #include "qstyleoption.h"
 #include <QPainter>
 #include <QFontMetrics>
@@ -26,6 +28,14 @@ TableItem::TableItem(const QString& nombre, const QList<Campo>& campos, QGraphic
     setAcceptHoverEvents(true);
     setAcceptedMouseButtons(Qt::LeftButton);
 
+}
+QPointF TableItem::anclaCampoScene(const QString& campo, bool left) const
+{
+    if (m_dirty) recalcularLayout_();
+    const qreal y = m_yCampo.value(campo, m_rect.top() + 28);
+    const qreal x = left ? m_rect.left() : m_rect.right();
+    const QPointF local(x, y);
+    return mapToScene(local);
 }
 
 void TableItem::setNombre(const QString& n)

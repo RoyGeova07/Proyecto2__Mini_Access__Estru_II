@@ -1,4 +1,4 @@
-#include "VistaHojaDatos.h"
+#include "vistahojadatos.h"
 
 #include <QStyledItemDelegate>
 #include <QLocale>
@@ -12,23 +12,23 @@
 #include <QComboBox>
 #include <QDateEdit>
 #include <QInputDialog>
-#include<QMessageBox>
-#include<QPainter>
-#include<QStyle>
-#include<QApplication>
-#include<QStyleOptionButton>
+#include <QMessageBox>
+#include <QPainter>
+#include <QStyle>
+#include <QApplication>
+#include <QStyleOptionButton>
+#include <QMenu>
 
-static constexpr int kCurrencyDecimals = 2; // cambia a 4 si quieres estilo Access
+static constexpr int kCurrencyDecimals = 2;
 
-// ===== Delegate por tipo (incluye Moneda) =====
+// ===== Delegate por tipo/columna =====
 class TipoHojaDelegate : public QStyledItemDelegate {
 public:
-
-    explicit TipoHojaDelegate(const QString& tipo, QObject* parent=nullptr):QStyledItemDelegate(parent), tipo_(tipo.trimmed().toLower()) {}
+    TipoHojaDelegate(const QString& tipo, int col, const VistaHojaDatos* owner, QObject* parent=nullptr)
+        : QStyledItemDelegate(parent), tipo_(tipo.trimmed().toLower()), col_(col), owner_(owner) {}
 
     QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem&, const QModelIndex&) const override
     {
-
         if (tipo_ == "entero") {
             auto* e = new QLineEdit(parent);
             e->setValidator(new QIntValidator(e));
@@ -56,8 +56,7 @@ public:
             e->setValidator(v);
             return e;
         }
-        // Texto
-        return new QLineEdit(parent);
+        return new QLineEdit(parent); // Texto
     }
 
     void setEditorData(QWidget* editor, const QModelIndex& index) const override
@@ -96,10 +95,11 @@ public:
 
     QString displayText(const QVariant& value, const QLocale& locale) const override {
         if (tipo_ == "moneda") {
-            bool ok=false; const double dv = value.toDouble(&ok);
-            if (ok) return locale.toCurrencyString(dv, locale.currencySymbol(QLocale::CurrencySymbol));
-            const double dv2 = locale.toDouble(value.toString(), &ok);
-            if (ok) return locale.toCurrencyString(dv2, locale.currencySymbol(QLocale::CurrencySymbol));
+            bool ok=false; double dv = value.toDouble(&ok);
+            if (!ok) dv = locale.toDouble(value.toString(), &ok);
+            const QString code = owner_ ? owner_->currencyForCol_(col_) : QStringLiteral("HNL");
+            const QString sym  = VistaHojaDatos::symbolFor_(code);
+            if (ok) return QString("%1%2").arg(sym).arg(locale.toString(dv, 'f', kCurrencyDecimals));
         }
         return QStyledItemDelegate::displayText(value, locale);
     }
@@ -114,7 +114,6 @@ public:
             cb.state |= on ? QStyle::State_On : QStyle::State_Off;
             cb.rect = QApplication::style()->subElementRect(QStyle::SE_CheckBoxIndicator, &cb);
 
-            // centrar en la celda
             const QRect r = opt.rect;
             const QSize ind = cb.rect.size();
             cb.rect.moveTopLeft(QPoint(r.center().x()-ind.width()/2, r.center().y()-ind.height()/2));
@@ -126,10 +125,8 @@ public:
     }
 
 protected:
-
     void initStyleOption(QStyleOptionViewItem* option, const QModelIndex& index) const override
     {
-
         QStyledItemDelegate::initStyleOption(option, index);
         if (tipo_ == "entero" || tipo_ == "real" || tipo_ == "moneda") {
             option->displayAlignment = Qt::AlignRight | Qt::AlignVCenter;
@@ -138,6 +135,8 @@ protected:
 
 private:
     QString tipo_;
+    int col_ = 0;
+    const VistaHojaDatos* owner_ = nullptr;
 };
 
 // ===== VistaHojaDatos =====
@@ -150,7 +149,6 @@ VistaHojaDatos::VistaHojaDatos(const QString& /*nombreTabla*/, QWidget* parent):
     m_tabla=new QTableView(this);
     m_modelo=new QStandardItemModel(this);
 
-    // Comienza solo con PK; el esquema real viene del Diseño
     m_modelo->setColumnCount(1);
     m_modelo->setHeaderData(0, Qt::Horizontal, QStringLiteral("Id"));
     m_modelo->setRowCount(1);
@@ -163,58 +161,76 @@ VistaHojaDatos::VistaHojaDatos(const QString& /*nombreTabla*/, QWidget* parent):
 
     reconectarSignalsModelo_();
 
-    auto*hh=m_tabla->horizontalHeader();
+    auto* hh=m_tabla->horizontalHeader();
     hh->setSectionsClickable(true);
+
+    // Renombrar encabezado por doble clic
     connect(hh, &QHeaderView::sectionDoubleClicked, this, [this](int col)
-    {
-
-        const QString actual=m_modelo->headerData(col, Qt::Horizontal).toString();
-
-        bool ok=false;
-
-        QString nuevo=QInputDialog::getText(this, tr("Renombrar campo"),tr("Nuevo nombre para %1:").arg(actual),QLineEdit::Normal, actual, &ok).trimmed();
-
-        if(!ok||nuevo.isEmpty()||nuevo==actual)return;
-
-        //aqui valida duplicados (case-insensitive) en los DEMAS encabezados
-        for(int c=0;c<m_modelo->columnCount();++c)
-        {
-
-            if(c==col)continue;
-            const QString ex=m_modelo->headerData(c,Qt::Horizontal).toString().trimmed();
-            if(QString::compare(ex,nuevo,Qt::CaseInsensitive)==0)
             {
+                const QString actual=m_modelo->headerData(col, Qt::Horizontal).toString();
 
-                QMessageBox::warning(this,tr("Nombre Duplicado"),tr("Ya existe un campo llamado “%1”.").arg(nuevo));
-                return;
+                bool ok=false;
+                QString nuevo=QInputDialog::getText(this, tr("Renombrar campo"),
+                                                      tr("Nuevo nombre para %1:").arg(actual),
+                                                      QLineEdit::Normal, actual, &ok).trimmed();
 
-            }
+                if(!ok||nuevo.isEmpty()||nuevo==actual)return;
 
-        }
-        //con esto se refleja de inmediato en vista
-        m_modelo->setHeaderData(col,Qt::Horizontal,nuevo);
+                for(int c=0;c<m_modelo->columnCount();++c)
+                {
+                    if(c==col)continue;
+                    const QString ex=m_modelo->headerData(c,Qt::Horizontal).toString().trimmed();
+                    if(QString::compare(ex,nuevo,Qt::CaseInsensitive)==0)
+                    {
+                        QMessageBox::warning(this,tr("Nombre Duplicado"),
+                                             tr("Ya existe un campo llamado “%1”.").arg(nuevo));
+                        return;
+                    }
+                }
+                m_modelo->setHeaderData(col,Qt::Horizontal,nuevo);
+                emit renombrarCampoSolicitado(col, nuevo);
+            });
 
-        //este me ayuda a notificar a la pestaña, para que actualize la tabla
-        emit renombrarCampoSolicitado(col, nuevo);
+    // Menú contextual en encabezado para elegir divisa en columnas "Moneda"
+    hh->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(hh, &QHeaderView::customContextMenuRequested, this, [this, hh](const QPoint& pos){
+        const int col = hh->logicalIndexAt(pos);
+        if (col < 0 || col >= m_tiposPorCol.size()) return;
+        if (m_tiposPorCol[col].trimmed().compare("Moneda", Qt::CaseInsensitive) != 0) return;
 
+        QMenu menu(this);
+        QAction* aHNL = menu.addAction(tr("Lempiras (HNL)"));
+        QAction* aUSD = menu.addAction(tr("Dólares (USD)"));
+        QAction* aEUR = menu.addAction(tr("Euros (EUR)"));
+
+        const QString cur = m_currencyByCol.value(col, "HNL");
+        aHNL->setCheckable(true); aUSD->setCheckable(true); aEUR->setCheckable(true);
+        if (cur=="HNL") aHNL->setChecked(true);
+        if (cur=="USD") aUSD->setChecked(true);
+        if (cur=="EUR") aEUR->setChecked(true);
+
+        QAction* chosen = menu.exec(hh->mapToGlobal(pos));
+        if (!chosen) return;
+
+        if (chosen == aHNL) m_currencyByCol[col] = "HNL";
+        else if (chosen == aUSD) m_currencyByCol[col] = "USD";
+        else if (chosen == aEUR) m_currencyByCol[col] = "EUR";
+
+        m_tabla->viewport()->update(); // refresca render
     });
 }
 
 void VistaHojaDatos::reconectarSignalsModelo_()
 {
-    // Evita conexiones duplicadas
     disconnect(m_modelo, nullptr, this, nullptr);
 
     connect(m_modelo, &QStandardItemModel::dataChanged, this,[this](const QModelIndex&, const QModelIndex&)
-    {
-
-        asegurarFilaNuevaAlFinal_();
-        emit datosCambiaron();
-
-    });
+            {
+                asegurarFilaNuevaAlFinal_();
+                emit datosCambiaron();
+            });
     connect(m_modelo, &QStandardItemModel::rowsInserted, this,[this](const QModelIndex&, int, int){ emit datosCambiaron(); });
     connect(m_modelo, &QStandardItemModel::rowsRemoved, this,[this](const QModelIndex&, int, int){ emit datosCambiaron(); });
-
 }
 
 void VistaHojaDatos::asegurarFilaNuevaAlFinal_()
@@ -227,19 +243,16 @@ void VistaHojaDatos::asegurarFilaNuevaAlFinal_()
         if (v.isValid() && !v.toString().trimmed().isEmpty()) { ultimaVacia = false; break; }
     }
     if (!ultimaVacia) m_modelo->insertRow(r);
-
 }
 
 void VistaHojaDatos::reconstruirColumnas(const QList<Campo>& campos)
 {
-
-    // ---- Capturar estado anterior ----
+    // Guardar estado previo
     QStringList oldHeaders;
     for (int c = 0; c < m_modelo->columnCount(); ++c)
         oldHeaders << m_modelo->headerData(c, Qt::Horizontal).toString();
 
     const int oldRows = m_modelo->rowCount();
-
     QVector<QVector<QVariant>> oldData(oldRows);
     for (int r = 0; r < oldRows; ++r) {
         oldData[r].resize(m_modelo->columnCount());
@@ -247,7 +260,7 @@ void VistaHojaDatos::reconstruirColumnas(const QList<Campo>& campos)
             oldData[r][c] = m_modelo->index(r, c).data();
     }
 
-    // ---- Nuevo modelo con el nuevo esquema ----
+    // Nuevo modelo
     auto* newModel = new QStandardItemModel(this);
     newModel->setColumnCount(campos.size());
     for (int c = 0; c < campos.size(); ++c)
@@ -265,13 +278,13 @@ void VistaHojaDatos::reconstruirColumnas(const QList<Campo>& campos)
         if (lastEmpty) realRows -= 1;
     }
 
-    // Copia por nombre
+    // Copiar por nombre
     newModel->setRowCount(realRows);
     for (int newC = 0; newC < campos.size(); ++newC)
     {
         const QString& name = campos[newC].nombre;
         const int oldC = oldHeaders.indexOf(name);
-        if (oldC < 0) continue; // columna nueva, queda vacía
+        if (oldC < 0) continue;
         for (int r = 0; r < realRows; ++r) {
             newModel->setData(newModel->index(r, newC), oldData[r][oldC]);
         }
@@ -282,25 +295,27 @@ void VistaHojaDatos::reconstruirColumnas(const QList<Campo>& campos)
     m_modelo = newModel;
     m_tabla->setModel(m_modelo);
 
-    // Antes de borrar refs, desasigna delegates por columna
-    for (int c = 0; c < m_modelo->columnCount(); ++c)
-        m_tabla->setItemDelegateForColumn(c, nullptr);
-
-    // Limpiar y reasignar delegates por tipo
+    // Limpiar delegates previos
     for (auto* d : m_delegates) d->deleteLater();
     m_delegates.clear();
 
+    // Tipos por columna + delegates
+    m_tiposPorCol.clear();
     for (int c = 0; c < campos.size(); ++c) {
         const QString tipo = (c==0 ? "Entero" : campos[c].tipo);
-        auto* del = new TipoHojaDelegate(tipo, m_tabla);
+        m_tiposPorCol << tipo;
+        auto* del = new TipoHojaDelegate(tipo, c, this, m_tabla);
         m_tabla->setItemDelegateForColumn(c, del);
         m_delegates.push_back(del);
+
+        // Inicializa HNL por defecto si es Moneda y no existe registro
+        if (!m_currencyByCol.contains(c) && tipo.trimmed().compare("Moneda", Qt::CaseInsensitive)==0)
+            m_currencyByCol[c] = "HNL";
     }
 
-    // Dejar una fila vacía al final
+    // Fila vacía
     m_modelo->insertRow(m_modelo->rowCount());
 
-    // Ajustes y señales
     m_tabla->horizontalHeader()->setStretchLastSection(true);
     m_tabla->setEditTriggers(QAbstractItemView::AllEditTriggers);
     reconectarSignalsModelo_();
@@ -337,6 +352,15 @@ void VistaHojaDatos::cargarFilas(const QVector<QVector<QVariant>>& rows)
             m_modelo->setData(m_modelo->index(r,c), fila[c]);
         }
     }
-    // Fila vacía para seguir editando
     m_modelo->insertRow(m_modelo->rowCount());
+}
+
+QString VistaHojaDatos::currencyForCol_(int c) const {
+    return m_currencyByCol.value(c, QStringLiteral("HNL"));
+}
+
+QString VistaHojaDatos::symbolFor_(const QString& code) {
+    if (code == "USD") return QStringLiteral("$");
+    if (code == "EUR") return QStringLiteral("€");
+    return QStringLiteral("L"); // HNL por defecto
 }

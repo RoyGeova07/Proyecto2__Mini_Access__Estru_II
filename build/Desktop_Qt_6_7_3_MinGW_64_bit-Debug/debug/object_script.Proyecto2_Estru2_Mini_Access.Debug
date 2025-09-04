@@ -19,6 +19,7 @@ debug/moc_mainwindow.o
 debug/moc_panelobjetos.o
 debug/moc_pestanatabla.o
 debug/moc_relacioneswidget.o
+debug/moc_relationitem.o
 debug/moc_ribbongroup.o
 debug/moc_tableitem.o
 debug/moc_ventanaprincipal.o

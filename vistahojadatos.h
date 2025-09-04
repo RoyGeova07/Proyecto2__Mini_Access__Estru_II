@@ -1,16 +1,14 @@
-#ifndef VISTAHOJADATOS_H
-#define VISTAHOJADATOS_H
-
+#pragma once
+#include "tableitem.h"
 #include <QWidget>
-#include <QList>
-#include <QVariant>
+#include <QHash>
 #include <QVector>
+#include <QVariant>
 
 class QTableView;
 class QStandardItemModel;
-class QAbstractItemDelegate;
-
-#include "vistadisenio.h" // por struct Campo
+class QStyledItemDelegate;
+class QHeaderView;
 
 class VistaHojaDatos : public QWidget
 {
@@ -18,28 +16,36 @@ class VistaHojaDatos : public QWidget
 public:
     explicit VistaHojaDatos(const QString& nombreTabla, QWidget* parent=nullptr);
 
-public slots:
-    // Reconstruye columnas según el esquema (preservando datos por nombre)
+    // Reconstruye columnas con base en un esquema
     void reconstruirColumnas(const QList<Campo>& campos);
 
-signals:
-    // Doble clic en encabezado (no PK) para renombrar una columna
-    void renombrarCampoSolicitado(int columna, const QString& nuevoNombre);
-    // Notifica a la pestaña para que guarde snapshot (datos en memoria)
-    void datosCambiaron();
+    // Snapshot de filas (opcionalmente excluye la última vacía)
+    QVector<QVector<QVariant>> snapshotFilas(bool excluirUltimaVacia = true) const;
 
-public:
-    // Utilidades para persistir/restaurar filas
-    QVector<QVector<QVariant>> snapshotFilas(bool excluirUltimaVacia=true) const;
+    // Carga filas externas
     void cargarFilas(const QVector<QVector<QVariant>>& rows);
 
+signals:
+    void datosCambiaron();
+    void renombrarCampoSolicitado(int col, const QString& nombre);
+
+public:
+    // Acceso usado por el delegate (símbolo según divisa actual)
+    QString currencyForCol_(int c) const;
+    static QString symbolFor_(const QString& code);
+
 private:
-    QTableView* m_tabla{nullptr};
-    QStandardItemModel* m_modelo{nullptr};
-    QList<QAbstractItemDelegate*> m_delegates;
-
-    void asegurarFilaNuevaAlFinal_();
     void reconectarSignalsModelo_();
-};
+    void asegurarFilaNuevaAlFinal_();
 
-#endif // VISTAHOJADATOS_H
+private:
+    QTableView* m_tabla = nullptr;
+    QStandardItemModel* m_modelo = nullptr;
+
+    // Delegates por columna
+    QList<QStyledItemDelegate*> m_delegates;
+
+    // Divisa por columna (sólo para tipo "Moneda")
+    QHash<int, QString> m_currencyByCol;   // col -> "HNL","USD","EUR"
+    QStringList m_tiposPorCol;             // tipo lógico por columna
+};

@@ -1,15 +1,24 @@
 #include "relacioneswidget.h"
+
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QTabWidget>
 #include <QListWidget>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QPushButton>
 #include <QLabel>
-#include <QContextMenuEvent>
 #include <QComboBox>
-#include<QKeyEvent>
+#include <QCheckBox>
+#include <QRadioButton>
+#include <QTableWidget>
+#include <QHeaderView>
+#include <QKeyEvent>
+#include <QMessageBox>
 
+#include "tableitem.h"   // construcción de TableItem
+
+// === Constructor ==============================================================
 RelacionesWidget::RelacionesWidget(QWidget* parent) : QWidget(parent) {
     auto* lay = new QVBoxLayout(this);
     lay->setContentsMargins(0,0,0,0);
@@ -23,59 +32,79 @@ RelacionesWidget::RelacionesWidget(QWidget* parent) : QWidget(parent) {
     m_view->setBackgroundBrush(QColor("#e6e6e6"));
     lay->addWidget(m_view, 1);
 
-    //captar tecla Delete cuando el foco esta en la vista
+    // Captar tecla Delete desde la vista y su viewport
     m_view->installEventFilter(this);
     m_view->viewport()->installEventFilter(this);
-
 }
 
-void RelacionesWidget::eliminarSeleccion()
-{
-
+// === Borrado de selección (solo del UML) =====================================
+void RelacionesWidget::eliminarSeleccion() {
     const auto selected = m_scene->selectedItems();
     if (selected.isEmpty()) return;
 
-    QSet<QString> aBorrar;
+    // 1) Borrar relaciones seleccionadas
+    QList<QString> borrarRelKeys;
     for (QGraphicsItem* gi : selected) {
-        if (auto* t = qgraphicsitem_cast<TableItem*>(gi)) {
-            aBorrar.insert(t->nombre());
+        if (auto* r = dynamic_cast<RelationItem*>(gi)) {
+            for (auto it = m_relaciones.begin(); it != m_relaciones.end(); ++it) {
+                if (it->item == r) { borrarRelKeys << it.key(); break; }
+            }
         }
     }
-    if (aBorrar.isEmpty()) return;
+    for (const QString& k : borrarRelKeys) {
+        auto rel = m_relaciones.take(k); // sacar del mapa primero
+        if (rel.item) {
+            if (rel.item->scene()) rel.item->scene()->removeItem(rel.item);
+            rel.item->setParent(nullptr);
+            rel.item->deleteLater();     // eliminación diferida = seguro
+        }
+    }
 
-    for (const QString& nombre : aBorrar) {
+    // 2) Borrar tablas seleccionadas (y sus relaciones asociadas)
+    QSet<QString> aBorrarTablas;
+    for (QGraphicsItem* gi : selected) {
+        if (auto* t = dynamic_cast<TableItem*>(gi)) aBorrarTablas.insert(t->nombre());
+    }
+    for (const QString& nombre : aBorrarTablas) {
+        // eliminar relaciones conectadas a esa tabla
+        QList<QString> keys;
+        for (auto it = m_relaciones.begin(); it != m_relaciones.end(); ++it) {
+            if (it->tablaO == nombre || it->tablaD == nombre) keys << it.key();
+        }
+        for (const QString& k : keys) {
+            auto rel = m_relaciones.take(k);
+            if (rel.item) {
+                if (rel.item->scene()) rel.item->scene()->removeItem(rel.item);
+                rel.item->setParent(nullptr);
+                rel.item->deleteLater();
+            }
+        }
         if (auto* t = m_items.take(nombre)) {
-            m_scene->removeItem(t);
-            delete t;
+            if (t->scene()) t->scene()->removeItem(t);
+            t->setParentItem(nullptr);
+            t->setParent(nullptr);
+            t->deleteLater();
         }
-        m_schemas.remove(nombre); // opcional: también limpia el cache del esquema
+        // *** NO borrar m_schemas[nombre] ***
+        // (el esquema se conserva para cuando la tabla vuelva a agregarse al diagrama)
     }
-
 }
 
-bool RelacionesWidget::eventFilter(QObject *obj, QEvent *ev)
-{
-
-    if(ev->type()==QEvent::KeyPress)
-    {
-
-        auto*ke=static_cast<QKeyEvent*>(ev);
-        if(ke->key()==Qt::Key_Delete)
-        {
-
+// === Event filter para tecla Supr/Delete =====================================
+bool RelacionesWidget::eventFilter(QObject* obj, QEvent* ev) {
+    Q_UNUSED(obj);
+    if (ev->type() == QEvent::KeyPress) {
+        auto* ke = static_cast<QKeyEvent*>(ev);
+        if (ke->key() == Qt::Key_Delete) {
             eliminarSeleccion();
-            return true;//se consume el evento
-
+            return true;
         }
-
     }
-    return QWidget::eventFilter(obj,ev);
-
+    return QWidget::eventFilter(obj, ev);
 }
 
 void RelacionesWidget::resizeEvent(QResizeEvent* e) {
     QWidget::resizeEvent(e);
-    // nada especial; el usuario acomoda manual
 }
 
 QPointF RelacionesWidget::proximaPosicion_() {
@@ -88,154 +117,246 @@ QPointF RelacionesWidget::proximaPosicion_() {
     return pos;
 }
 
-void RelacionesWidget::asegurarItemTabla_(const QString& nombre)
-{
-    if(m_items.contains(nombre))return;
+void RelacionesWidget::asegurarItemTabla_(const QString& nombre) {
+    if (m_items.contains(nombre)) return;
 
-    //1)Tomar el esquema guardado si existe; si no, usar fallback "Access-like":
-    QList<Campo>schema=m_schemas.value(nombre);
-    if(schema.isEmpty())
-    {
-
-        Campo pk;  pk.pk=true;  pk.nombre="Id";      pk.tipo="Entero";
-        Campo c1;  c1.pk=false; c1.nombre="Campo1";  c1.tipo="Texto";
+    QList<Campo> schema = m_schemas.value(nombre);
+    if (schema.isEmpty()) {
+        Campo pk;  pk.pk = true;  pk.nombre = "Id";     pk.tipo = "Entero";
+        Campo c1;  c1.pk = false; c1.nombre = "Campo1"; c1.tipo = "Texto";
         schema << pk << c1;
-        m_schemas.insert(nombre, schema);//memorizar para futuras actualizaciones
-
+        m_schemas.insert(nombre, schema);
     }
 
-    //2)Crear la mini–tabla ya con campos
-    auto*it=new TableItem(nombre, schema);
+    auto* it = new TableItem(nombre, schema);
     it->setPos(proximaPosicion_());
     m_scene->addItem(it);
     m_items.insert(nombre, it);
     conectarTableItem_(it);
 }
 
-void RelacionesWidget::aplicarEsquema(const QString& tabla, const QList<Campo>& schema)
-{
-    //1)Memoriza el esquema mas reciente
+void RelacionesWidget::aplicarEsquema(const QString& tabla, const QList<Campo>& schema) {
     m_schemas[tabla] = schema;
 
-    //2) Si la mini-tabla ya está en el lienzo, actualiza su contenido
-    if (auto* it = m_items.value(tabla, nullptr))
-    {
+    if (auto* it = m_items.value(tabla, nullptr)) it->setCampos(schema);
 
-        it->setCampos(schema);  // repinta y emite señales internas
-
+    QList<QString> invalidas;
+    for (auto it = m_relaciones.begin(); it != m_relaciones.end(); ++it) {
+        if ((it->tablaO == tabla && !campoExiste_(tabla, it->campoO)) ||
+            (it->tablaD == tabla && !campoExiste_(tabla, it->campoD))) {
+            invalidas << it.key();
+        }
     }
-
+    for (const QString& k : invalidas) {
+        auto rel = m_relaciones.take(k);
+        if (rel.item) {
+            if (rel.item->scene()) rel.item->scene()->removeItem(rel.item);
+            rel.item->setParent(nullptr);
+            rel.item->deleteLater();
+        }
+    }
 }
 
-void RelacionesWidget::tablaRenombrada(const QString& viejo, const QString& nuevo)
-{
+void RelacionesWidget::tablaRenombrada(const QString& viejo, const QString& nuevo) {
+    if (viejo == nuevo) return;
 
-    if(viejo==nuevo)return;
+    if (m_schemas.contains(viejo)) m_schemas.insert(nuevo, m_schemas.take(viejo));
 
-    //1)Mover esquema memorizado (si existía)
-    if(m_schemas.contains(viejo))
-    {
-
-        m_schemas.insert(nuevo, m_schemas.take(viejo));
-
-    }
-
-    //2)Si la mini-tabla ya está en escena, renombrar y re-indexar
-    if(auto* it = m_items.take(viejo))
-    {
-
-        it->setNombre(nuevo);     // actualiza header y emite geometriaCambio()
+    if (auto* it = m_items.take(viejo)) {
+        it->setNombre(nuevo);
         m_items.insert(nuevo, it);
-
     }
 
+    QMap<QString, Rel> nuevas;
+    for (auto it = m_relaciones.begin(); it != m_relaciones.end(); ++it) {
+        Rel r = it.value();
+        if (r.tablaO == viejo) r.tablaO = nuevo;
+        if (r.tablaD == viejo) r.tablaD = nuevo;
+        const QString k = RelationItem::key(r.tablaO, r.campoO, r.tablaD, r.campoD);
+        nuevas.insert(k, r);
+    }
+    m_relaciones.swap(nuevas);
 }
-void RelacionesWidget::conectarTableItem_(TableItem *it)
+
+void RelacionesWidget::conectarTableItem_(TableItem* it) {
+    QObject::connect(it, &TableItem::soltarCampoSobre, this,
+                     [this](const QString& tablaO, const QString& campoO,
+                            const QString& tablaD, const QString& campoD) {
+                         mostrarDialogoModificarRelacion_(tablaO, campoO, tablaD, campoD);
+                     });
+}
+
+bool RelacionesWidget::campoEsPk_(const QString& tabla, const QString& campo) const {
+    const auto schema = m_schemas.value(tabla);
+    for (const auto& c : schema)
+        if (c.nombre.compare(campo, Qt::CaseInsensitive) == 0)
+            return c.pk;
+    return false;
+}
+
+bool RelacionesWidget::campoExiste_(const QString& tabla, const QString& campo) const {
+    const auto schema = m_schemas.value(tabla);
+    for (const auto& c : schema)
+        if (c.nombre.compare(campo, Qt::CaseInsensitive) == 0)
+            return true;
+    return false;
+}
+void RelacionesWidget::mostrarDialogoModificarRelacion_(const QString& tablaO_in, const QString& campoO_in,
+                                                        const QString& tablaD_in, const QString& campoD_in)
 {
+    // ===== 1) Inferencia "estilo Access"
+    auto esPk = [&](const QString& t, const QString& c){ return campoEsPk_(t, c); };
 
-    QObject::connect(it, &TableItem::soltarCampoSobre, this,[this](const QString& tablaO, const QString& campoO,const QString& tablaD, const QString& campoD)
-    {
-        // Abre el cuadro Access-like (por ahora solo visual)
-        mostrarDialogoModificarRelacion_(tablaO, campoO, tablaD, campoD);
+    QString tablaO = tablaO_in, campoO = campoO_in;
+    QString tablaD = tablaD_in, campoD = campoD_in;
 
-    });
+    const bool pkO = esPk(tablaO, campoO);
+    const bool pkD = esPk(tablaD, campoD);
 
-}
+    RelationItem::Tipo tipo;
+    if (pkO && pkD) {
+        // PK ↔ PK  ->  1:1
+        tipo = RelationItem::Tipo::UnoAUno;
+    } else if (pkO ^ pkD) {
+        // PK ↔ noPK  ->  1:N (el lado PK debe quedar como ORIGEN, como en Access)
+        if (!pkO && pkD) {
+            qSwap(tablaO, tablaD);
+            qSwap(campoO, campoD);
+        }
+        tipo = RelationItem::Tipo::UnoAMuchos;
+    } else {
+        // noPK ↔ noPK  ->  Access no permite crear integridad; aquí lo impedimos también
+        QMessageBox::warning(this, tr("Relación no válida"),
+                             tr("Debe haber al menos una clave primaria para crear la relación."));
+        return;
+    }
 
-void RelacionesWidget::mostrarDialogoModificarRelacion_(const QString& tablaO, const QString& campoO,
-                                                        const QString& tablaD, const QString& campoD) {
+    // ===== 2) Diálogo minimal como Access (sin elegir tipo manualmente)
     QDialog dlg(this);
     dlg.setWindowTitle(tr("Modificar relaciones"));
-    dlg.resize(520, 360);
+    dlg.resize(560, 300);
     auto* lay = new QVBoxLayout(&dlg);
 
-    // Fila tablas
-    auto* filaTablas = new QWidget(&dlg);
-    auto* lt = new QHBoxLayout(filaTablas); lt->setContentsMargins(0,0,0,0);
-    auto* cboTablaO = new QComboBox(filaTablas);
-    auto* cboTablaD = new QComboBox(filaTablas);
-    cboTablaO->addItems(m_items.keys()); cboTablaD->addItems(m_items.keys());
-    cboTablaO->setCurrentText(tablaO);
-    cboTablaD->setCurrentText(tablaD);
-    // Bloqueadas para esta primera versión:
-    cboTablaO->setEnabled(false); cboTablaD->setEnabled(false);
-    lt->addWidget(new QLabel(tr("Tabla o consulta:")));
-    lt->addWidget(cboTablaO, 1);
-    lt->addSpacing(16);
-    lt->addWidget(new QLabel(tr("Tabla o consulta")));
-    lt->addWidget(cboTablaD, 1);
-    lay->addWidget(filaTablas);
+    // Cabecera con tablas
+    {
+        auto* fila = new QWidget(&dlg);
+        auto* h = new QHBoxLayout(fila); h->setContentsMargins(0,0,0,0);
+        h->addWidget(new QLabel(tr("Tabla o consulta:")));
+        auto* lA = new QLabel(tablaO); lA->setStyleSheet("font-weight:600;");
+        h->addWidget(lA, 1);
+        h->addSpacing(16);
+        h->addWidget(new QLabel(tr("Tabla o consulta:")));
+        auto* lB = new QLabel(tablaD); lB->setStyleSheet("font-weight:600;");
+        h->addWidget(lB, 1);
+        lay->addWidget(fila);
+    }
 
-    // “grid” de campos origen/destino (una fila por relación)
+    // Grid de campos (solo lectura)
     auto* grid = new QTableWidget(1, 2, &dlg);
-    grid->setHorizontalHeaderLabels({ tr("Id"), tr("fwe") }); // títulos estilo Access
+    grid->setHorizontalHeaderLabels({ tr("Campo"), tr("Campo") });
     grid->horizontalHeader()->setStretchLastSection(true);
     grid->verticalHeader()->setVisible(false);
     grid->setSelectionMode(QAbstractItemView::NoSelection);
     grid->setEditTriggers(QAbstractItemView::NoEditTriggers);
     grid->setFixedHeight(56);
-
-    auto fillCampos = [&](QComboBox* combo, const QString& tabla) {
-        combo->clear();
-        const auto* it = m_items.value(tabla, nullptr);
-        if (!it) return;
-        for (const auto& c : it->campos()) combo->addItem(c.nombre);
-    };
-
-    // celdas con QComboBox bloqueadas (solo visual por ahora)
-    auto* comboO = new QComboBox(grid); fillCampos(comboO, tablaO); comboO->setCurrentText(campoO); comboO->setEnabled(false);
-    auto* comboD = new QComboBox(grid); fillCampos(comboD, tablaD); comboD->setCurrentText(campoD); comboD->setEnabled(false);
-    grid->setCellWidget(0, 0, comboO);
-    grid->setCellWidget(0, 1, comboD);
+    grid->setItem(0,0, new QTableWidgetItem(campoO));
+    grid->setItem(0,1, new QTableWidgetItem(campoD));
     lay->addWidget(grid);
 
-    // Checkboxes estilo Access (deshabilitadas)
+    // Opciones "como Access"
     auto* cbIntegridad = new QCheckBox(tr("Exigir integridad referencial"), &dlg);
     auto* cbActualizar = new QCheckBox(tr("Actualizar en cascada los campos relacionados"), &dlg);
     auto* cbEliminar   = new QCheckBox(tr("Eliminar en cascada los registros relacionados"), &dlg);
-    cbActualizar->setEnabled(false); cbEliminar->setEnabled(false);
+    cbActualizar->setEnabled(false);
+    cbEliminar->setEnabled(false);
+    QObject::connect(cbIntegridad, &QCheckBox::toggled, [&](bool on){
+        cbActualizar->setEnabled(on);
+        cbEliminar->setEnabled(on);
+    });
     lay->addWidget(cbIntegridad);
     lay->addWidget(cbActualizar);
     lay->addWidget(cbEliminar);
 
-    // Tipo de relación (solo lectura por ahora)
-    auto* lblTipo = new QLabel(tr("Tipo de relación: Uno a varios"), &dlg);
-    lblTipo->setEnabled(false);
-    lay->addWidget(lblTipo);
+    // Texto informativo del tipo (inferencia automática)
+    {
+        const QString txtTipo = (tipo == RelationItem::Tipo::UnoAUno)
+        ? tr("Tipo de relación: Uno a uno (1:1)")
+        : tr("Tipo de relación: Uno a varios (1:N)");
+        auto* lbl = new QLabel(txtTipo, &dlg);
+        lbl->setStyleSheet("color:#555;");
+        lay->addWidget(lbl);
+    }
 
     // Botonera
     auto* box = new QDialogButtonBox(&dlg);
-    auto* btnCrear   = box->addButton(tr("Crear"),   QDialogButtonBox::AcceptRole);
-    auto* btnCancelar= box->addButton(tr("Cancelar"),QDialogButtonBox::RejectRole);
-    box->addButton(tr("Tipo de combinación..."), QDialogButtonBox::ActionRole)->setEnabled(false);
-    box->addButton(tr("Crear nueva..."), QDialogButtonBox::ActionRole)->setEnabled(false);
-    // Deshabilitamos “Crear” en esta etapa (solo visual)
-    btnCrear->setEnabled(false);
+    box->addButton(tr("Crear"),    QDialogButtonBox::AcceptRole)->setDefault(true);
+    box->addButton(tr("Cancelar"), QDialogButtonBox::RejectRole);
     QObject::connect(box, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
     QObject::connect(box, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
     lay->addWidget(box);
 
-    dlg.exec();
+    if (dlg.exec() != QDialog::Accepted) return;
+
+    const bool integridad = cbIntegridad->isChecked();
+    // Nota: cbActualizar / cbEliminar aún no se aplican en el modelo;
+    // si luego los implementás, aquí es donde leerías sus valores.
+
+    // ===== 3) Validación final (igual que Access)
+    if (tipo == RelationItem::Tipo::UnoAMuchos) {
+        // Por seguridad: origen debe ser PK y destino no PK
+        if (!esPk(tablaO, campoO) || esPk(tablaD, campoD)) {
+            QMessageBox::warning(this, tr("No válido"),
+                                 tr("Para 1:N el campo de origen debe ser una clave primaria "
+                                    "y el campo destino no debe serlo."));
+            return;
+        }
+    } else { // 1:1
+        if (!(esPk(tablaO, campoO) && esPk(tablaD, campoD))) {
+            QMessageBox::warning(this, tr("No válido"),
+                                 tr("Para 1:1 ambos campos deben ser clave primaria."));
+            return;
+        }
+    }
+
+    // ===== 4) Crear relación (si no existe)
+    if (!agregarRelacion_(tablaO, campoO, tablaD, campoD, tipo, integridad)) {
+        QMessageBox::information(this, tr("Relación"),
+                                 tr("Esa relación ya existe o no es válida."));
+        return;
+    }
+}
+
+
+bool RelacionesWidget::agregarRelacion_(const QString& tablaO, const QString& campoO,
+                                        const QString& tablaD, const QString& campoD,
+                                        RelationItem::Tipo tipo, bool integridad) {
+    if (!m_items.contains(tablaO) || !m_items.contains(tablaD)) return false;
+    if (!campoExiste_(tablaO, campoO) || !campoExiste_(tablaD, campoD)) return false;
+
+    const QString k = RelationItem::key(tablaO, campoO, tablaD, campoD);
+    if (m_relaciones.contains(k)) return false;
+
+    auto* item = new RelationItem(m_items[tablaO], campoO, m_items[tablaD], campoD, tipo, integridad);
+    m_scene->addItem(item);
+
+    // Conectar menú "Eliminar relación" (click izquierdo)
+    QObject::connect(item, &RelationItem::eliminarSolicitado, this,
+                     [this](const QString& to, const QString& co, const QString& td, const QString& cd) {
+                         const QString kk = RelationItem::key(to, co, td, cd);
+                         if (m_relaciones.contains(kk)) {
+                             auto rel = m_relaciones.take(kk);  // quitar del mapa
+                             if (rel.item) {
+                                 if (rel.item->scene()) rel.item->scene()->removeItem(rel.item);
+                                 rel.item->setParent(nullptr);
+                                 rel.item->deleteLater();       // diferido
+                             }
+                         }
+                     });
+
+    Rel r; r.tablaO = tablaO; r.campoO = campoO; r.tablaD = tablaD; r.campoD = campoD;
+    r.tipo = tipo; r.integridad = integridad; r.item = item;
+    m_relaciones.insert(k, r);
+    return true;
 }
 
 void RelacionesWidget::MostrarSelectorTablas(const QStringList& tablas, bool soloSiPrimeraVez) {
@@ -268,7 +389,7 @@ void RelacionesWidget::MostrarSelectorTablas(const QStringList& tablas, bool sol
 
     if (dlg.exec() == QDialog::Accepted) {
         QStringList seleccion;
-        auto collect=[&](QListWidget* lw){ for (auto* it : lw->selectedItems()) seleccion<<it->text(); };
+        auto collect=[&](QListWidget* lw){ for (auto* it : lw->selectedItems()) seleccion << it->text(); };
         if (tabs->currentIndex()==0) collect(listTablas);
         else if (tabs->currentIndex()==1) collect(listConsultas);
         else collect(listAmbas);
