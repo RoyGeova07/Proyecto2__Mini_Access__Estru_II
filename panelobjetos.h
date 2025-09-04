@@ -29,6 +29,7 @@ signals:
     void renombrarTablaSolicitado(const QString& viejo, const QString& nuevo);
 
 private slots:
+
     void filtrar(const QString& texto);
 
 private:

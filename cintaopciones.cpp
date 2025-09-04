@@ -209,6 +209,14 @@ QWidget* CintaOpciones::crearPaginaHBD()
     connect(btnAgregar, &QToolButton::clicked, this, &CintaOpciones::agregarTablaHBDPulsado);
     gTabla->addWidget(btnAgregar,0,0);
 
+    auto*btnDel=new QToolButton(gTabla); btnDel->setProperty("rol","accion");
+    btnDel->setText(tr("Eliminar tablitas"));
+    btnDel->setIcon(QIcon(":/im/image/eliminar_tabla.png"));
+    btnDel->setIconSize(QSize(24,24));
+    btnDel->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+    connect(btnDel, &QToolButton::clicked, this, &CintaOpciones::eliminarTablasRelPulsado);
+    gTabla->addWidget(btnDel,0,2);
+
     row->addWidget(gRel);
     row->addWidget(gTabla);
     row->addStretch();

@@ -42,6 +42,7 @@ public:
     void MostrarSelectorTablas(const QStringList& tablas, bool soloSiPrimeraVez);
 
 public slots:
+
     // Se invoca cuando cambie el esquema de una tabla
     void aplicarEsquema(const QString& tabla, const QList<Campo>& schema);
 
@@ -52,10 +53,18 @@ public slots:
     void agregarRelacion(const Relacion& r);
     void eliminarRelacion(const Relacion& r);
 
+    void eliminarSeleccion();
+
 protected:
+
     void resizeEvent(QResizeEvent* e) override;
     void contextMenuEvent(QContextMenuEvent* ev) override;
+
+    //para capturar la tecla Delete en el QGraphicsView/QViewport
+    bool eventFilter(QObject* obj, QEvent* ev) override;
+
 private:
+
     QGraphicsView*  m_view = nullptr;
     QGraphicsScene* m_scene = nullptr;
 
@@ -67,6 +76,8 @@ private:
     bool m_selectorMostrado = false;
     bool pedirRelacionUsuario(Relacion& out) const;
     QPointF proximaPosicion_();
-    void    asegurarItemTabla_(const QString& nombre);
-    void    rehacerRelItems_();
+    void  asegurarItemTabla_(const QString& nombre);
+    void  rehacerRelItems_();
+    QMap<QString, QList<Campo>> m_schemas;//variable del ultimo esquema conocido por tabla
+
 };

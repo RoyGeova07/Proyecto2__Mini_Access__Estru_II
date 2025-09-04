@@ -22,12 +22,16 @@ TableItem::TableItem(const QString& nombre, const QList<Campo>& campos, QGraphic
     m_iconPk     = QIcon(":/im/image/llave.png");
 }
 
-void TableItem::setNombre(const QString& n) {
-    if (m_nombre == n) return;
-    m_nombre = n;
-    m_dirty = true;
-    update();
-    emit geometriaCambio();
+void TableItem::setNombre(const QString& n)
+{
+
+    if(m_nombre==n)return;
+    prepareGeometryChange();//por si cambia el ancho del titulo
+    m_nombre=n;
+    m_dirty=true;//fuerza recalcular el layout en paint()
+    update();//con esto repinta el item
+    emit geometriaCambio();//por si hay flechas ancladas
+
 }
 
 void TableItem::setCampos(const QList<Campo>& cs) {

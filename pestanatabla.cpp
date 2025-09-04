@@ -97,15 +97,16 @@ PestanaTabla::PestanaTabla(const QString& nombreInicial, QWidget* parent):QWidge
     // Renombrar campo desde Hoja (doble clic en encabezado)
     connect(m_hoja, &VistaHojaDatos::renombrarCampoSolicitado, this,[this](int col, const QString& nombre)
     {
-        if (!m_disenio->renombrarCampo(col, nombre))
-        {
 
+        if(!m_disenio->renombrarCampo(col, nombre))
+        {
             QMessageBox::warning(this, tr("No se pudo renombrar"),tr("Nombre inválido, duplicado o es la clave primaria."));
             return;
-
         }
         syncHojaConDisenio_();
-        refrescarGeneral_(col); // refresca General con la columna renombrada
+        refrescarGeneral_(col);//refresca General con la columna renombrada
+        emit estadoCambioSolicitado();//la ventana principal reenviara el esquema a relaciones
+
     });
 
     // Refrescar “General” cuando se cambia la selección en Diseño
@@ -159,6 +160,7 @@ void PestanaTabla::agregarColumna()
     m_disenio->agregarFilaCampo();
     syncHojaConDisenio_();
     refrescarGeneral_(m_disenio->esquema().size()-1);
+    emit estadoCambioSolicitado();
 }
 
 void PestanaTabla::eliminarColumna()
@@ -172,6 +174,7 @@ void PestanaTabla::eliminarColumna()
 
             syncHojaConDisenio_();
             refrescarGeneral_(0);
+            emit estadoCambioSolicitado();
 
         }
         return;
@@ -195,6 +198,7 @@ void PestanaTabla::eliminarColumna()
 
         syncHojaConDisenio_();
         refrescarGeneral_(0);
+        emit estadoCambioSolicitado();
 
     }
 }
@@ -208,6 +212,7 @@ void PestanaTabla::hacerClavePrimaria()
     int fila=m_disenio->filaSeleccionadaActual();
     if(fila<0)fila=0;
     refrescarGeneral_(fila);
+    emit estadoCambioSolicitado();
 
 }
 

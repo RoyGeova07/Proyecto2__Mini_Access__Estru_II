@@ -8,6 +8,7 @@
 
 #include "../../../ventanaprincipal.h"
 #include <QtCore/qmetatype.h>
+#include <QtCore/QList>
 
 #include <QtCore/qtmochelpers.h>
 
@@ -38,10 +39,16 @@ struct qt_meta_tag_ZN16VentanaPrincipalE_t {};
 #ifdef QT_MOC_HAS_STRINGDATA
 static constexpr auto qt_meta_stringdata_ZN16VentanaPrincipalE = QtMocHelpers::stringData(
     "VentanaPrincipal",
-    "crearTablaNueva",
+    "esquemaTablaCambiado",
     "",
-    "abrirTablaDesdeLista",
     "nombre",
+    "QList<Campo>",
+    "schema",
+    "tablaRenombradaSignal",
+    "viejo",
+    "nuevo",
+    "crearTablaNueva",
+    "abrirTablaDesdeLista",
     "cerrarPestana",
     "idx",
     "mostrarHojaDatosActual",
@@ -52,9 +59,7 @@ static constexpr auto qt_meta_stringdata_ZN16VentanaPrincipalE = QtMocHelpers::s
     "HacerClavePrimariaActual",
     "AbrirRelaciones",
     "AbrirConsultas",
-    "renombrarTablaPorSolicitud",
-    "viejo",
-    "nuevo"
+    "renombrarTablaPorSolicitud"
 );
 #else  // !QT_MOC_HAS_STRINGDATA
 #error "qtmochelpers.h not found or too old."
@@ -66,31 +71,39 @@ Q_CONSTINIT static const uint qt_meta_data_ZN16VentanaPrincipalE[] = {
       12,       // revision
        0,       // classname
        0,    0, // classinfo
-      12,   14, // methods
+      14,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
        0,       // flags
-       0,       // signalCount
+       2,       // signalCount
+
+ // signals: name, argc, parameters, tag, flags, initial metatype offsets
+       1,    2,   98,    2, 0x06,    1 /* Public */,
+       6,    2,  103,    2, 0x06,    4 /* Public */,
 
  // slots: name, argc, parameters, tag, flags, initial metatype offsets
-       1,    0,   86,    2, 0x08,    1 /* Private */,
-       3,    1,   87,    2, 0x08,    2 /* Private */,
-       5,    1,   90,    2, 0x08,    4 /* Private */,
-       7,    0,   93,    2, 0x08,    6 /* Private */,
-       8,    0,   94,    2, 0x08,    7 /* Private */,
-       9,    0,   95,    2, 0x08,    8 /* Private */,
-      10,    0,   96,    2, 0x08,    9 /* Private */,
-      11,    0,   97,    2, 0x08,   10 /* Private */,
-      12,    0,   98,    2, 0x08,   11 /* Private */,
-      13,    0,   99,    2, 0x08,   12 /* Private */,
-      14,    0,  100,    2, 0x08,   13 /* Private */,
-      15,    2,  101,    2, 0x08,   14 /* Private */,
+       9,    0,  108,    2, 0x08,    7 /* Private */,
+      10,    1,  109,    2, 0x08,    8 /* Private */,
+      11,    1,  112,    2, 0x08,   10 /* Private */,
+      13,    0,  115,    2, 0x08,   12 /* Private */,
+      14,    0,  116,    2, 0x08,   13 /* Private */,
+      15,    0,  117,    2, 0x08,   14 /* Private */,
+      16,    0,  118,    2, 0x08,   15 /* Private */,
+      17,    0,  119,    2, 0x08,   16 /* Private */,
+      18,    0,  120,    2, 0x08,   17 /* Private */,
+      19,    0,  121,    2, 0x08,   18 /* Private */,
+      20,    0,  122,    2, 0x08,   19 /* Private */,
+      21,    2,  123,    2, 0x08,   20 /* Private */,
+
+ // signals: parameters
+    QMetaType::Void, QMetaType::QString, 0x80000000 | 4,    3,    5,
+    QMetaType::Void, QMetaType::QString, QMetaType::QString,    7,    8,
 
  // slots: parameters
     QMetaType::Void,
-    QMetaType::Void, QMetaType::QString,    4,
-    QMetaType::Void, QMetaType::Int,    6,
+    QMetaType::Void, QMetaType::QString,    3,
+    QMetaType::Void, QMetaType::Int,   12,
     QMetaType::Void,
     QMetaType::Void,
     QMetaType::Void,
@@ -99,7 +112,7 @@ Q_CONSTINIT static const uint qt_meta_data_ZN16VentanaPrincipalE[] = {
     QMetaType::Void,
     QMetaType::Void,
     QMetaType::Void,
-    QMetaType::Void, QMetaType::QString, QMetaType::QString,   16,   17,
+    QMetaType::Void, QMetaType::QString, QMetaType::QString,    7,    8,
 
        0        // eod
 };
@@ -113,6 +126,14 @@ Q_CONSTINIT const QMetaObject VentanaPrincipal::staticMetaObject = { {
     qt_incomplete_metaTypeArray<qt_meta_tag_ZN16VentanaPrincipalE_t,
         // Q_OBJECT / Q_GADGET
         QtPrivate::TypeAndForceComplete<VentanaPrincipal, std::true_type>,
+        // method 'esquemaTablaCambiado'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>,
+        QtPrivate::TypeAndForceComplete<const QString &, std::false_type>,
+        QtPrivate::TypeAndForceComplete<const QList<Campo> &, std::false_type>,
+        // method 'tablaRenombradaSignal'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>,
+        QtPrivate::TypeAndForceComplete<const QString &, std::false_type>,
+        QtPrivate::TypeAndForceComplete<const QString &, std::false_type>,
         // method 'crearTablaNueva'
         QtPrivate::TypeAndForceComplete<void, std::false_type>,
         // method 'abrirTablaDesdeLista'
@@ -150,19 +171,38 @@ void VentanaPrincipal::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int
     auto *_t = static_cast<VentanaPrincipal *>(_o);
     if (_c == QMetaObject::InvokeMetaMethod) {
         switch (_id) {
-        case 0: _t->crearTablaNueva(); break;
-        case 1: _t->abrirTablaDesdeLista((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1]))); break;
-        case 2: _t->cerrarPestana((*reinterpret_cast< std::add_pointer_t<int>>(_a[1]))); break;
-        case 3: _t->mostrarHojaDatosActual(); break;
-        case 4: _t->mostrarDisenioActual(); break;
-        case 5: _t->agregarColumnaActual(); break;
-        case 6: _t->eliminarColumnaActual(); break;
-        case 7: _t->eliminarTablaActual(); break;
-        case 8: _t->HacerClavePrimariaActual(); break;
-        case 9: _t->AbrirRelaciones(); break;
-        case 10: _t->AbrirConsultas(); break;
-        case 11: _t->renombrarTablaPorSolicitud((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2]))); break;
+        case 0: _t->esquemaTablaCambiado((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QList<Campo>>>(_a[2]))); break;
+        case 1: _t->tablaRenombradaSignal((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2]))); break;
+        case 2: _t->crearTablaNueva(); break;
+        case 3: _t->abrirTablaDesdeLista((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1]))); break;
+        case 4: _t->cerrarPestana((*reinterpret_cast< std::add_pointer_t<int>>(_a[1]))); break;
+        case 5: _t->mostrarHojaDatosActual(); break;
+        case 6: _t->mostrarDisenioActual(); break;
+        case 7: _t->agregarColumnaActual(); break;
+        case 8: _t->eliminarColumnaActual(); break;
+        case 9: _t->eliminarTablaActual(); break;
+        case 10: _t->HacerClavePrimariaActual(); break;
+        case 11: _t->AbrirRelaciones(); break;
+        case 12: _t->AbrirConsultas(); break;
+        case 13: _t->renombrarTablaPorSolicitud((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2]))); break;
         default: ;
+        }
+    }
+    if (_c == QMetaObject::IndexOfMethod) {
+        int *result = reinterpret_cast<int *>(_a[0]);
+        {
+            using _q_method_type = void (VentanaPrincipal::*)(const QString & , const QList<Campo> & );
+            if (_q_method_type _q_method = &VentanaPrincipal::esquemaTablaCambiado; *reinterpret_cast<_q_method_type *>(_a[1]) == _q_method) {
+                *result = 0;
+                return;
+            }
+        }
+        {
+            using _q_method_type = void (VentanaPrincipal::*)(const QString & , const QString & );
+            if (_q_method_type _q_method = &VentanaPrincipal::tablaRenombradaSignal; *reinterpret_cast<_q_method_type *>(_a[1]) == _q_method) {
+                *result = 1;
+                return;
+            }
         }
     }
 }
@@ -186,15 +226,29 @@ int VentanaPrincipal::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 12)
+        if (_id < 14)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 12;
+        _id -= 14;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 12)
+        if (_id < 14)
             *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
-        _id -= 12;
+        _id -= 14;
     }
     return _id;
+}
+
+// SIGNAL 0
+void VentanaPrincipal::esquemaTablaCambiado(const QString & _t1, const QList<Campo> & _t2)
+{
+    void *_a[] = { nullptr, const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t1))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t2))) };
+    QMetaObject::activate(this, &staticMetaObject, 0, _a);
+}
+
+// SIGNAL 1
+void VentanaPrincipal::tablaRenombradaSignal(const QString & _t1, const QString & _t2)
+{
+    void *_a[] = { nullptr, const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t1))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t2))) };
+    QMetaObject::activate(this, &staticMetaObject, 1, _a);
 }
 QT_WARNING_POP
