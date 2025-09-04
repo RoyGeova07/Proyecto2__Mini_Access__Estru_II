@@ -42,10 +42,10 @@ static constexpr auto qt_meta_stringdata_ZN9TableItemE = QtMocHelpers::stringDat
     "",
     "camposCambiaron",
     "soltarCampoSobre",
-    "tablaOrigen",
-    "campoOrigen",
-    "tablaDestino",
-    "campoDestino"
+    "tablaO",
+    "campoO",
+    "tablaD",
+    "campoD"
 );
 #else  // !QT_MOC_HAS_STRINGDATA
 #error "qtmochelpers.h not found or too old."
