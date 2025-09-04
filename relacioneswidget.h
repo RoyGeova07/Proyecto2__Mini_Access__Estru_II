@@ -5,33 +5,12 @@
 #include <QMap>
 #include <QSet>
 #include "vistadisenio.h"
-#include "relationitem.h"
 #include "tableitem.h"
+#include<QHBoxLayout>
+#include<QTableWidget>
+#include<QHeaderView>
+#include<QCheckBox>
 
-struct Relacion {
-    QString tablaOrigen;
-    QString campoOrigen;
-    QString tablaDestino;
-    QString campoDestino;
-    bool unoAMuchos = true;
-    bool integridad = true;
-
-    bool operator==(const Relacion& o) const {
-        return tablaOrigen  == o.tablaOrigen  &&
-               campoOrigen  == o.campoOrigen  &&
-               tablaDestino == o.tablaDestino &&
-               campoDestino == o.campoDestino &&
-               unoAMuchos   == o.unoAMuchos   &&
-               integridad   == o.integridad;
-    }
-};
-inline uint qHash(const Relacion& r, uint seed=0) {
-    return qHash(r.tablaOrigen, seed) ^
-           qHash(r.campoOrigen,  seed) ^
-           qHash(r.tablaDestino, seed) ^
-           qHash(r.campoDestino, seed) ^
-           uint(r.unoAMuchos) ^ (uint(r.integridad) << 1);
-}
 
 class RelacionesWidget : public QWidget {
     Q_OBJECT
@@ -49,35 +28,29 @@ public slots:
     // Se invoca cuando el usuario renombra una tabla (para mantener el grafo)
     void tablaRenombrada(const QString& viejo, const QString& nuevo);
 
-    // Relaciones (puedes llamarlas desde VentanaPrincipal cuando tengas FK reales)
-    void agregarRelacion(const Relacion& r);
-    void eliminarRelacion(const Relacion& r);
-
     void eliminarSeleccion();
 
 protected:
 
     void resizeEvent(QResizeEvent* e) override;
-    void contextMenuEvent(QContextMenuEvent* ev) override;
 
     //para capturar la tecla Delete en el QGraphicsView/QViewport
     bool eventFilter(QObject* obj, QEvent* ev) override;
 
 private:
 
-    QGraphicsView*  m_view = nullptr;
-    QGraphicsScene* m_scene = nullptr;
+    QGraphicsView*m_view=nullptr;
+    QGraphicsScene*m_scene=nullptr;
 
-    QMap<QString, TableItem*> m_items;
-    QSet<Relacion>            m_rels;
-    QList<RelationItem*>      m_relItems;
-    QPoint m_next{32, 32};
-    const int m_dx = 260, m_dy = 180;
-    bool m_selectorMostrado = false;
-    bool pedirRelacionUsuario(Relacion& out) const;
+    QMap<QString,TableItem*>m_items;
+    QPoint m_next{32,32};
+    const int m_dx=260,m_dy=180;
+    bool m_selectorMostrado=false;
     QPointF proximaPosicion_();
     void  asegurarItemTabla_(const QString& nombre);
-    void  rehacerRelItems_();
     QMap<QString, QList<Campo>> m_schemas;//variable del ultimo esquema conocido por tabla
+
+    void conectarTableItem_(TableItem* it);
+    void mostrarDialogoModificarRelacion_(const QString& tablaO, const QString& campoO,const QString& tablaD, const QString& campoD);
 
 };
