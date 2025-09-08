@@ -17,7 +17,6 @@
 #include <QStyle>
 #include <QApplication>
 #include <QStyleOptionButton>
-#include <QMenu>
 
 static constexpr int kCurrencyDecimals = 2;
 
@@ -191,33 +190,8 @@ VistaHojaDatos::VistaHojaDatos(const QString& /*nombreTabla*/, QWidget* parent):
                 emit renombrarCampoSolicitado(col, nuevo);
             });
 
-    // Menú contextual en encabezado para elegir divisa en columnas "Moneda"
-    hh->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(hh, &QHeaderView::customContextMenuRequested, this, [this, hh](const QPoint& pos){
-        const int col = hh->logicalIndexAt(pos);
-        if (col < 0 || col >= m_tiposPorCol.size()) return;
-        if (m_tiposPorCol[col].trimmed().compare("Moneda", Qt::CaseInsensitive) != 0) return;
-
-        QMenu menu(this);
-        QAction* aHNL = menu.addAction(tr("Lempiras (HNL)"));
-        QAction* aUSD = menu.addAction(tr("Dólares (USD)"));
-        QAction* aEUR = menu.addAction(tr("Euros (EUR)"));
-
-        const QString cur = m_currencyByCol.value(col, "HNL");
-        aHNL->setCheckable(true); aUSD->setCheckable(true); aEUR->setCheckable(true);
-        if (cur=="HNL") aHNL->setChecked(true);
-        if (cur=="USD") aUSD->setChecked(true);
-        if (cur=="EUR") aEUR->setChecked(true);
-
-        QAction* chosen = menu.exec(hh->mapToGlobal(pos));
-        if (!chosen) return;
-
-        if (chosen == aHNL) m_currencyByCol[col] = "HNL";
-        else if (chosen == aUSD) m_currencyByCol[col] = "USD";
-        else if (chosen == aEUR) m_currencyByCol[col] = "EUR";
-
-        m_tabla->viewport()->update(); // refresca render
-    });
+    // NOTA: Se elimina el menú contextual para elegir moneda.
+    // La divisa se define únicamente en la Vista de Diseño.
 }
 
 void VistaHojaDatos::reconectarSignalsModelo_()
@@ -247,7 +221,7 @@ void VistaHojaDatos::asegurarFilaNuevaAlFinal_()
 
 void VistaHojaDatos::reconstruirColumnas(const QList<Campo>& campos)
 {
-    // Guardar estado previo
+    // Guardar estado previo (para copiar datos por nombre)
     QStringList oldHeaders;
     for (int c = 0; c < m_modelo->columnCount(); ++c)
         oldHeaders << m_modelo->headerData(c, Qt::Horizontal).toString();
@@ -301,19 +275,30 @@ void VistaHojaDatos::reconstruirColumnas(const QList<Campo>& campos)
 
     // Tipos por columna + delegates
     m_tiposPorCol.clear();
+
+    // === NUEVO: reconstruir el mapa de divisas desde el esquema de Diseño ===
+    // Esto asegura que la Hoja de datos muestre exactamente la divisa elegida en Diseño.
+    QHash<int, QString> newCurrencyMap;
+
     for (int c = 0; c < campos.size(); ++c) {
         const QString tipo = (c==0 ? "Entero" : campos[c].tipo);
         m_tiposPorCol << tipo;
+
         auto* del = new TipoHojaDelegate(tipo, c, this, m_tabla);
         m_tabla->setItemDelegateForColumn(c, del);
         m_delegates.push_back(del);
 
-        // Inicializa HNL por defecto si es Moneda y no existe registro
-        if (!m_currencyByCol.contains(c) && tipo.trimmed().compare("Moneda", Qt::CaseInsensitive)==0)
-            m_currencyByCol[c] = "HNL";
+        if (tipo.trimmed().compare("Moneda", Qt::CaseInsensitive)==0) {
+            const QString code = campos[c].moneda.trimmed().isEmpty() ? QStringLiteral("HNL")
+                                                                      : campos[c].moneda.trimmed();
+            newCurrencyMap.insert(c, code);
+        }
     }
 
-    // Fila vacía
+    // Reemplazar completamente el mapa (evita residuos de columnas antiguas/reordenadas)
+    m_currencyByCol = newCurrencyMap;
+
+    // Fila vacía final
     m_modelo->insertRow(m_modelo->rowCount());
 
     m_tabla->horizontalHeader()->setStretchLastSection(true);

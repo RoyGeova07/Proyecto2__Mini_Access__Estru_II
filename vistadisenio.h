@@ -1,23 +1,19 @@
 #ifndef VISTADISENIO_H
 #define VISTADISENIO_H
-
 #include <QWidget>
 #include <QList>
 #include <QString>
 #include<QIcon>
-
 class QTableView;
 class QStandardItemModel;
 class QIcon;
 class QStyledItemDelegate;
-
 struct Campo
 {
-
+    bool pk = false;
     QString nombre;
     QString tipo;
-    bool pk = false;
-
+    QString moneda;
 };
 
 class VistaDisenio:public QWidget
