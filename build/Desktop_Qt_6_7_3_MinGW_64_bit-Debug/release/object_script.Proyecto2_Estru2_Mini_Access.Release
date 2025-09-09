@@ -1,13 +1,16 @@
 release/accesstheme.o
+release/availlist.o
 release/cintaopciones.o
 release/consultawidget.o
 release/main.o
 release/mainwindow.o
+release/packedrow.o
 release/panelobjetos.o
 release/pestanatabla.o
 release/relacioneswidget.o
 release/relationitem.o
 release/ribbongroup.o
+release/schema.o
 release/tableitem.o
 release/ventanaprincipal.o
 release/vistadisenio.o

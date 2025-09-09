@@ -1,4 +1,5 @@
 #include "vistahojadatos.h"
+#include "vistadisenio.h"
 
 #include <QStyledItemDelegate>
 #include <QLocale>
@@ -17,6 +18,8 @@
 #include <QStyle>
 #include <QApplication>
 #include <QStyleOptionButton>
+#include <QMenu>
+#include <QAction>
 
 static constexpr int kCurrencyDecimals = 2;
 
@@ -138,8 +141,7 @@ private:
     const VistaHojaDatos* owner_ = nullptr;
 };
 
-// ===== VistaHojaDatos =====
-VistaHojaDatos::VistaHojaDatos(const QString& /*nombreTabla*/, QWidget* parent):QWidget(parent)
+VistaHojaDatos::VistaHojaDatos(const QString&, QWidget* parent):QWidget(parent)
 {
     auto*lay= new QVBoxLayout(this);
     lay->setContentsMargins(6,6,6,6);
@@ -165,46 +167,77 @@ VistaHojaDatos::VistaHojaDatos(const QString& /*nombreTabla*/, QWidget* parent):
 
     // Renombrar encabezado por doble clic
     connect(hh, &QHeaderView::sectionDoubleClicked, this, [this](int col)
+    {
+        const QString actual=m_modelo->headerData(col, Qt::Horizontal).toString();
+
+        bool ok=false;
+        QString nuevo=QInputDialog::getText(this, tr("Renombrar campo"),
+                                              tr("Nuevo nombre para %1:").arg(actual),
+                                              QLineEdit::Normal, actual, &ok).trimmed();
+
+        if(!ok||nuevo.isEmpty()||nuevo==actual)return;
+
+        for(int c=0;c<m_modelo->columnCount();++c)
+        {
+            if(c==col)continue;
+            const QString ex=m_modelo->headerData(c,Qt::Horizontal).toString().trimmed();
+            if(QString::compare(ex,nuevo,Qt::CaseInsensitive)==0)
             {
-                const QString actual=m_modelo->headerData(col, Qt::Horizontal).toString();
+                QMessageBox::warning(this,tr("Nombre Duplicado"),
+                                     tr("Ya existe un campo llamado “%1”.").arg(nuevo));
+                return;
+            }
+        }
+        m_modelo->setHeaderData(col,Qt::Horizontal,nuevo);
+        emit renombrarCampoSolicitado(col, nuevo);
+    });
 
-                bool ok=false;
-                QString nuevo=QInputDialog::getText(this, tr("Renombrar campo"),
-                                                      tr("Nuevo nombre para %1:").arg(actual),
-                                                      QLineEdit::Normal, actual, &ok).trimmed();
+    // Context menu para eliminar registro
+    m_tabla->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(m_tabla, &QTableView::customContextMenuRequested, this, [this](const QPoint& pos){
+        const QModelIndex idx = m_tabla->indexAt(pos);
+        if (!idx.isValid()) return;
+        const int r = idx.row();
+        if (r == m_modelo->rowCount()-1) return;
 
-                if(!ok||nuevo.isEmpty()||nuevo==actual)return;
-
-                for(int c=0;c<m_modelo->columnCount();++c)
-                {
-                    if(c==col)continue;
-                    const QString ex=m_modelo->headerData(c,Qt::Horizontal).toString().trimmed();
-                    if(QString::compare(ex,nuevo,Qt::CaseInsensitive)==0)
-                    {
-                        QMessageBox::warning(this,tr("Nombre Duplicado"),
-                                             tr("Ya existe un campo llamado “%1”.").arg(nuevo));
-                        return;
-                    }
-                }
-                m_modelo->setHeaderData(col,Qt::Horizontal,nuevo);
-                emit renombrarCampoSolicitado(col, nuevo);
-            });
-
-    // NOTA: Se elimina el menú contextual para elegir moneda.
-    // La divisa se define únicamente en la Vista de Diseño.
+        QMenu menu(this);
+        QAction* actDel = menu.addAction(tr("Eliminar registro"));
+        QAction* chosen = menu.exec(m_tabla->viewport()->mapToGlobal(pos));
+        if (chosen == actDel) {
+            emit borrarFilaSolicitada(r);
+        }
+    });
 }
 
 void VistaHojaDatos::reconectarSignalsModelo_()
 {
     disconnect(m_modelo, nullptr, this, nullptr);
 
-    connect(m_modelo, &QStandardItemModel::dataChanged, this,[this](const QModelIndex&, const QModelIndex&)
-            {
-                asegurarFilaNuevaAlFinal_();
-                emit datosCambiaron();
-            });
-    connect(m_modelo, &QStandardItemModel::rowsInserted, this,[this](const QModelIndex&, int, int){ emit datosCambiaron(); });
-    connect(m_modelo, &QStandardItemModel::rowsRemoved, this,[this](const QModelIndex&, int, int){ emit datosCambiaron(); });
+    connect(m_modelo, &QStandardItemModel::dataChanged, this,[this](const QModelIndex& tl, const QModelIndex& br)
+    {
+        asegurarFilaNuevaAlFinal_();
+
+        for (int r=tl.row(); r<=br.row(); ++r)
+            emitirInsertOUpdate_(r);
+
+        emit datosCambiaron();
+    });
+
+    connect(m_modelo, &QStandardItemModel::rowsInserted, this,[this](const QModelIndex&, int first, int last){
+        for (int r=first; r<=last; ++r) {
+            if (r == m_modelo->rowCount()-1) continue;
+            if (!filaVacia_(r)) m_nonemptyRows.insert(r);
+        }
+        emit datosCambiaron();
+    });
+
+    connect(m_modelo, &QStandardItemModel::rowsRemoved,  this,[this](const QModelIndex&, int, int){
+        m_nonemptyRows.clear();
+        m_offsets.resize(m_modelo->rowCount());
+        for (int r=0; r<m_modelo->rowCount()-1; ++r)
+            if (!filaVacia_(r)) m_nonemptyRows.insert(r);
+        emit datosCambiaron();
+    });
 }
 
 void VistaHojaDatos::asegurarFilaNuevaAlFinal_()
@@ -217,6 +250,44 @@ void VistaHojaDatos::asegurarFilaNuevaAlFinal_()
         if (v.isValid() && !v.toString().trimmed().isEmpty()) { ultimaVacia = false; break; }
     }
     if (!ultimaVacia) m_modelo->insertRow(r);
+}
+
+bool VistaHojaDatos::filaVacia_(int r) const {
+    if (r < 0 || r >= m_modelo->rowCount()) return true;
+    const int cols = m_modelo->columnCount();
+    for (int c=0; c<cols; ++c) {
+        const auto v = m_modelo->index(r,c).data();
+        if (v.isValid() && !v.toString().trimmed().isEmpty())
+            return false;
+    }
+    return true;
+}
+
+QVector<QVariant> VistaHojaDatos::filaComoVector_(int r) const {
+    QVector<QVariant> out;
+    if (r < 0 || r >= m_modelo->rowCount()) return out;
+    const int cols = m_modelo->columnCount();
+    out.reserve(cols);
+    for (int c=0; c<cols; ++c) out.push_back(m_modelo->index(r,c).data());
+    return out;
+}
+
+void VistaHojaDatos::emitirInsertOUpdate_(int r) {
+    if (r < 0 || r >= m_modelo->rowCount()-1) return; // ignora la última vacía
+    const bool vaciaAhora = filaVacia_(r);
+    const bool estabaNoVacia = m_nonemptyRows.contains(r);
+
+    if (!vaciaAhora && !estabaNoVacia) {
+        m_nonemptyRows.insert(r);
+        emit insertarFilaSolicitada(filaComoVector_(r));
+    } else if (!vaciaAhora && estabaNoVacia) {
+        if (r < m_offsets.size() && m_offsets[r] >= 0)
+            emit actualizarFilaSolicitada(r, filaComoVector_(r));
+        else
+            emit insertarFilaSolicitada(filaComoVector_(r));
+    } else if (vaciaAhora && estabaNoVacia) {
+        m_nonemptyRows.remove(r);
+    }
 }
 
 void VistaHojaDatos::reconstruirColumnas(const QList<Campo>& campos)
@@ -276,8 +347,7 @@ void VistaHojaDatos::reconstruirColumnas(const QList<Campo>& campos)
     // Tipos por columna + delegates
     m_tiposPorCol.clear();
 
-    // === NUEVO: reconstruir el mapa de divisas desde el esquema de Diseño ===
-    // Esto asegura que la Hoja de datos muestre exactamente la divisa elegida en Diseño.
+    // Reconstruir el mapa de divisas desde el esquema de Diseño
     QHash<int, QString> newCurrencyMap;
 
     for (int c = 0; c < campos.size(); ++c) {
@@ -295,7 +365,6 @@ void VistaHojaDatos::reconstruirColumnas(const QList<Campo>& campos)
         }
     }
 
-    // Reemplazar completamente el mapa (evita residuos de columnas antiguas/reordenadas)
     m_currencyByCol = newCurrencyMap;
 
     // Fila vacía final
@@ -304,6 +373,15 @@ void VistaHojaDatos::reconstruirColumnas(const QList<Campo>& campos)
     m_tabla->horizontalHeader()->setStretchLastSection(true);
     m_tabla->setEditTriggers(QAbstractItemView::AllEditTriggers);
     reconectarSignalsModelo_();
+
+    // Sincronizar offsets con nuevo rowCount
+    m_offsets.resize(m_modelo->rowCount());
+    for (int i=0;i<m_offsets.size();++i) if (m_offsets[i]==0) m_offsets[i] = -1;
+
+    // Recalcular no-vacías
+    m_nonemptyRows.clear();
+    for (int r=0; r<m_modelo->rowCount()-1; ++r)
+        if (!filaVacia_(r)) m_nonemptyRows.insert(r);
 }
 
 QVector<QVector<QVariant>> VistaHojaDatos::snapshotFilas(bool excluirUltimaVacia) const
@@ -338,6 +416,41 @@ void VistaHojaDatos::cargarFilas(const QVector<QVector<QVariant>>& rows)
         }
     }
     m_modelo->insertRow(m_modelo->rowCount());
+}
+
+void VistaHojaDatos::registrarOffsetParaUltimaInsercion(qint64 off) {
+    int r = m_modelo->rowCount() - 2;
+    if (r >= 0) {
+        if (m_offsets.size() < m_modelo->rowCount()) m_offsets.resize(m_modelo->rowCount());
+        m_offsets[r] = off;
+    }
+}
+
+void VistaHojaDatos::marcarFilaBorrada(int r) {
+    if (r>=0 && r<m_offsets.size()) m_offsets[r] = -1;
+    if (r>=0 && r<m_modelo->rowCount()) m_modelo->removeRow(r);
+    asegurarFilaNuevaAlFinal_();
+}
+
+void VistaHojaDatos::cargarFilasConOffsets(const QVector<QVector<QVariant>>& rows, const QVector<qint64>& offs) {
+    m_modelo->blockSignals(true);
+
+    m_modelo->setRowCount(0);
+    for (const auto& fila : rows) {
+        const int r = m_modelo->rowCount();
+        m_modelo->insertRow(r);
+        for (int c=0; c<m_modelo->columnCount() && c<fila.size(); ++c)
+            m_modelo->setData(m_modelo->index(r,c), fila[c]);
+    }
+    m_modelo->insertRow(m_modelo->rowCount());
+
+    m_offsets = offs;
+    m_offsets.resize(m_modelo->rowCount()); // incluye la vacía (queda -1)
+    m_nonemptyRows.clear();
+    for (int r=0; r<m_modelo->rowCount()-1; ++r)
+        if (!filaVacia_(r)) m_nonemptyRows.insert(r);
+
+    m_modelo->blockSignals(false);
 }
 
 QString VistaHojaDatos::currencyForCol_(int c) const {

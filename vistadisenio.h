@@ -4,17 +4,14 @@
 #include <QList>
 #include <QString>
 #include<QIcon>
+#include <QtWidgets/QMainWindow>
+#include "Schema.h"     // <<-- Campo definido COMPLETO aquí
+#include "PackedRow.h"  // usa Campo
+#include "availlist.h"  // tu almacenamiento
 class QTableView;
 class QStandardItemModel;
 class QIcon;
 class QStyledItemDelegate;
-struct Campo
-{
-    bool pk = false;
-    QString nombre;
-    QString tipo;
-    QString moneda;
-};
 
 class VistaDisenio:public QWidget
 {

@@ -10,15 +10,18 @@ CONFIG += c++17
 
 SOURCES += \
     accesstheme.cpp \
+    availlist.cpp \
     cintaopciones.cpp \
     consultawidget.cpp \
     main.cpp \
     mainwindow.cpp \
+    packedrow.cpp \
     panelobjetos.cpp \
     pestanatabla.cpp \
     relacioneswidget.cpp \
     relationitem.cpp \
     ribbongroup.cpp \
+    schema.cpp \
     tableitem.cpp \
     ventanaprincipal.cpp \
     vistadisenio.cpp \
@@ -26,14 +29,17 @@ SOURCES += \
 
 HEADERS += \
     accesstheme.h \
+    availlist.h \
     cintaopciones.h \
     consultawidget.h \
     mainwindow.h \
+    packedrow.h \
     panelobjetos.h \
     pestanatabla.h \
     relacioneswidget.h \
     relationitem.h \
     ribbongroup.h \
+    schema.h \
     tableitem.h \
     ventanaprincipal.h \
     vistadisenio.h \

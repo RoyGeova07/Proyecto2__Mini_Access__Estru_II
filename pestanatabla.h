@@ -1,64 +1,76 @@
-#ifndef PESTANATABLA_H
-#define PESTANATABLA_H
-
-#include "vistadisenio.h"
-#include <QWidget>
-#include<QString>
-#include <QMessageBox>
+#pragma once
+#include <QtWidgets/QWidget>
+#include <QtCore/QList>
+#include <QtCore/QVector>
+#include <QtCore/QVariant>
+#include <QtGui/QIcon>
 
 class QStackedWidget;
-class VistaHojaDatos;
-class VistaDisenio;
 class QTabWidget;
+class QLabel;
 
-class PestanaTabla:public QWidget
-{
+struct Campo;              // tu struct Campo existente
 
+class VistaHojaDatos;      // forward
+class VistaDisenio;        // forward
+
+class PestanaTabla : public QWidget {
     Q_OBJECT
-
 public:
+    explicit PestanaTabla(const QString& nombreInicial, QWidget* parent=nullptr);
 
+    // === API consulta/persistencia ===
     QList<Campo> esquemaActual() const;
     QVector<QVector<QVariant>> filasActuales() const;
-    void cargarSnapshot(const QList<Campo>& schema, const QVector<QVector<QVariant>>& rows);
-    explicit PestanaTabla(const QString&nombreInicial,QWidget*parent=nullptr);
-    QString nombreTabla()const{return m_nombre;}
-    bool tieneNombre()const{return m_tieneNombre; }
-    void establecerNombre(const QString& n){m_nombre=n;m_tieneNombre=true;}
+    void cargarSnapshot(const QList<Campo>& schema,const QVector<QVector<QVariant>>& rows);
 
-signals:
-
-    void estadoCambioSolicitado();
-
-public slots:
-
+    // === Navegación ===
     void mostrarHojaDatos();
     void mostrarDisenio();
-    void agregarColumna();
-    void eliminarColumna();
-    void hacerClavePrimaria();
+
+    // === Edición ===
+    Q_SLOT void agregarColumna();
+    Q_SLOT void eliminarColumna();
+    Q_SLOT void hacerClavePrimaria();
+
+    // === NOMBRE ===
+    const QString& nombreTabla() const { return m_nombre; }
+    bool tieneNombre() const { return !m_nombre.trimmed().isEmpty(); }
+    void establecerNombre(const QString& n) { m_nombre = n; }
+
+    // === NUEVO: getter para la Hoja (persistencia)
+    VistaHojaDatos* hojaDatosWidget() const { return m_hoja; }
+
+signals:
+    void estadoCambioSolicitado(); // notifica cambios a VentanaPrincipal
 
 private:
-    QString m_nombre;
-    bool m_tieneNombre=false;
-    QStackedWidget*m_pila;
-    QWidget*m_paginaDisenio;
-    QTabWidget*m_panelProp;
-    QWidget*m_paginaHoja;
-    VistaHojaDatos*m_hoja;
-    VistaDisenio*m_disenio;
     void syncHojaConDisenio_();
-    QLabel*m_pNombre=nullptr;
-    QLabel*m_pTipo=nullptr;
-    QLabel*m_pTamano=nullptr;
-    QLabel*m_pFormato=nullptr;
-    QLabel*m_pDecimales=nullptr;
-    QLabel*m_pValorDef=nullptr;
-    QLabel*m_pRequerido=nullptr;
-    QLabel*m_pPermiteCero=nullptr;
-    QLabel*m_pIndexado=nullptr;
     void refrescarGeneral_(int fila);
+
+private:
+    QString         m_nombre;
+
+    QStackedWidget* m_pila = nullptr;
+
+    QWidget*        m_paginaHoja = nullptr;
+    VistaHojaDatos* m_hoja = nullptr;
+
+    QWidget*        m_paginaDisenio = nullptr;
+    VistaDisenio*   m_disenio = nullptr;
+
+    QTabWidget*     m_panelProp = nullptr;
+
+    // Labels del panel "General"
+    QLabel* m_pNombre=nullptr;
+    QLabel* m_pTipo=nullptr;
+    QLabel* m_pTamano=nullptr;
+    QLabel* m_pFormato=nullptr;
+    QLabel* m_pDecimales=nullptr;
+    QLabel* m_pValorDef=nullptr;
+    QLabel* m_pRequerido=nullptr;
+    QLabel* m_pPermiteCero=nullptr;
+    QLabel* m_pIndexado=nullptr;
+
+    QIcon m_iconVistaDatos, m_iconVistaDisenio; // si quieres reutilizarlos
 };
-
-
-#endif

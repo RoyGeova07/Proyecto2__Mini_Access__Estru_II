@@ -8,6 +8,7 @@
 
 #include "../../../vistahojadatos.h"
 #include <QtCore/qmetatype.h>
+#include <QtCore/QList>
 
 #include <QtCore/qtmochelpers.h>
 
@@ -40,7 +41,12 @@ constexpr auto qt_meta_stringdata_CLASSVistaHojaDatosENDCLASS = QtMocHelpers::st
     "",
     "renombrarCampoSolicitado",
     "col",
-    "nombre"
+    "nuevoNombre",
+    "insertarFilaSolicitada",
+    "row",
+    "actualizarFilaSolicitada",
+    "rowIndex",
+    "borrarFilaSolicitada"
 );
 #else  // !QT_MOC_HAS_STRINGDATA
 #error "qtmochelpers.h not found or too old."
@@ -53,20 +59,26 @@ Q_CONSTINIT static const uint qt_meta_data_CLASSVistaHojaDatosENDCLASS[] = {
       12,       // revision
        0,       // classname
        0,    0, // classinfo
-       2,   14, // methods
+       5,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
        0,       // flags
-       2,       // signalCount
+       5,       // signalCount
 
  // signals: name, argc, parameters, tag, flags, initial metatype offsets
-       1,    0,   26,    2, 0x06,    1 /* Public */,
-       3,    2,   27,    2, 0x06,    2 /* Public */,
+       1,    0,   44,    2, 0x06,    1 /* Public */,
+       3,    2,   45,    2, 0x06,    2 /* Public */,
+       6,    1,   50,    2, 0x06,    5 /* Public */,
+       8,    2,   53,    2, 0x06,    7 /* Public */,
+      10,    1,   58,    2, 0x06,   10 /* Public */,
 
  // signals: parameters
     QMetaType::Void,
     QMetaType::Void, QMetaType::Int, QMetaType::QString,    4,    5,
+    QMetaType::Void, QMetaType::QVariantList,    7,
+    QMetaType::Void, QMetaType::Int, QMetaType::QVariantList,    9,    7,
+    QMetaType::Void, QMetaType::Int,    9,
 
        0        // eod
 };
@@ -85,7 +97,17 @@ Q_CONSTINIT const QMetaObject VistaHojaDatos::staticMetaObject = { {
         // method 'renombrarCampoSolicitado'
         QtPrivate::TypeAndForceComplete<void, std::false_type>,
         QtPrivate::TypeAndForceComplete<int, std::false_type>,
-        QtPrivate::TypeAndForceComplete<const QString &, std::false_type>
+        QtPrivate::TypeAndForceComplete<const QString &, std::false_type>,
+        // method 'insertarFilaSolicitada'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>,
+        QtPrivate::TypeAndForceComplete<const QVector<QVariant> &, std::false_type>,
+        // method 'actualizarFilaSolicitada'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>,
+        QtPrivate::TypeAndForceComplete<int, std::false_type>,
+        QtPrivate::TypeAndForceComplete<const QVector<QVariant> &, std::false_type>,
+        // method 'borrarFilaSolicitada'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>,
+        QtPrivate::TypeAndForceComplete<int, std::false_type>
     >,
     nullptr
 } };
@@ -98,6 +120,9 @@ void VistaHojaDatos::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _
         switch (_id) {
         case 0: _t->datosCambiaron(); break;
         case 1: _t->renombrarCampoSolicitado((*reinterpret_cast< std::add_pointer_t<int>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2]))); break;
+        case 2: _t->insertarFilaSolicitada((*reinterpret_cast< std::add_pointer_t<QList<QVariant>>>(_a[1]))); break;
+        case 3: _t->actualizarFilaSolicitada((*reinterpret_cast< std::add_pointer_t<int>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QList<QVariant>>>(_a[2]))); break;
+        case 4: _t->borrarFilaSolicitada((*reinterpret_cast< std::add_pointer_t<int>>(_a[1]))); break;
         default: ;
         }
     } else if (_c == QMetaObject::IndexOfMethod) {
@@ -113,6 +138,27 @@ void VistaHojaDatos::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _
             using _t = void (VistaHojaDatos::*)(int , const QString & );
             if (_t _q_method = &VistaHojaDatos::renombrarCampoSolicitado; *reinterpret_cast<_t *>(_a[1]) == _q_method) {
                 *result = 1;
+                return;
+            }
+        }
+        {
+            using _t = void (VistaHojaDatos::*)(const QVector<QVariant> & );
+            if (_t _q_method = &VistaHojaDatos::insertarFilaSolicitada; *reinterpret_cast<_t *>(_a[1]) == _q_method) {
+                *result = 2;
+                return;
+            }
+        }
+        {
+            using _t = void (VistaHojaDatos::*)(int , const QVector<QVariant> & );
+            if (_t _q_method = &VistaHojaDatos::actualizarFilaSolicitada; *reinterpret_cast<_t *>(_a[1]) == _q_method) {
+                *result = 3;
+                return;
+            }
+        }
+        {
+            using _t = void (VistaHojaDatos::*)(int );
+            if (_t _q_method = &VistaHojaDatos::borrarFilaSolicitada; *reinterpret_cast<_t *>(_a[1]) == _q_method) {
+                *result = 4;
                 return;
             }
         }
@@ -138,13 +184,13 @@ int VistaHojaDatos::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 2)
+        if (_id < 5)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 2;
+        _id -= 5;
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 2)
+        if (_id < 5)
             *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
-        _id -= 2;
+        _id -= 5;
     }
     return _id;
 }
@@ -160,5 +206,26 @@ void VistaHojaDatos::renombrarCampoSolicitado(int _t1, const QString & _t2)
 {
     void *_a[] = { nullptr, const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t1))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t2))) };
     QMetaObject::activate(this, &staticMetaObject, 1, _a);
+}
+
+// SIGNAL 2
+void VistaHojaDatos::insertarFilaSolicitada(const QVector<QVariant> & _t1)
+{
+    void *_a[] = { nullptr, const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t1))) };
+    QMetaObject::activate(this, &staticMetaObject, 2, _a);
+}
+
+// SIGNAL 3
+void VistaHojaDatos::actualizarFilaSolicitada(int _t1, const QVector<QVariant> & _t2)
+{
+    void *_a[] = { nullptr, const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t1))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t2))) };
+    QMetaObject::activate(this, &staticMetaObject, 3, _a);
+}
+
+// SIGNAL 4
+void VistaHojaDatos::borrarFilaSolicitada(int _t1)
+{
+    void *_a[] = { nullptr, const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t1))) };
+    QMetaObject::activate(this, &staticMetaObject, 4, _a);
 }
 QT_WARNING_POP
