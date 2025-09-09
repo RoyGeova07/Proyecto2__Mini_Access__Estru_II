@@ -347,6 +347,14 @@ void VentanaPrincipal::AbrirRelaciones()
         int idx = m_pestanas->addTab(rel, QIcon(":/im/image/relaciones.png"), tr("Relaciones"));
         m_pestanas->setCurrentIndex(idx);
 
+        rel->setComprobadorTablaAbierta([this](const QString& nombre)->bool {
+            for (int i = 0; i < m_pestanas->count(); ++i) {
+                if (m_pestanas->tabText(i).compare(nombre, Qt::CaseInsensitive) == 0)
+                    return true; // esta abierta -> bloquear
+            }
+            return false;
+        });
+
         connect(this, &VentanaPrincipal::esquemaTablaCambiado,rel,&RelacionesWidget::aplicarEsquema);
         connect(this, &VentanaPrincipal::tablaRenombradaSignal,rel,&RelacionesWidget::tablaRenombrada);
 
@@ -355,6 +363,13 @@ void VentanaPrincipal::AbrirRelaciones()
             emit esquemaTablaCambiado(it.key(), it.value().schema);
     }else{
 
+        rel->setComprobadorTablaAbierta([this](const QString& nombre)->bool {
+            for (int i = 0; i < m_pestanas->count(); ++i) {
+                if (m_pestanas->tabText(i).compare(nombre, Qt::CaseInsensitive) == 0)
+                    return true;
+            }
+            return false;
+        });
         //Si RelacionesWidget ya existe, re-enviar todos los esquemas
         for(auto it=m_memTablas.begin();it!=m_memTablas.end();++it)
         {
