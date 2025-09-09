@@ -1,5 +1,4 @@
 #include "relacioneswidget.h"
-
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QTabWidget>
@@ -15,7 +14,6 @@
 #include <QHeaderView>
 #include <QKeyEvent>
 #include <QMessageBox>
-
 #include "tableitem.h"   // construcción de TableItem
 
 // === Constructor ==============================================================
@@ -178,12 +176,14 @@ void RelacionesWidget::tablaRenombrada(const QString& viejo, const QString& nuev
     m_relaciones.swap(nuevas);
 }
 
-void RelacionesWidget::conectarTableItem_(TableItem* it) {
-    QObject::connect(it, &TableItem::soltarCampoSobre, this,
-                     [this](const QString& tablaO, const QString& campoO,
-                            const QString& tablaD, const QString& campoD) {
-                         mostrarDialogoModificarRelacion_(tablaO, campoO, tablaD, campoD);
-                     });
+void RelacionesWidget::conectarTableItem_(TableItem* it)
+{
+    QObject::connect(it, &TableItem::soltarCampoSobre, this,[this](const QString& tablaO, const QString& campoO,const QString& tablaD, const QString& campoD)
+    {
+
+        mostrarDialogoModificarRelacion_(tablaO, campoO, tablaD, campoD);
+
+    });
 }
 
 bool RelacionesWidget::campoEsPk_(const QString& tabla, const QString& campo) const {
@@ -213,20 +213,43 @@ void RelacionesWidget::mostrarDialogoModificarRelacion_(const QString& tablaO_in
     const bool pkD = esPk(tablaD, campoD);
 
     RelationItem::Tipo tipo;
-    if (pkO && pkD) {
+    if(pkO && pkD)
+    {
+
         // PK ↔ PK  ->  1:1
         tipo = RelationItem::Tipo::UnoAUno;
-    } else if (pkO ^ pkD) {
-        // PK ↔ noPK  ->  1:N (el lado PK debe quedar como ORIGEN, como en Access)
-        if (!pkO && pkD) {
+
+    }else if (pkO^pkD){
+        //PK ↔ noPK  ->  1:N (el lado PK debe quedar como ORIGEN, como en Access)
+        if(!pkO && pkD)
+        {
+
             qSwap(tablaO, tablaD);
             qSwap(campoO, campoD);
+
         }
-        tipo = RelationItem::Tipo::UnoAMuchos;
-    } else {
+        tipo=RelationItem::Tipo::UnoAMuchos;
+
+    }else{
         // noPK ↔ noPK  ->  Access no permite crear integridad; aquí lo impedimos también
-        QMessageBox::warning(this, tr("Relación no válida"),
-                             tr("Debe haber al menos una clave primaria para crear la relación."));
+        QMessageBox::warning(this, tr("Relación no válida"),tr("Debe haber al menos una clave primaria para crear la relación."));
+        return;
+    }
+
+    auto tablaBloqueada = [&](const QString& t)->bool {
+        return m_isTablaAbierta && m_isTablaAbierta(t);
+    };
+
+    if (tablaBloqueada(tablaO)) {
+        QMessageBox::warning(this, tr("Microsoft Access"),
+                             tr("El motor de base de datos no pudo bloquear la tabla '%1' porque actualmente la está utilizando otro usuario o proceso.")
+                                 .arg(tablaO));
+        return;
+    }
+    if (tablaBloqueada(tablaD)) {
+        QMessageBox::warning(this, tr("Microsoft Access"),
+                             tr("El motor de base de datos no pudo bloquear la tabla '%1' porque actualmente la está utilizando otro usuario o proceso.")
+                                 .arg(tablaD));
         return;
     }
 
@@ -288,8 +311,8 @@ void RelacionesWidget::mostrarDialogoModificarRelacion_(const QString& tablaO_in
 
     // Botonera
     auto* box = new QDialogButtonBox(&dlg);
-    box->addButton(tr("Crear"),    QDialogButtonBox::AcceptRole)->setDefault(true);
-    box->addButton(tr("Cancelar"), QDialogButtonBox::RejectRole);
+    box->addButton(tr("Crear"),QDialogButtonBox::AcceptRole)->setDefault(true);
+    box->addButton(tr("Cancelar"),QDialogButtonBox::RejectRole);
     QObject::connect(box, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
     QObject::connect(box, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
     lay->addWidget(box);
@@ -301,34 +324,60 @@ void RelacionesWidget::mostrarDialogoModificarRelacion_(const QString& tablaO_in
     // si luego los implementás, aquí es donde leerías sus valores.
 
     // ===== 3) Validación final (igual que Access)
-    if (tipo == RelationItem::Tipo::UnoAMuchos) {
+    if(tipo == RelationItem::Tipo::UnoAMuchos)
+    {
         // Por seguridad: origen debe ser PK y destino no PK
-        if (!esPk(tablaO, campoO) || esPk(tablaD, campoD)) {
-            QMessageBox::warning(this, tr("No válido"),
-                                 tr("Para 1:N el campo de origen debe ser una clave primaria "
-                                    "y el campo destino no debe serlo."));
+        if(!esPk(tablaO, campoO) || esPk(tablaD, campoD))
+        {
+
+            QMessageBox::warning(this, tr("No válido"),tr("Para 1:N el campo de origen debe ser una clave primaria ""y el campo destino no debe serlo."));
             return;
+
         }
-    } else { // 1:1
-        if (!(esPk(tablaO, campoO) && esPk(tablaD, campoD))) {
-            QMessageBox::warning(this, tr("No válido"),
-                                 tr("Para 1:1 ambos campos deben ser clave primaria."));
+    }else{ // 1:1
+
+        if(!(esPk(tablaO, campoO) && esPk(tablaD, campoD)))
+        {
+            QMessageBox::warning(this, tr("No válido"),tr("Para 1:1 ambos campos deben ser clave primaria."));
             return;
         }
     }
 
-    // ===== 4) Crear relación (si no existe)
-    if (!agregarRelacion_(tablaO, campoO, tablaD, campoD, tipo, integridad)) {
-        QMessageBox::information(this, tr("Relación"),
-                                 tr("Esa relación ya existe o no es válida."));
+    const QString tipoO=campoTipo_(tablaO,campoO);
+    const QString tipoD=campoTipo_(tablaO,campoD);
+
+    //debe coincidir  exactamente (Texto, Entero, Real, Fecha,
+    if(tipoO.compare(tipoD,Qt::CaseInsensitive)!=0)
+    {
+
+        QMessageBox::warning(this,tr("Microsoft Access"),tr("La relacion debe ser sobre el mismo numero de campos con el mismo tipo de datos."));
         return;
+
     }
+    // Si es Moneda, además exigir la misma divisa (HNL, USD, EUR, ...)
+    if (tipoO.compare(QStringLiteral("Moneda"), Qt::CaseInsensitive) == 0) {
+        const QString monO = campoMoneda_(tablaO, campoO);
+        const QString monD = campoMoneda_(tablaD, campoD);
+        if (monO.isEmpty() || monD.isEmpty() || monO.compare(monD, Qt::CaseInsensitive) != 0) {
+            QMessageBox::warning(this, tr("Microsoft Access"),tr("Para campos de tipo Moneda, la relación requiere la misma divisa en ambos campos."));
+            return;
+        }
+    }
+    if(tablaBloqueada(tablaO)||tablaBloqueada(tablaD))return;
+    // ===== 4) Crear relación (si no existe)
+    if(!agregarRelacion_(tablaO, campoO, tablaD, campoD, tipo, integridad))
+    {
+
+        QMessageBox::information(this, tr("Relación"),tr("Esa relación ya existe o no es valida."));
+        return;
+
+    }
+
 }
 
 
-bool RelacionesWidget::agregarRelacion_(const QString& tablaO, const QString& campoO,
-                                        const QString& tablaD, const QString& campoD,
-                                        RelationItem::Tipo tipo, bool integridad) {
+bool RelacionesWidget::agregarRelacion_(const QString& tablaO, const QString& campoO,const QString& tablaD, const QString& campoD,RelationItem::Tipo tipo, bool integridad)
+{
     if (!m_items.contains(tablaO) || !m_items.contains(tablaD)) return false;
     if (!campoExiste_(tablaO, campoO) || !campoExiste_(tablaD, campoD)) return false;
 
@@ -396,4 +445,40 @@ void RelacionesWidget::MostrarSelectorTablas(const QStringList& tablas, bool sol
         for (const QString& nombre : seleccion) asegurarItemTabla_(nombre);
     }
     m_selectorMostrado = true;
+}
+
+QString RelacionesWidget::campoTipo_(const QString &tabla, const QString &campo) const
+{
+
+    const auto schema=m_schemas.value(tabla);
+    for(const auto&c:schema)
+    {
+
+        if(c.nombre.compare(campo,Qt::CaseInsensitive)==0)
+        {
+
+            return c.tipo.trimmed();
+
+        }
+
+    }
+    return QString();
+
+}
+
+QString RelacionesWidget::campoMoneda_(const QString& tabla, const QString& campo) const
+{
+    const auto schema=m_schemas.value(tabla);
+    for (const auto& c : schema)
+        if (c.nombre.compare(campo, Qt::CaseInsensitive) == 0)
+            return c.moneda.trimmed();   // vacio si no aplica
+    return QString();
+}
+
+void RelacionesWidget::setComprobadorTablaAbierta(std::function<bool (const QString &)> fn)
+{
+
+
+    m_isTablaAbierta=std::move(fn);
+
 }
