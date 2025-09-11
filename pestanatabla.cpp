@@ -78,14 +78,24 @@ PestanaTabla::PestanaTabla(const QString& nombreInicial, QWidget* parent)
     baseLay->addWidget(m_pila);
 
     // --- Conexiones de sincronización ---
-    connect(m_disenio, &VistaDisenio::esquemaCambiado, this, [this]()
-            {
-                syncHojaConDisenio_();
-                refrescarGeneral_(0);
-                emit estadoCambioSolicitado();
-            });
+    connect(m_disenio, &VistaDisenio::esquemaCambiado, this, [this]() {
+        const auto schema = m_disenio->esquema();
+        const QString key = recordLayoutKey_(schema);
 
-    connect(m_hoja, &VistaHojaDatos::datosCambiaron, this, [this]() {
+        // Cambió el layout de registro (solo tipos/divisas/num. columnas, no nombres)
+        if (key != m_lastLayoutKey) {
+            if (!m_warnedSizeChange && m_hoja && m_hoja->tieneDatos()) {
+                QMessageBox::warning(this, tr("Tamaño de registro incompatible"),
+                                     tr("El esquema actual cambia el tamaño fijo del registro.\n"
+                                        "Por ahora no se admite migración automática.\n"
+                                        "Mantén tipos/tamaños compatibles o crea una tabla nueva."));
+                m_warnedSizeChange = true;   // solo una vez por sesión de la pestaña
+            }
+            m_lastLayoutKey = key;
+        }
+
+        syncHojaConDisenio_();
+        refrescarGeneral_(0);
         emit estadoCambioSolicitado();
     });
 
@@ -107,8 +117,27 @@ PestanaTabla::PestanaTabla(const QString& nombreInicial, QWidget* parent)
 
     // Inicial
     syncHojaConDisenio_();
+    m_lastLayoutKey = recordLayoutKey_(m_disenio->esquema());
+    m_warnedSizeChange = false;
     refrescarGeneral_(0);
     m_pila->setCurrentIndex(0);
+
+}
+QString PestanaTabla::recordLayoutKey_(const QList<Campo>& s) const {
+    // Solo lo que cambia tamaño/layout físico
+    QStringList parts;
+    parts.reserve(s.size());
+    for (const auto& c : s) {
+        const QString t = c.tipo.trimmed().toLower();
+        if (t == "moneda") {
+            parts << ("moneda:" + c.moneda.trimmed().toUpper());
+        } else {
+            parts << t; // texto/entero/real/fecha/booleano
+        }
+    }
+    // incluir cantidad de columnas por si agregas/quitas
+    parts << QString::number(s.size());
+    return parts.join("|");
 }
 
 QList<Campo> PestanaTabla::esquemaActual() const { return m_disenio->esquema(); }

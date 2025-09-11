@@ -260,6 +260,9 @@ bool ExpanderDelegate::editorEvent(QEvent *e, QAbstractItemModel *, const QStyle
     return true;
 }
 
+bool VistaHojaDatos::tieneDatos() const {
+    return !m_nonemptyRows.isEmpty();
+}
 
 VistaHojaDatos::VistaHojaDatos(const QString&nombreTabla, QWidget* parent):QWidget(parent)
 {
@@ -289,30 +292,45 @@ VistaHojaDatos::VistaHojaDatos(const QString&nombreTabla, QWidget* parent):QWidg
 
     // Renombrar encabezado por doble clic
     connect(hh, &QHeaderView::sectionDoubleClicked, this, [this](int col)
-    {
-        const QString actual=m_modelo->headerData(col, Qt::Horizontal).toString();
-
-        bool ok=false;
-        QString nuevo=QInputDialog::getText(this, tr("Renombrar campo"),
-                                              tr("Nuevo nombre para %1:").arg(actual),
-                                              QLineEdit::Normal, actual, &ok).trimmed();
-
-        if(!ok||nuevo.isEmpty()||nuevo==actual)return;
-
-        for(int c=0;c<m_modelo->columnCount();++c)
-        {
-            if(c==col)continue;
-            const QString ex=m_modelo->headerData(c,Qt::Horizontal).toString().trimmed();
-            if(QString::compare(ex,nuevo,Qt::CaseInsensitive)==0)
             {
-                QMessageBox::warning(this,tr("Nombre Duplicado"),
-                                     tr("Ya existe un campo llamado “%1”.").arg(nuevo));
-                return;
-            }
-        }
-        m_modelo->setHeaderData(col,Qt::Horizontal,nuevo);
-        emit renombrarCampoSolicitado(col, nuevo);
-    });
+                // 1) Si hay subdatos y es la columna 0, es el botón '+': NO es renombrable
+                if (m_hasSub && col == 0) {
+                    QMessageBox::information(this, tr("Renombrar campo"),
+                                             tr("Esa columna no es un campo; es el botón de expansión (+)."));
+                    return;
+                }
+
+                // 2) Traducir índice visual -> índice de campo en el esquema
+                const int starC = (m_hasSub ? 1 : 0);      // desplazamiento por columna '+'
+                const int schemaCol = col - starC;
+                // seguridad: fuera de rango => no renombrar
+                const int numCampos = m_modelo->columnCount() - starC;
+                if (schemaCol < 0 || schemaCol >= numCampos) return;
+
+                const QString actual = m_modelo->headerData(col, Qt::Horizontal).toString();
+
+                bool ok = false;
+                QString nuevo = QInputDialog::getText(this, tr("Renombrar campo"),
+                                                      tr("Nuevo nombre para %1:").arg(actual),
+                                                      QLineEdit::Normal, actual, &ok).trimmed();
+                if (!ok || nuevo.isEmpty() || nuevo == actual) return;
+
+                // 3) Validar duplicados SOLO contra columnas de campos reales (ignora la 0 si existe)
+                for (int c = starC; c < m_modelo->columnCount(); ++c) {
+                    if (c == col) continue;
+                    const QString ex = m_modelo->headerData(c, Qt::Horizontal).toString().trimmed();
+                    if (QString::compare(ex, nuevo, Qt::CaseInsensitive) == 0) {
+                        QMessageBox::warning(this, tr("Nombre Duplicado"),
+                                             tr("Ya existe un campo llamado “%1”.").arg(nuevo));
+                        return;
+                    }
+                }
+
+                // 4) Aplicar header visible…
+                m_modelo->setHeaderData(col, Qt::Horizontal, nuevo);
+                // …y EMITIR el índice del ESQUEMA (sin la columna '+')
+                emit renombrarCampoSolicitado(schemaCol, nuevo);
+            });
 
     // Context menu para eliminar registro
     m_tabla->setContextMenuPolicy(Qt::CustomContextMenu);

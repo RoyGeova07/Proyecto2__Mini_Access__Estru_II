@@ -161,6 +161,31 @@ void VentanaPrincipal::eliminarTablaActual()
     if(resp!=QMessageBox::Yes)return;
 
     m_panel->eliminarTabla(nombre);
+
+    m_memTablas.remove(nombre);
+    m_lastSchema.remove(nombre);
+    if (m_files.contains(nombre)) { m_files[nombre].reset(); m_files.remove(nombre); }
+
+    // --- avisar al RelacionesWidget si está abierto ---
+    for (int i = 0; i < m_pestanas->count(); ++i) {
+        if (auto* rel = qobject_cast<RelacionesWidget*>(m_pestanas->widget(i))) {
+            rel->tablaEliminadaExternamente(nombre);
+            // m_relSnapshot = rel->exportSnapshot(); // opcional
+            break;
+        }
+    }
+
+    // --- si no estaba abierto, purga snapshot en memoria ---
+    QList<QString> purgar;
+    for (auto it = m_relSnapshot.cbegin(); it != m_relSnapshot.cend(); ++it) {
+        const auto& d = it.value();
+        if (d.tablaO.compare(nombre, Qt::CaseInsensitive)==0 ||
+            d.tablaD.compare(nombre, Qt::CaseInsensitive)==0) {
+            purgar << it.key();
+        }
+    }
+    for (const auto& k : purgar) m_relSnapshot.remove(k);
+
 }
 
 void VentanaPrincipal::abrirTablaDesdeLista(const QString&nombre){abrirOTraerAPrimerPlano(nombre);}

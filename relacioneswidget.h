@@ -16,7 +16,7 @@ class RelacionesWidget : public QWidget {
     Q_OBJECT
 public:
     explicit RelacionesWidget(QWidget* parent = nullptr);
-
+    void tablaEliminadaExternamente(const QString& nombre);
     void MostrarSelectorTablas(const QStringList& tablas, bool soloSiPrimeraVez = false);
     QList<Campo> esquemaDe(const QString& tabla) const;
     void aplicarEsquema(const QString& tabla, const QList<Campo>& schema);

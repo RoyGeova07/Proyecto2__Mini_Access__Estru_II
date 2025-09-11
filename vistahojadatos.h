@@ -29,6 +29,7 @@ class VistaHojaDatos : public QWidget
     Q_OBJECT
 
 public:
+    bool tieneDatos() const;
 
     explicit VistaHojaDatos(const QString& nombreTabla, QWidget* parent=nullptr);
 

@@ -43,6 +43,34 @@ void RelacionesWidget::hideEvent(QHideEvent* e) {
     // Si la pestaña se oculta, libera los QGraphicsItem para evitar emisiones tardías
     limpiarEscena_();
 }
+void RelacionesWidget::tablaEliminadaExternamente(const QString& nombre) {
+    // 1) Relaciones conectadas a esa tabla
+    QList<QString> keys;
+    for (auto it = m_relaciones.begin(); it != m_relaciones.end(); ++it) {
+        if (it->tablaO.compare(nombre, Qt::CaseInsensitive)==0 ||
+            it->tablaD.compare(nombre, Qt::CaseInsensitive)==0) {
+            keys << it.key();
+        }
+    }
+    for (const QString& k : keys) {
+        auto rel = m_relaciones.take(k);
+        if (rel.item) {
+            if (rel.item->scene()) rel.item->scene()->removeItem(rel.item);
+            rel.item->deleteLater();
+        }
+    }
+
+    // 2) El item visual de la tabla (si está en el canvas)
+    if (auto* t = m_items.take(nombre)) {
+        if (t->scene()) t->scene()->removeItem(t);
+        t->deleteLater();
+    }
+
+    // 3) (Opcional) si la borraste de la BD, limpia también el esquema
+    m_schemas.remove(nombre);
+
+    emit snapshotActualizado(exportSnapshot());
+}
 
 void RelacionesWidget::limpiarEscena_() {
     // 1) Borrar RelationItem (desconecta y borra seguro)

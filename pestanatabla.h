@@ -53,6 +53,9 @@ private:
     void refrescarGeneral_(int fila);
 
 private:
+    QString recordLayoutKey_(const QList<Campo>&) const;
+    QString m_lastLayoutKey;
+    bool m_warnedSizeChange = false;
     QString         m_nombre;
 
     QStackedWidget* m_pila = nullptr;
