@@ -13,7 +13,7 @@
 // ===== Delegates =====
 class TipoDatoDelegate : public QStyledItemDelegate {
 public:
-    using QStyledItemDelegate::QStyledItemDelegate;
+     explicit TipoDatoDelegate(VistaDisenio* owner) : QStyledItemDelegate(owner), owner_(owner) {}
 
     QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem&, const QModelIndex&) const override {
         auto* cb = new QComboBox(parent);
@@ -25,9 +25,23 @@ public:
             cb->setCurrentText(index.data().toString());
     }
     void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const override {
-        if (auto* cb = qobject_cast<QComboBox*>(editor))
-            model->setData(index, cb->currentText());
+        // si estamos en la columna "Tipo de datos" (col 2) verificar relación
+        if (owner_ && index.column() == 2) {
+            const QString campo = model->index(index.row(), 1).data().toString().trimmed(); // nombre del campo
+            if (owner_->isCampoBloqueadoPorRelacion(campo)) {
+                QMessageBox::information(owner_, QObject::tr("Microsoft Access"),QObject::tr("No se puede cambiar el tipo de datos o el tamaño de este campo porque forma parte de una o más relaciones.\n""Si desea cambiar el tipo de datos de este campo, elimine primero sus relaciones en la ventana Relaciones."));
+                return; // BLOQUEA el cambio de tipo
+            }
+        }
+
+        // ... (resto de tu lógica actual que escribe el valor) ...
+        // En tu archivo esta función ya parsea y asigna (enteros, reales, fechas, etc.). Mantén lo que tienes.
+        QStyledItemDelegate::setModelData(editor, model, index); // o tu código existente
     }
+
+private:
+    VistaDisenio* owner_ = nullptr;
+
 };
 
 class MonedaDelegate : public QStyledItemDelegate {

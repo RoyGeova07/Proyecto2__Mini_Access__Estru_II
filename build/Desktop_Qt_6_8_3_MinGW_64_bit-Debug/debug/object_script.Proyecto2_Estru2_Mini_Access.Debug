@@ -1,13 +1,16 @@
 debug/accesstheme.o
+debug/availlist.o
 debug/cintaopciones.o
 debug/consultawidget.o
 debug/main.o
 debug/mainwindow.o
+debug/packedrow.o
 debug/panelobjetos.o
 debug/pestanatabla.o
 debug/relacioneswidget.o
 debug/relationitem.o
 debug/ribbongroup.o
+debug/schema.o
 debug/tableitem.o
 debug/ventanaprincipal.o
 debug/vistadisenio.o

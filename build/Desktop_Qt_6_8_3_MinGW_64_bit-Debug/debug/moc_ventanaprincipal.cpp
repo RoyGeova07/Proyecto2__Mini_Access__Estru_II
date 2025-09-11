@@ -48,6 +48,7 @@ static constexpr auto qt_meta_stringdata_ZN16VentanaPrincipalE = QtMocHelpers::s
     "viejo",
     "nuevo",
     "crearTablaNueva",
+    "eliminarTablaActual",
     "abrirTablaDesdeLista",
     "cerrarPestana",
     "idx",
@@ -55,7 +56,6 @@ static constexpr auto qt_meta_stringdata_ZN16VentanaPrincipalE = QtMocHelpers::s
     "mostrarDisenioActual",
     "agregarColumnaActual",
     "eliminarColumnaActual",
-    "eliminarTablaActual",
     "HacerClavePrimariaActual",
     "AbrirRelaciones",
     "AbrirConsultas",
@@ -84,9 +84,9 @@ Q_CONSTINIT static const uint qt_meta_data_ZN16VentanaPrincipalE[] = {
 
  // slots: name, argc, parameters, tag, flags, initial metatype offsets
        9,    0,  108,    2, 0x08,    7 /* Private */,
-      10,    1,  109,    2, 0x08,    8 /* Private */,
-      11,    1,  112,    2, 0x08,   10 /* Private */,
-      13,    0,  115,    2, 0x08,   12 /* Private */,
+      10,    0,  109,    2, 0x08,    8 /* Private */,
+      11,    1,  110,    2, 0x08,    9 /* Private */,
+      12,    1,  113,    2, 0x08,   11 /* Private */,
       14,    0,  116,    2, 0x08,   13 /* Private */,
       15,    0,  117,    2, 0x08,   14 /* Private */,
       16,    0,  118,    2, 0x08,   15 /* Private */,
@@ -102,9 +102,9 @@ Q_CONSTINIT static const uint qt_meta_data_ZN16VentanaPrincipalE[] = {
 
  // slots: parameters
     QMetaType::Void,
-    QMetaType::Void, QMetaType::QString,    3,
-    QMetaType::Void, QMetaType::Int,   12,
     QMetaType::Void,
+    QMetaType::Void, QMetaType::QString,    3,
+    QMetaType::Void, QMetaType::Int,   13,
     QMetaType::Void,
     QMetaType::Void,
     QMetaType::Void,
@@ -136,6 +136,8 @@ Q_CONSTINIT const QMetaObject VentanaPrincipal::staticMetaObject = { {
         QtPrivate::TypeAndForceComplete<const QString &, std::false_type>,
         // method 'crearTablaNueva'
         QtPrivate::TypeAndForceComplete<void, std::false_type>,
+        // method 'eliminarTablaActual'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>,
         // method 'abrirTablaDesdeLista'
         QtPrivate::TypeAndForceComplete<void, std::false_type>,
         QtPrivate::TypeAndForceComplete<const QString &, std::false_type>,
@@ -149,8 +151,6 @@ Q_CONSTINIT const QMetaObject VentanaPrincipal::staticMetaObject = { {
         // method 'agregarColumnaActual'
         QtPrivate::TypeAndForceComplete<void, std::false_type>,
         // method 'eliminarColumnaActual'
-        QtPrivate::TypeAndForceComplete<void, std::false_type>,
-        // method 'eliminarTablaActual'
         QtPrivate::TypeAndForceComplete<void, std::false_type>,
         // method 'HacerClavePrimariaActual'
         QtPrivate::TypeAndForceComplete<void, std::false_type>,
@@ -174,18 +174,30 @@ void VentanaPrincipal::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int
         case 0: _t->esquemaTablaCambiado((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QList<Campo>>>(_a[2]))); break;
         case 1: _t->tablaRenombradaSignal((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2]))); break;
         case 2: _t->crearTablaNueva(); break;
-        case 3: _t->abrirTablaDesdeLista((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1]))); break;
-        case 4: _t->cerrarPestana((*reinterpret_cast< std::add_pointer_t<int>>(_a[1]))); break;
-        case 5: _t->mostrarHojaDatosActual(); break;
-        case 6: _t->mostrarDisenioActual(); break;
-        case 7: _t->agregarColumnaActual(); break;
-        case 8: _t->eliminarColumnaActual(); break;
-        case 9: _t->eliminarTablaActual(); break;
+        case 3: _t->eliminarTablaActual(); break;
+        case 4: _t->abrirTablaDesdeLista((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1]))); break;
+        case 5: _t->cerrarPestana((*reinterpret_cast< std::add_pointer_t<int>>(_a[1]))); break;
+        case 6: _t->mostrarHojaDatosActual(); break;
+        case 7: _t->mostrarDisenioActual(); break;
+        case 8: _t->agregarColumnaActual(); break;
+        case 9: _t->eliminarColumnaActual(); break;
         case 10: _t->HacerClavePrimariaActual(); break;
         case 11: _t->AbrirRelaciones(); break;
         case 12: _t->AbrirConsultas(); break;
         case 13: _t->renombrarTablaPorSolicitud((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2]))); break;
         default: ;
+        }
+    }
+    if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
+        switch (_id) {
+        default: *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType(); break;
+        case 0:
+            switch (*reinterpret_cast<int*>(_a[1])) {
+            default: *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType(); break;
+            case 1:
+                *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType::fromType< QList<Campo> >(); break;
+            }
+            break;
         }
     }
     if (_c == QMetaObject::IndexOfMethod) {
@@ -232,7 +244,7 @@ int VentanaPrincipal::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
         if (_id < 14)
-            *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
+            qt_static_metacall(this, _c, _id, _a);
         _id -= 14;
     }
     return _id;

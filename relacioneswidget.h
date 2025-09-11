@@ -19,12 +19,34 @@ public:
 
     // API pública
     void MostrarSelectorTablas(const QStringList& tablas, bool soloSiPrimeraVez = false);
+    QList<Campo> esquemaDe(const QString& tabla) const;
     void aplicarEsquema(const QString& tabla, const QList<Campo>& schema);
     void tablaRenombrada(const QString& viejo, const QString& nuevo);
     void setComprobadorTablaAbierta(std::function<bool(const QString&)> fn);
-
-    // Borrado de selección (solo del diagrama UML)
     void eliminarSeleccion();
+    //Devuelve true si existe una relacion cuyo DESTINO es (tablaD, campoD).
+    //Rellena tabla/campo de ORIGEN y si exige integridad referencial.
+    //en pocas palabras sirve para hacer la integridad referenci
+    bool obtenerRelacionDestino(const QString& tablaD, const QString& campoD,QString* tablaO, QString* campoO, bool* integridad)const;
+
+    struct RelDef
+    {
+
+        QString tablaO,campoO,tablaD,campoD;
+        int tipo=0;//0: UnoAMuchos, 1: UnoAUno
+        bool integridad=false;
+
+    };
+    //Toma la foto actual de relaciones (logico, no gráfico)
+    QMap<QString, RelDef> exportSnapshot() const;
+
+    //Reconstruye las relaciones (y el diagrama) desde una foto
+    void importSnapshot(const QMap<QString, RelDef>& snap);
+
+signals:
+
+    //Emitir cada vez que haya un cambio (crear/borrar/editar/renombrar)
+    void snapshotActualizado(const QMap<QString, RelDef>& snap);
 
 protected:
     bool eventFilter(QObject* obj, QEvent* ev) override;

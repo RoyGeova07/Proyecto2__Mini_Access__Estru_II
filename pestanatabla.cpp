@@ -1,7 +1,6 @@
 #include "pestanatabla.h"
 #include "vistadisenio.h"
 #include "vistahojadatos.h"
-
 #include <QStackedWidget>
 #include <QVBoxLayout>
 #include <QIcon>
@@ -235,4 +234,11 @@ void PestanaTabla::refrescarGeneral_(int fila){
     m_pRequerido->setText(req);
     m_pPermiteCero->setText(cero);
     m_pIndexado->setText(idx);
+}
+void PestanaTabla::setSchemaGetterParaHoja(std::function<QList<Campo>(const QString&)> g)
+{
+    if (m_hoja) m_hoja->setSchemaGetter(std::move(g));
+}
+void PestanaTabla::setRelationGuardParaDisenio(std::function<bool(const QString& campo)> g) {
+    if (m_disenio) m_disenio->setRelationGuard(std::move(g));
 }

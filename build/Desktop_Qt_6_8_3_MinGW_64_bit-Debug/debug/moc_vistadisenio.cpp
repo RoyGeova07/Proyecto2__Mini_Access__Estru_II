@@ -158,6 +158,18 @@ void VistaDisenio::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id
         default: ;
         }
     }
+    if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
+        switch (_id) {
+        default: *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType(); break;
+        case 2:
+            switch (*reinterpret_cast<int*>(_a[1])) {
+            default: *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType(); break;
+            case 0:
+                *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType::fromType< QList<Campo> >(); break;
+            }
+            break;
+        }
+    }
     if (_c == QMetaObject::IndexOfMethod) {
         int *result = reinterpret_cast<int *>(_a[0]);
         {
@@ -202,7 +214,7 @@ int VistaDisenio::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
         if (_id < 9)
-            *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
+            qt_static_metacall(this, _c, _id, _a);
         _id -= 9;
     }
     return _id;

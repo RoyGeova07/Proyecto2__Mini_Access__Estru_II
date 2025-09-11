@@ -4,6 +4,7 @@
 #include <QtCore/QVector>
 #include <QtCore/QVariant>
 #include <QtGui/QIcon>
+#include<functional>
 
 class QStackedWidget;
 class QTabWidget;
@@ -32,6 +33,9 @@ public:
     Q_SLOT void agregarColumna();
     Q_SLOT void eliminarColumna();
     Q_SLOT void hacerClavePrimaria();
+    void setSchemaGetterParaHoja(std::function<QList<Campo>(const QString&)> g);
+    void setRelationGuardParaDisenio(std::function<bool(const QString& campo)> g);
+
 
     // === NOMBRE ===
     const QString& nombreTabla() const { return m_nombre; }

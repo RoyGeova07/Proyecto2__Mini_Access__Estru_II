@@ -7,6 +7,7 @@
 #include <QtWidgets/QMainWindow>
 #include "Schema.h"     // <<-- Campo definido COMPLETO aquí
 #include "availlist.h" // tu almacenamiento
+#include"relacioneswidget.h"
 class CintaOpciones;
 class PanelObjetos;
 class QTabWidget;
@@ -26,6 +27,7 @@ signals:
     void tablaRenombradaSignal(const QString& viejo, const QString& nuevo);
 
 private slots:
+
     void crearTablaNueva();
     void eliminarTablaActual();
     void abrirTablaDesdeLista(const QString& nombre);
@@ -40,6 +42,7 @@ private slots:
     void renombrarTablaPorSolicitud(const QString &viejo, const QString &nuevo);
 
 private:
+
     void abrirOTraerAPrimerPlano(const QString& nombre);
 
 private:
@@ -48,6 +51,7 @@ private:
     QTabWidget*    m_pestanas = nullptr;
 
     int m_contadorTablas = 1;
+    QMap<QString, RelacionesWidget::RelDef> m_relSnapshot;
 
     struct TablaSnapshot {
         QList<Campo> schema;

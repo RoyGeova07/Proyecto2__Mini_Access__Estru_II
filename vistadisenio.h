@@ -26,6 +26,13 @@ public:
     Campo campoEnFila(int fila) const;
     int filaSeleccionadaActual() const;
 
+    using RelationGuard = std::function<bool(const QString& campo)>;
+    // Si devuelve true, el campo está involucrado en una relación y NO debe cambiarse su tipo.
+    void setRelationGuard(RelationGuard g) { m_relationGuard = std::move(g); }
+    bool isCampoBloqueadoPorRelacion(const QString& campo) const {
+        return m_relationGuard ? m_relationGuard(campo) : false;
+    }
+
 public slots:
 
     void establecerEsquema(const QList<Campo>& campos);
@@ -50,6 +57,7 @@ private:
 
     int m_pkRow=0;
     QIcon m_iconPk;
+    RelationGuard m_relationGuard;
     void RefrescarIconPk();
 
 };

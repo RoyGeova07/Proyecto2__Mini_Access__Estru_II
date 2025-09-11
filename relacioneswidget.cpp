@@ -133,7 +133,8 @@ void RelacionesWidget::asegurarItemTabla_(const QString& nombre) {
     conectarTableItem_(it);
 }
 
-void RelacionesWidget::aplicarEsquema(const QString& tabla, const QList<Campo>& schema) {
+void RelacionesWidget::aplicarEsquema(const QString& tabla, const QList<Campo>& schema)
+{
     m_schemas[tabla] = schema;
 
     if (auto* it = m_items.value(tabla, nullptr)) it->setCampos(schema);
@@ -151,6 +152,7 @@ void RelacionesWidget::aplicarEsquema(const QString& tabla, const QList<Campo>& 
             if (rel.item->scene()) rel.item->scene()->removeItem(rel.item);
             rel.item->setParent(nullptr);
             rel.item->deleteLater();
+            emit snapshotActualizado(exportSnapshot());
         }
     }
 }
@@ -344,7 +346,7 @@ void RelacionesWidget::mostrarDialogoModificarRelacion_(const QString& tablaO_in
     }
 
     const QString tipoO=campoTipo_(tablaO,campoO);
-    const QString tipoD=campoTipo_(tablaO,campoD);
+    const QString tipoD=campoTipo_(tablaD,campoD);
 
     //debe coincidir  exactamente (Texto, Entero, Real, Fecha,
     if(tipoO.compare(tipoD,Qt::CaseInsensitive)!=0)
@@ -388,22 +390,26 @@ bool RelacionesWidget::agregarRelacion_(const QString& tablaO, const QString& ca
     m_scene->addItem(item);
 
     // Conectar menú "Eliminar relación" (click izquierdo)
-    QObject::connect(item, &RelationItem::eliminarSolicitado, this,
-                     [this](const QString& to, const QString& co, const QString& td, const QString& cd) {
+    QObject::connect(item, &RelationItem::eliminarSolicitado, this,[this](const QString& to, const QString& co, const QString& td, const QString& cd)
+                     {
                          const QString kk = RelationItem::key(to, co, td, cd);
-                         if (m_relaciones.contains(kk)) {
-                             auto rel = m_relaciones.take(kk);  // quitar del mapa
-                             if (rel.item) {
-                                 if (rel.item->scene()) rel.item->scene()->removeItem(rel.item);
-                                 rel.item->setParent(nullptr);
-                                 rel.item->deleteLater();       // diferido
-                             }
+                         if (m_relaciones.contains(kk))
+                         {
+                            auto rel=m_relaciones.take(kk);  // quitar del mapa
+                            if(rel.item)
+                            {
+                                if (rel.item->scene()) rel.item->scene()->removeItem(rel.item);
+                                rel.item->setParent(nullptr);
+                                rel.item->deleteLater();       // diferido
+                                emit snapshotActualizado(exportSnapshot());
+                            }
                          }
                      });
 
     Rel r; r.tablaO = tablaO; r.campoO = campoO; r.tablaD = tablaD; r.campoD = campoD;
     r.tipo = tipo; r.integridad = integridad; r.item = item;
     m_relaciones.insert(k, r);
+    emit snapshotActualizado(exportSnapshot());
     return true;
 }
 
@@ -481,4 +487,80 @@ void RelacionesWidget::setComprobadorTablaAbierta(std::function<bool (const QStr
 
     m_isTablaAbierta=std::move(fn);
 
+}
+bool RelacionesWidget::obtenerRelacionDestino(const QString &tablaD, const QString &campoD, QString *tablaO, QString *campoO, bool *integridad) const
+{
+
+    for(auto it=m_relaciones.constBegin();it!=m_relaciones.constEnd();++it)
+    {
+
+        const Rel&r=it.value();
+        if(r.tablaD.compare(tablaD,Qt::CaseInsensitive)==0&&r.campoD.compare(campoD,Qt::CaseInsensitive)==0)
+        {
+
+            if(tablaO)*tablaO=r.tablaO;
+            if(campoO)*campoO=r.campoO;
+            if(integridad)*integridad=r.integridad;
+            return true;
+
+        }
+
+    }
+    return false;
+
+}
+QMap<QString, RelacionesWidget::RelDef> RelacionesWidget::exportSnapshot() const
+{
+    QMap<QString, RelDef> out;
+    for(auto it=m_relaciones.cbegin();it!=m_relaciones.cend();++it)
+    {
+        RelDef d;
+        d.tablaO=it.value().tablaO;
+        d.campoO=it.value().campoO;
+        d.tablaD=it.value().tablaD;
+        d.campoD=it.value().campoD;
+        d.tipo=(it.value().tipo==RelationItem::Tipo::UnoAUno)?1:0;
+        d.integridad=it.value().integridad;
+        out.insert(it.key(), d);
+    }
+    return out;
+}
+
+void RelacionesWidget::importSnapshot(const QMap<QString, RelDef>& snap)
+{
+    // Borra relaciones actuales del diagrama pero NO esquemas ni tablas
+    QList<QString> keys=m_relaciones.keys();
+    for(const QString& k : keys)
+    {
+        auto rel=m_relaciones.take(k);
+        if(rel.item)
+        {
+            if (rel.item->scene()) rel.item->scene()->removeItem(rel.item);
+            rel.item->setParent(nullptr);
+            rel.item->deleteLater();
+        }
+    }
+
+    //Recrear una por una
+    for(auto it = snap.cbegin(); it != snap.cend(); ++it)
+    {
+        const RelDef& d = it.value();
+
+        // Asegurar TableItem de origen/destino (si no estaban en el canvas)
+        asegurarItemTabla_(d.tablaO);
+        asegurarItemTabla_(d.tablaD);
+
+        RelationItem::Tipo t=(d.tipo==1)?RelationItem::Tipo::UnoAUno:RelationItem::Tipo::UnoAMuchos;
+
+        agregarRelacion_(d.tablaO, d.campoO, d.tablaD, d.campoD, t, d.integridad);
+
+    }
+
+    emit snapshotActualizado(exportSnapshot());
+}
+
+
+QList<Campo> RelacionesWidget::esquemaDe(const QString& tabla) const
+{
+    return m_schemas.value(tabla);
 }
