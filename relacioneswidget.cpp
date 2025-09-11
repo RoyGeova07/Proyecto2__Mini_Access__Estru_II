@@ -34,6 +34,37 @@ RelacionesWidget::RelacionesWidget(QWidget* parent) : QWidget(parent) {
     m_view->installEventFilter(this);
     m_view->viewport()->installEventFilter(this);
 }
+RelacionesWidget::~RelacionesWidget() {
+    limpiarEscena_(); // nuevo helper (abajo)
+}
+
+void RelacionesWidget::hideEvent(QHideEvent* e) {
+    QWidget::hideEvent(e);
+    // Si la pestaña se oculta, libera los QGraphicsItem para evitar emisiones tardías
+    limpiarEscena_();
+}
+
+void RelacionesWidget::limpiarEscena_() {
+    // 1) Borrar RelationItem (desconecta y borra seguro)
+    for (auto it = m_relaciones.begin(); it != m_relaciones.end(); ) {
+        auto rel = it.value();
+        if (rel.item) {
+            if (rel.item->scene()) rel.item->scene()->removeItem(rel.item);
+            rel.item->deleteLater();
+        }
+        it = m_relaciones.erase(it);
+    }
+    // 2) Borrar TableItem del canvas (NO borrar m_schemas)
+    for (auto it = m_items.begin(); it != m_items.end(); ) {
+        if (auto* t = it.value()) {
+            if (t->scene()) t->scene()->removeItem(t);
+            t->deleteLater();
+        }
+        it = m_items.erase(it);
+    }
+    if (m_scene) m_scene->clear();
+    if (m_view)  m_view->setScene(nullptr); // rompe vínculos de señales con la escena
+}
 
 // === Borrado de selección (solo del UML) =====================================
 void RelacionesWidget::eliminarSeleccion() {

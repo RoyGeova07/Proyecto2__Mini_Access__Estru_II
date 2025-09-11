@@ -425,100 +425,113 @@ void VistaHojaDatos::emitirInsertOUpdate_(int r) {
 
 void VistaHojaDatos::reconstruirColumnas(const QList<Campo>& campos)
 {
-    // Guardar estado previo (para copiar datos por nombre)
+    // --- 0) Modelo y snapshot previos (si existen) ---------------------------
+    QStandardItemModel* oldModel = m_modelo;
+    const QString oldTableName = oldModel ? oldModel->property("tableName").toString() : QString();
+
+    // Encabezados previos
     QStringList oldHeaders;
-    for (int c = 0; c < m_modelo->columnCount(); ++c)
-        oldHeaders << m_modelo->headerData(c, Qt::Horizontal).toString();
+    int oldRows = 0;
+    QVector<QVector<QVariant>> oldData;
 
-    const int oldRows = m_modelo->rowCount();
-    QVector<QVector<QVariant>> oldData(oldRows);
-    for (int r = 0; r < oldRows; ++r) {
-        oldData[r].resize(m_modelo->columnCount());
-        for (int c = 0; c < m_modelo->columnCount(); ++c)
-            oldData[r][c] = m_modelo->index(r, c).data();
+    if (oldModel) {
+        oldRows = oldModel->rowCount();
+        for (int c = 0; c < oldModel->columnCount(); ++c)
+            oldHeaders << oldModel->headerData(c, Qt::Horizontal).toString();
+
+        oldData.resize(oldRows);
+        for (int r = 0; r < oldRows; ++r) {
+            oldData[r].resize(oldModel->columnCount());
+            for (int c = 0; c < oldModel->columnCount(); ++c)
+                oldData[r][c] = oldModel->index(r, c).data(Qt::EditRole);
+        }
     }
 
-    // Nuevo modelo
-    auto*newModel=new QStandardItemModel(this);
-    const int baseCols=campos.size();
-    const bool addSub=m_hasSub;//si hay hijos,agregamos la col de expansion
-    newModel->setColumnCount(baseCols+(addSub?1:0));
+    // --- 1) Construir el nuevo modelo ----------------------------------------
+    auto* newModel = new QStandardItemModel(this);
 
-    int starC=addSub?1:0;
-    if(addSub)newModel->setHeaderData(0,Qt::Horizontal,QString());//columna del '+'
-    for(int c=0;c<campos.size(); ++c)
-        newModel->setHeaderData(c+starC,Qt::Horizontal,campos[c].nombre);
+    const int baseCols = campos.size();
+    const bool addSub  = m_hasSub;                 // ¿lleva columna del '+'?
+    const int startC   = addSub ? 1 : 0;           // desplazamiento por '+'
 
-    // Filas reales (ignora última vacía)
-    int realRows = oldRows;
-    if (realRows > 0) {
+    newModel->setColumnCount(baseCols + (addSub ? 1 : 0));
+
+    if (addSub) {
+        newModel->setHeaderData(0, Qt::Horizontal, QString()); // columna del '+'
+    }
+    for (int c = 0; c < campos.size(); ++c)
+        newModel->setHeaderData(c + startC, Qt::Horizontal, campos[c].nombre);
+
+    // --- 2) Decidir si copiamos datos del modelo anterior ---------------------
+    // Copiamos datos por nombre SOLO si el modelo anterior pertenecía a la MISMA tabla.
+    const bool canCopyFromOld = (oldModel && !m_nombreTabla.isEmpty() && oldTableName == m_nombreTabla);
+
+    // Determinar filas "reales" del modelo viejo (ignorando posible última vacía)
+    int realRows = 0;
+    if (canCopyFromOld && oldRows > 0) {
         bool lastEmpty = true;
-        for (int c = 0; c < m_modelo->columnCount(); ++c) {
-            if (oldData[oldRows-1][c].isValid() && !oldData[oldRows-1][c].toString().trimmed().isEmpty()) {
-                lastEmpty = false; break;
-            }
+        for (int c = 0; c < oldHeaders.size(); ++c) {
+            const QVariant v = oldData[oldRows - 1][c];
+            if (v.isValid() && !v.toString().trimmed().isEmpty()) { lastEmpty = false; break; }
         }
-        if (lastEmpty) realRows -= 1;
+        realRows = lastEmpty ? (oldRows - 1) : oldRows;
     }
 
-    //Copiar por nombre
+    // Reservar el número de filas reales a copiar
     newModel->setRowCount(realRows);
-    for(int newC = 0; newC < campos.size(); ++newC)
-    {
-        const QString& name=campos[newC].nombre;
-        const int oldC=oldHeaders.indexOf(name);
-        if(oldC<0) continue;
-        for(int r = 0; r < realRows; ++r)
-        {
 
-            newModel->setData(newModel->index(r,newC+starC),oldData[r][oldC]);
-
+    // Copiar por nombre (si procede)
+    if (canCopyFromOld && realRows > 0) {
+        for (int newC = 0; newC < campos.size(); ++newC) {
+            const QString& name = campos[newC].nombre;
+            const int oldC = oldHeaders.indexOf(name);
+            if (oldC < 0) continue;
+            for (int r = 0; r < realRows; ++r)
+                newModel->setData(newModel->index(r, newC + startC), oldData[r][oldC]);
         }
     }
 
-    // Sustituir modelo
-    m_modelo->deleteLater();
+    // --- 3) Sustituir el modelo en la vista ----------------------------------
+    if (m_modelo) m_modelo->deleteLater();
     m_modelo = newModel;
+    m_modelo->setProperty("tableName", m_nombreTabla); // <- sello anti “copias fantasma”
     m_tabla->setModel(m_modelo);
 
-    //Limpiar delegates previos
-    for(auto* d : m_delegates) d->deleteLater();
+    // --- 4) Delegates por columna y tipos ------------------------------------
+    // Limpieza delegates anteriores
+    for (auto* d : m_delegates) d->deleteLater();
     m_delegates.clear();
-
-    // Tipos por columna + delegates
     m_tiposPorCol.clear();
 
-    //Reconstruir el mapa de divisas desde el esquema de Diseño
+    // Reconstruir mapa de divisas desde el esquema
     QHash<int, QString> newCurrencyMap;
 
-    for(int c = 0; c < campos.size(); ++c)
-    {
-        const QString tipo = (c==0 ? "Entero" : campos[c].tipo);
+    for (int c = 0; c < campos.size(); ++c) {
+        const QString tipo = (c == 0 ? QStringLiteral("Entero") : campos[c].tipo);
         m_tiposPorCol << tipo;
 
-        auto*del=new TipoHojaDelegate(tipo,c+starC,this,m_tabla);
-        m_tabla->setItemDelegateForColumn(c+starC, del);
+        // Delegado por tipo (columna desplazada por '+', si aplica)
+        auto* del = new TipoHojaDelegate(tipo, c + startC, this, m_tabla);
+        m_tabla->setItemDelegateForColumn(c + startC, del);
         m_delegates.push_back(del);
 
-        if(tipo.trimmed().compare("Moneda", Qt::CaseInsensitive)==0)
-        {
-
-            const QString code = campos[c].moneda.trimmed().isEmpty() ? QStringLiteral("HNL"):campos[c].moneda.trimmed();
+        if (tipo.trimmed().compare(QStringLiteral("Moneda"), Qt::CaseInsensitive) == 0) {
+            const QString code = campos[c].moneda.trimmed().isEmpty()
+            ? QStringLiteral("HNL") : campos[c].moneda.trimmed();
             newCurrencyMap.insert(c, code);
-
         }
     }
-    //columan del '+'
+
+    // Columna del '+' (si hay subdatasheets)
     if (addSub) {
         m_tabla->setItemDelegateForColumn(0, new ExpanderDelegate(this, m_tabla));
         m_tabla->setColumnWidth(0, 24);
 
-        // Marcar los items de esa columna como NO editables
+        // Marcar items de esa columna como NO editables
         for (int r = 0; r < m_modelo->rowCount(); ++r) {
             if (auto* it = m_modelo->item(r, 0)) {
                 it->setFlags(it->flags() & ~Qt::ItemIsEditable);
             } else {
-                // Si no hay QStandardItem creado todavía, créalo y quita editable
                 auto* ni = new QStandardItem;
                 ni->setFlags(ni->flags() & ~Qt::ItemIsEditable);
                 m_modelo->setItem(r, 0, ni);
@@ -528,26 +541,37 @@ void VistaHojaDatos::reconstruirColumnas(const QList<Campo>& campos)
 
     m_currencyByCol = newCurrencyMap;
 
-    // Fila vacía final
+    // --- 5) Fila vacía final "(Nuevo)" ---------------------------------------
     m_modelo->insertRow(m_modelo->rowCount());
 
+    // Estética y triggers de edición
     m_tabla->horizontalHeader()->setStretchLastSection(true);
     m_tabla->setEditTriggers(QAbstractItemView::AllEditTriggers);
+
+    // --- 6) Re-conectar señales y estados auxiliares -------------------------
     reconectarSignalsModelo_();
 
-    // Sincronizar offsets con nuevo rowCount
+    // Sincronizar offsets con el nuevo rowCount
     m_offsets.resize(m_modelo->rowCount());
-    for (int i=0;i<m_offsets.size();++i) if (m_offsets[i]==0) m_offsets[i] = -1;
+    for (int i = 0; i < m_offsets.size(); ++i)
+        if (m_offsets[i] == 0) m_offsets[i] = -1;
 
-    // Recalcular no-vacías
+    // Recalcular filas no-vacías (ignorando la última)
     m_nonemptyRows.clear();
-    for (int r=0; r<m_modelo->rowCount()-1; ++r)
-        if (!filaVacia_(r)) m_nonemptyRows.insert(r);
+    for (int r = 0; r < m_modelo->rowCount() - 1; ++r) {
+        bool vacia = true;
+        for (int c = 0; c < m_modelo->columnCount(); ++c) {
+            const auto v = m_modelo->index(r, c).data();
+            if (v.isValid() && !v.toString().trimmed().isEmpty()) { vacia = false; break; }
+        }
+        if (!vacia) m_nonemptyRows.insert(r);
+    }
 
-
+    // Limpiar filas “espaciadoras” de subdatasheet y renumerar encabezados
     m_spacerRows.clear();
     refreshRowHeaders_();
 }
+
 
 QVector<QVector<QVariant>> VistaHojaDatos::snapshotFilas(bool excluirUltimaVacia) const
 {
@@ -755,7 +779,7 @@ void VistaHojaDatos::toggleExpand(int r)
                 // Delegates por tipo para edición cómoda (entero, real, fecha, booleano, moneda, texto)
                 for (int c = 0; c < camposHija.size(); ++c) {
                     const QString tipo = camposHija[c].tipo;
-                    tv->setItemDelegateForColumn(c, new TipoHojaDelegate(tipo, c, this, tv));
+                    tv->setItemDelegateForColumn(c, new TipoHojaDelegate(tipo, c, /*owner*/ nullptr, tv));
                 }
                 mdl = m;
             }

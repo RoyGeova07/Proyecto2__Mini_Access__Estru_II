@@ -303,9 +303,18 @@ void VistaDisenio::EstablecerPkEnFila(int fila) {
 }
 
 void VistaDisenio::EstablecerPkSeleccionActual() {
-    const int fila = m_tabla->currentIndex().row();
-    if (fila>=0) EstablecerPkEnFila(fila);
+    int fila = filaSeleccionadaActual();
+    if (fila < 0 || fila >= m_modelo->rowCount()) return;
+    if (fila == m_pkRow) {
+        m_pkRow = -1;
+    } else {
+        m_pkRow = fila;
+    }
+
+    RefrescarIconPk();
+    emit esquemaCambiado();
 }
+
 
 int VistaDisenio::filaSeleccionadaActual() const {
     return m_tabla->currentIndex().row();

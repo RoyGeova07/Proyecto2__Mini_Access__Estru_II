@@ -17,16 +17,13 @@ class RelacionesWidget : public QWidget {
 public:
     explicit RelacionesWidget(QWidget* parent = nullptr);
 
-    // API pública
     void MostrarSelectorTablas(const QStringList& tablas, bool soloSiPrimeraVez = false);
     QList<Campo> esquemaDe(const QString& tabla) const;
     void aplicarEsquema(const QString& tabla, const QList<Campo>& schema);
     void tablaRenombrada(const QString& viejo, const QString& nuevo);
     void setComprobadorTablaAbierta(std::function<bool(const QString&)> fn);
     void eliminarSeleccion();
-    //Devuelve true si existe una relacion cuyo DESTINO es (tablaD, campoD).
-    //Rellena tabla/campo de ORIGEN y si exige integridad referencial.
-    //en pocas palabras sirve para hacer la integridad referenci
+     ~RelacionesWidget() override;
     bool obtenerRelacionDestino(const QString& tablaD, const QString& campoD,QString* tablaO, QString* campoO, bool* integridad)const;
 
     struct RelDef
@@ -51,7 +48,7 @@ signals:
 protected:
     bool eventFilter(QObject* obj, QEvent* ev) override;
     void resizeEvent(QResizeEvent* e) override;
-
+    void hideEvent(QHideEvent* e) override;
 private:
     struct Rel
     {
@@ -62,7 +59,7 @@ private:
     };
 
     std::function<bool(const QString&)> m_isTablaAbierta;
-
+    void limpiarEscena_();
     QPointF proximaPosicion_();
     void asegurarItemTabla_(const QString& nombre);
     void conectarTableItem_(TableItem* it);
