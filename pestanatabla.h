@@ -5,7 +5,9 @@
 #include <QWidget>
 #include<QString>
 #include <QMessageBox>
-
+#include<QLineEdit>
+#include<QComboBox>
+#include<QMap>
 class QStackedWidget;
 class VistaHojaDatos;
 class VistaDisenio;
@@ -39,6 +41,7 @@ public slots:
     void hacerClavePrimaria();
 
 private:
+
     QString m_nombre;
     bool m_tieneNombre=false;
     QStackedWidget*m_pila;
@@ -50,14 +53,18 @@ private:
     void syncHojaConDisenio_();
     QLabel*m_pNombre=nullptr;
     QLabel*m_pTipo=nullptr;
-    QLabel*m_pTamano=nullptr;
-    QLabel*m_pFormato=nullptr;
+    QLineEdit*m_eTamano=nullptr;
+    QComboBox*m_cFormato=nullptr;
     QLabel*m_pDecimales=nullptr;
     QLabel*m_pValorDef=nullptr;
     QLabel*m_pRequerido=nullptr;
     QLabel*m_pPermiteCero=nullptr;
     QLabel*m_pIndexado=nullptr;
+
     void refrescarGeneral_(int fila);
+    void aplicarTamanoTextoActual();
+    void aplicarFormatoFechaActual();
+
 };
 
 

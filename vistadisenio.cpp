@@ -52,7 +52,6 @@ public:
     {
 
         // Fila 0 (PK) ya viene no editable; por si acaso:
-        if(idx.row()==0)return nullptr;
         auto* e=new QLineEdit(parent);
         e->setMaxLength(255);
         return e;
@@ -151,7 +150,7 @@ void VistaDisenio::establecerEsquema(const QList<Campo>& campos)
         if(r==0)
         {
 
-            it1->setEditable(false);
+            it1->setFlags(it1->flags()|Qt::ItemIsEditable);
             it2->setEditable(false);
 
         }else{
@@ -175,18 +174,22 @@ VistaDisenio::VistaDisenio(QWidget*parent):QWidget(parent)
     auto*lay=new QVBoxLayout(this);
     lay->setContentsMargins(0,0,0,0);
     lay->setSpacing(0);
+
     m_tabla=new QTableView(this);
+
     m_modelo=new QStandardItemModel(this);
     m_modelo->setColumnCount(3);
     m_modelo->setHeaderData(0,Qt::Horizontal,QString());
     m_modelo->setHeaderData(1,Qt::Horizontal,QStringLiteral("Nombre del campo"));
     m_modelo->setHeaderData(2,Qt::Horizontal,QStringLiteral("Tipo de datos"));
     m_modelo->setRowCount(2);
+
     auto*it=new QStandardItem(); it->setEditable(false);
     m_modelo->setItem(0,0,it);
     m_modelo->setItem(0,1,new QStandardItem(QStringLiteral("Id")));
-    m_modelo->item(0,1)->setEditable(false);
+
     m_modelo->setItem(0,2,new QStandardItem(QStringLiteral("Entero")));
+
     m_modelo->item(0,2)->setEditable(false);
     m_modelo->setItem(1,0,new QStandardItem());
     m_modelo->setItem(1,1,new QStandardItem(QStringLiteral("Campo1")));

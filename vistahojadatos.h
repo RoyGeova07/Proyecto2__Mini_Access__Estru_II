@@ -24,6 +24,8 @@ public:
 
     // Carga filas externas
     void cargarFilas(const QVector<QVector<QVariant>>& rows);
+    void setTextMaxLengthForColumn(int col, int maxLen);
+    int  maxLenForCol_(int col) const;
 
 signals:
     void datosCambiaron();
@@ -33,6 +35,8 @@ public:
     // Acceso usado por el delegate (símbolo según divisa actual)
     QString currencyForCol_(int c) const;
     static QString symbolFor_(const QString& code);
+    void setDateFormatForColumn(int col, const QString& fmt);
+    QString dateFormatForCol(int col) const;
 
 private:
     void reconectarSignalsModelo_();
@@ -41,11 +45,13 @@ private:
 private:
     QTableView* m_tabla = nullptr;
     QStandardItemModel* m_modelo = nullptr;
+    QHash<int, int> m_maxLenByCol;
 
     // Delegates por columna
     QList<QStyledItemDelegate*> m_delegates;
 
-    // Divisa por columna (sólo para tipo "Moneda")
     QHash<int, QString> m_currencyByCol;   // col -> "HNL","USD","EUR"
     QStringList m_tiposPorCol;             // tipo lógico por columna
+    QHash<int, QString> m_dateFormatByCol;//formato para fecha por columna
+
 };

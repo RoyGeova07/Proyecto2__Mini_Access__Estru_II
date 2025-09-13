@@ -1,31 +1,31 @@
 #include "vistahojadatos.h"
+#include<QStyledItemDelegate>
+#include<QLocale>
+#include<QVBoxLayout>
+#include<QTableView>
+#include<QHeaderView>
+#include<QStandardItemModel>
+#include<QLineEdit>
+#include<QIntValidator>
+#include<QDoubleValidator>
+#include<QComboBox>
+#include<QDateEdit>
+#include<QInputDialog>
+#include<QMessageBox>
+#include<QPainter>
+#include<QStyle>
+#include<QApplication>
+#include<QStyleOptionButton>
+#include<QMenu>
+#include<QDateTimeEdit>
 
-#include <QStyledItemDelegate>
-#include <QLocale>
-#include <QVBoxLayout>
-#include <QTableView>
-#include <QHeaderView>
-#include <QStandardItemModel>
-#include <QLineEdit>
-#include <QIntValidator>
-#include <QDoubleValidator>
-#include <QComboBox>
-#include <QDateEdit>
-#include <QInputDialog>
-#include <QMessageBox>
-#include <QPainter>
-#include <QStyle>
-#include <QApplication>
-#include <QStyleOptionButton>
-#include <QMenu>
-
-static constexpr int kCurrencyDecimals = 2;
+static constexpr int kCurrencyDecimals=2;
 
 // ===== Delegate por tipo/columna =====
-class TipoHojaDelegate : public QStyledItemDelegate {
+class TipoHojaDelegate : public QStyledItemDelegate
+{
 public:
-    TipoHojaDelegate(const QString& tipo, int col, const VistaHojaDatos* owner, QObject* parent=nullptr)
-        : QStyledItemDelegate(parent), tipo_(tipo.trimmed().toLower()), col_(col), owner_(owner) {}
+    TipoHojaDelegate(const QString& tipo, int col, const VistaHojaDatos* owner, QObject* parent=nullptr):QStyledItemDelegate(parent), tipo_(tipo.trimmed().toLower()), col_(col), owner_(owner) {}
 
     QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem&, const QModelIndex&) const override
     {
@@ -39,11 +39,14 @@ public:
             v->setNotation(QDoubleValidator::StandardNotation);
             e->setValidator(v);
             return e;
-        } else if (tipo_ == "fecha") {
-            auto* d = new QDateEdit(parent);
+        }else if(tipo_=="fecha"){
+
+            auto* d=new QDateTimeEdit(parent);
             d->setCalendarPopup(true);
-            d->setDisplayFormat("yyyy-MM-dd");
+            const QString fmt=owner_?owner_->dateFormatForCol(col_):QStringLiteral("yyyy-MM-dd");
+            d->setDisplayFormat(fmt);
             return d;
+
         } else if (tipo_ == "booleano") {
             auto* cb = new QComboBox(parent);
             cb->addItems({"false","true"});
@@ -55,6 +58,14 @@ public:
             v->setNotation(QDoubleValidator::StandardNotation);
             e->setValidator(v);
             return e;
+        }else{
+
+            auto*e=new QLineEdit(parent);
+            //con esto limita el tamaño
+            const int mx=owner_ ?owner_->maxLenForCol_(col_):255;
+            e->setMaxLength(qBound(1,mx,255));
+            return e;
+
         }
         return new QLineEdit(parent); // Texto
     }
@@ -62,12 +73,25 @@ public:
     void setEditorData(QWidget* editor, const QModelIndex& index) const override
     {
         const QVariant v = index.data(Qt::EditRole);
-        if (auto* e = qobject_cast<QLineEdit*>(editor)) {
+        if(auto* e = qobject_cast<QLineEdit*>(editor))
+        {
+
             e->setText(v.toString());
-        } else if (auto* d = qobject_cast<QDateEdit*>(editor)) {
-            QDate date = QDate::fromString(v.toString(), "yyyy-MM-dd");
-            if (!date.isValid()) date = QDate::currentDate();
-            d->setDate(date);
+
+        }else if(auto* d = qobject_cast<QDateTimeEdit*>(editor)){
+
+            //Guardamos ISO en el modelo; intentar parsear ISO y, si no, por formatos comunes
+            QDateTime dt = QDateTime::fromString(v.toString(), Qt::ISODate);
+            if(!dt.isValid())
+            {
+                dt=QDateTime::fromString(v.toString(), "yyyy-MM-dd HH:mm:ss");
+                if(!dt.isValid())dt=QDateTime::fromString(v.toString(), "yyyy-MM-dd HH:mm");
+                if(!dt.isValid())dt=QDateTime(QDate::fromString(v.toString(), "yyyy-MM-dd"), QTime(0,0,0));
+
+            }
+            if(!dt.isValid())dt=QDateTime::currentDateTime();
+            d->setDateTime(dt);
+
         } else if (auto* cb = qobject_cast<QComboBox*>(editor)) {
             cb->setCurrentText(v.toString().toLower() == "true" ? "true" : "false");
         }
@@ -77,17 +101,27 @@ public:
     {
         if (auto* e = qobject_cast<QLineEdit*>(editor)) {
             const QString t = e->text().trimmed();
-            if (tipo_ == "entero") {
+            if(tipo_ == "entero")
+            {
+
                 bool ok=false; const int iv = QLocale().toInt(t, &ok);
                 model->setData(index, ok ? QVariant(iv) : QVariant());
-            } else if (tipo_ == "real" || tipo_ == "moneda") {
+
+            } else if (tipo_ == "real" || tipo_ == "moneda"){
                 bool ok=false; const double dv = QLocale().toDouble(t, &ok);
                 model->setData(index, ok ? QVariant(dv) : QVariant());
-            } else {
-                model->setData(index, t);
+
+            }else{
+
+                int mx=owner_?owner_->maxLenForCol_(col_):255;
+                mx=qBound(1,mx,255);
+                model->setData(index,t.left(mx));//recorta la longitud permitida
             }
-        } else if (auto* d = qobject_cast<QDateEdit*>(editor)) {
-            model->setData(index, d->date().toString("yyyy-MM-dd"));
+        }else if(auto* d = qobject_cast<QDateTimeEdit*>(editor)){
+
+            //Guardar SIEMPRE en ISO (con hora)
+            model->setData(index,d->dateTime().toString(Qt::ISODate));
+
         } else if (auto* cb = qobject_cast<QComboBox*>(editor)) {
             model->setData(index, cb->currentText());
         }
@@ -100,6 +134,17 @@ public:
             const QString code = owner_ ? owner_->currencyForCol_(col_) : QStringLiteral("HNL");
             const QString sym  = VistaHojaDatos::symbolFor_(code);
             if (ok) return QString("%1%2").arg(sym).arg(locale.toString(dv, 'f', kCurrencyDecimals));
+        }
+        if(tipo_=="fecha")
+        {
+
+            const QString iso=value.toString();
+            QDateTime dt=QDateTime::fromString(iso, Qt::ISODate);
+            if(!dt.isValid())dt=QDateTime::fromString(iso, "yyyy-MM-dd HH:mm:ss");
+            if(!dt.isValid())dt=QDateTime(QDate::fromString(iso, "yyyy-MM-dd"),QTime(0,0,0));
+            const QString fmt=owner_?owner_->dateFormatForCol(col_):QStringLiteral("yyyy-MM-dd");
+            return dt.isValid()?dt.toString(fmt):iso;
+
         }
         return QStyledItemDelegate::displayText(value, locale);
     }
@@ -247,79 +292,126 @@ void VistaHojaDatos::asegurarFilaNuevaAlFinal_()
 
 void VistaHojaDatos::reconstruirColumnas(const QList<Campo>& campos)
 {
-    // Guardar estado previo
+    // ===== 1) Guardar estado previo (headers y datos) =====
     QStringList oldHeaders;
-    for (int c = 0; c < m_modelo->columnCount(); ++c)
-        oldHeaders << m_modelo->headerData(c, Qt::Horizontal).toString();
+    for(int c = 0;c<m_modelo->columnCount();++c)
+        oldHeaders<<m_modelo->headerData(c, Qt::Horizontal).toString();
 
     const int oldRows = m_modelo->rowCount();
     QVector<QVector<QVariant>> oldData(oldRows);
-    for (int r = 0; r < oldRows; ++r) {
+    for(int r = 0; r < oldRows; ++r)
+    {
         oldData[r].resize(m_modelo->columnCount());
-        for (int c = 0; c < m_modelo->columnCount(); ++c)
-            oldData[r][c] = m_modelo->index(r, c).data();
+        for(int c=0; c<m_modelo->columnCount(); ++c)
+            oldData[r][c]=m_modelo->index(r, c).data();
     }
 
-    // Nuevo modelo
-    auto* newModel = new QStandardItemModel(this);
+    // ===== 2) Crear nuevo modelo con los nuevos headers =====
+    auto*newModel=new QStandardItemModel(this);
     newModel->setColumnCount(campos.size());
-    for (int c = 0; c < campos.size(); ++c)
+    for(int c = 0; c < campos.size(); ++c)
         newModel->setHeaderData(c, Qt::Horizontal, campos[c].nombre);
 
-    // Filas reales (ignora última vacía)
-    int realRows = oldRows;
-    if (realRows > 0) {
+    // ===== 3) Determinar filas reales (ignorar la ultima vacia) =====
+    int realRows=oldRows;
+    if(realRows>0)
+    {
         bool lastEmpty = true;
-        for (int c = 0; c < m_modelo->columnCount(); ++c) {
-            if (oldData[oldRows-1][c].isValid() && !oldData[oldRows-1][c].toString().trimmed().isEmpty()) {
-                lastEmpty = false; break;
+        for(int c = 0; c < m_modelo->columnCount(); ++c)
+        {
+            if(oldData[oldRows-1][c].isValid() &&!oldData[oldRows-1][c].toString().trimmed().isEmpty())
+            {
+
+                lastEmpty=false; break;
+
             }
         }
-        if (lastEmpty) realRows -= 1;
+        if(lastEmpty)realRows-=1;
     }
 
-    // Copiar por nombre
+    // ===== 4) Copiar datos por nombre de columna =====
     newModel->setRowCount(realRows);
-    for (int newC = 0; newC < campos.size(); ++newC)
+    for(int newC = 0; newC < campos.size(); ++newC)
     {
         const QString& name = campos[newC].nombre;
         const int oldC = oldHeaders.indexOf(name);
-        if (oldC < 0) continue;
-        for (int r = 0; r < realRows; ++r) {
+        if (oldC < 0) continue; // columna nueva, sin datos previos
+        for(int r = 0; r<realRows; ++r)
             newModel->setData(newModel->index(r, newC), oldData[r][oldC]);
-        }
     }
 
-    // Sustituir modelo
+    // ===== 5) Sustituir modelo en la vista =====
     m_modelo->deleteLater();
-    m_modelo = newModel;
+    m_modelo=newModel;
     m_tabla->setModel(m_modelo);
 
-    // Limpiar delegates previos
-    for (auto* d : m_delegates) d->deleteLater();
+    // ===== 6) Limpiar delegates previos =====
+    for(auto* d : m_delegates) d->deleteLater();
     m_delegates.clear();
 
-    // Tipos por columna + delegates
+    // ===== 7) Preparar tipos por columna y mantener m_maxLenByCol =====
     m_tiposPorCol.clear();
-    for (int c = 0; c < campos.size(); ++c) {
-        const QString tipo = (c==0 ? "Entero" : campos[c].tipo);
+
+    // Elimina entradas de m_maxLenByCol que queden fuera de rango
+    auto it=m_maxLenByCol.begin();
+    while(it!=m_maxLenByCol.end())
+    {
+        if(it.key()>=campos.size())
+            it=m_maxLenByCol.erase(it);
+        else
+            ++it;
+    }
+
+    // Crear delegates por columna y defaults de moneda / long max. de texto
+    for (int c = 0; c < campos.size(); ++c)
+    {
+        const QString tipo = (c == 0 ? "Entero" : campos[c].tipo);
         m_tiposPorCol << tipo;
-        auto* del = new TipoHojaDelegate(tipo, c, this, m_tabla);
+
+        // Si es Texto y no hay longitud registrada, default 255
+        if (tipo.trimmed().compare("Texto", Qt::CaseInsensitive)==0)
+        {
+            if (!m_maxLenByCol.contains(c))
+                m_maxLenByCol[c] = 255;
+
+        }else{
+
+            // Si ya no es Texto, retirar cualquier limite previo de texto
+            m_maxLenByCol.remove(c);
+
+        }
+        if(tipo.trimmed().compare("Fecha", Qt::CaseInsensitive)==0)
+        {
+            if(!m_dateFormatByCol.contains(c))
+                m_dateFormatByCol[c]=QStringLiteral("yyyy-MM-dd"); // default fecha corta
+        }else{
+
+            // Ya no es fecha: elimina formato almacenado
+            m_dateFormatByCol.remove(c);
+
+        }
+
+        // Delegate por tipo
+        auto* del=new TipoHojaDelegate(tipo, c, this, m_tabla);
         m_tabla->setItemDelegateForColumn(c, del);
         m_delegates.push_back(del);
 
-        // Inicializa HNL por defecto si es Moneda y no existe registro
-        if (!m_currencyByCol.contains(c) && tipo.trimmed().compare("Moneda", Qt::CaseInsensitive)==0)
+        // Divisa por columna para "Moneda" (default HNL si no existía)
+        if(!m_currencyByCol.contains(c) &&tipo.trimmed().compare("Moneda", Qt::CaseInsensitive) == 0) {
             m_currencyByCol[c] = "HNL";
+        }
     }
 
-    // Fila vacía
+    // ===== 8) Fila vacía para "(Nuevo)" =====
     m_modelo->insertRow(m_modelo->rowCount());
 
+    // ===== 9) Ajustes de tabla y signals =====
     m_tabla->horizontalHeader()->setStretchLastSection(true);
     m_tabla->setEditTriggers(QAbstractItemView::AllEditTriggers);
     reconectarSignalsModelo_();
 }
+
+
 
 QVector<QVector<QVariant>> VistaHojaDatos::snapshotFilas(bool excluirUltimaVacia) const
 {
@@ -359,8 +451,41 @@ QString VistaHojaDatos::currencyForCol_(int c) const {
     return m_currencyByCol.value(c, QStringLiteral("HNL"));
 }
 
-QString VistaHojaDatos::symbolFor_(const QString& code) {
+QString VistaHojaDatos::symbolFor_(const QString& code)
+{
+
     if (code == "USD") return QStringLiteral("$");
     if (code == "EUR") return QStringLiteral("€");
     return QStringLiteral("L"); // HNL por defecto
+
+}
+void VistaHojaDatos::setTextMaxLengthForColumn(int col, int maxLen)
+{
+    if(col<0)return;
+    if(maxLen<1) maxLen=1;
+    if(maxLen>255) maxLen=255;
+    m_maxLenByCol[col]=maxLen;
+
+    // Si hay un editor activo en esa columna, refrescar para que tome el nuevo límite
+    m_tabla->viewport()->update();
+}
+int VistaHojaDatos::maxLenForCol_(int col) const
+{
+    // default tipo Texto: 255
+    return m_maxLenByCol.value(col, 255);
+}
+void VistaHojaDatos::setDateFormatForColumn(int col, const QString &fmt)
+{
+
+    if(col<0)return;
+    const QString f=fmt.isEmpty()?QStringLiteral("yyyy-MM-dd"):fmt;
+    m_dateFormatByCol[col]=f;
+    m_tabla->viewport()->update(); // refrescar render
+
+}
+QString VistaHojaDatos::dateFormatForCol(int col) const
+{
+
+    return m_dateFormatByCol.value(col,QStringLiteral("yyyy-MM-dd"));
+
 }

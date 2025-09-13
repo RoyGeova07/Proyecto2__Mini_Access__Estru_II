@@ -1,7 +1,6 @@
 #include "pestanatabla.h"
 #include "vistadisenio.h"
 #include "vistahojadatos.h"
-
 #include <QStackedWidget>
 #include <QVBoxLayout>
 #include <QIcon>
@@ -10,6 +9,8 @@
 #include <QMessageBox>
 #include <QFormLayout>
 #include <QLabel>
+#include<QIntValidator>
+#include<QStringList>
 
 PestanaTabla::PestanaTabla(const QString& nombreInicial, QWidget* parent):QWidget(parent), m_nombre(nombreInicial)
 {
@@ -45,8 +46,16 @@ PestanaTabla::PestanaTabla(const QString& nombreInicial, QWidget* parent):QWidge
 
     m_pNombre=new QLabel("-", pagGeneral);
     m_pTipo=new QLabel("-", pagGeneral);
-    m_pTamano=new QLabel("-", pagGeneral);
-    m_pFormato=new QLabel("-", pagGeneral);
+
+    m_eTamano=new QLineEdit(pagGeneral);
+    m_eTamano->setPlaceholderText(tr("1-255"));
+    m_eTamano->setAlignment(Qt::AlignRight);
+    m_eTamano->setValidator(new QIntValidator(0,255,m_eTamano));//Permite 0-255, validamos <1 con warning
+
+    m_cFormato=new QComboBox(pagGeneral);
+    m_cFormato->setEditable(false);
+    m_cFormato->setEnabled(false);
+
     m_pDecimales=new QLabel("-", pagGeneral);
     m_pValorDef=new QLabel("-", pagGeneral);
     m_pRequerido=new QLabel("-", pagGeneral);
@@ -55,13 +64,28 @@ PestanaTabla::PestanaTabla(const QString& nombreInicial, QWidget* parent):QWidge
 
     form->addRow(tr("Nombre del campo:"),m_pNombre);
     form->addRow(tr("Tipo de datos:"),           m_pTipo);
-    form->addRow(tr("Tamaño del campo:"),        m_pTamano);
-    form->addRow(tr("Formato:"),                 m_pFormato);
+    form->addRow(tr("Tamaño del campo:"),m_eTamano);
+    form->addRow(tr("Formato:"),m_cFormato);
     form->addRow(tr("Lugares decimales:"),       m_pDecimales);
     form->addRow(tr("Valor predeterminado:"),    m_pValorDef);
     form->addRow(tr("Requerido:"),               m_pRequerido);
     form->addRow(tr("Permitir longitud cero:"),  m_pPermiteCero);
     form->addRow(tr("Indexado:"),                m_pIndexado);
+
+    //Cuando el usuario termina de editar el tamaño
+    connect(m_eTamano, &QLineEdit::editingFinished, this, [this]()
+    {
+
+        aplicarTamanoTextoActual();
+
+    });
+    //conexion para aplicar el formato cuando el usuario cambie el combo
+    connect(m_cFormato, &QComboBox::currentTextChanged,this, [this]()
+    {
+
+        aplicarFormatoFechaActual();
+
+    });
 
     m_panelProp->addTab(pagGeneral, tr("General"));
     m_panelProp->setMinimumHeight(180);
@@ -80,9 +104,10 @@ PestanaTabla::PestanaTabla(const QString& nombreInicial, QWidget* parent):QWidge
     // --- Conexiones de sincronización ---
     connect(m_disenio, &VistaDisenio::esquemaCambiado, this, [this]()
     {
+        const int filaSel=m_disenio->filaSeleccionadaActual();
         syncHojaConDisenio_();
         // Actualiza panel General con la fila 0 si no hay selección explícita
-        refrescarGeneral_(0);
+        refrescarGeneral_(filaSel<0?0:filaSel);
         emit estadoCambioSolicitado();
     });
 
@@ -224,15 +249,20 @@ void PestanaTabla::syncHojaConDisenio_()
 }
 
 static QString s_bool(bool v){ return v ? QObject::tr("Sí") : QObject::tr("No"); }
-
 void PestanaTabla::refrescarGeneral_(int fila)
 {
-    const auto campos = m_disenio->esquema();
-    if (campos.isEmpty()) {
+    const auto campos=m_disenio->esquema();
+    if(campos.isEmpty())
+    {
         m_pNombre->setText("-");
         m_pTipo->setText("-");
-        m_pTamano->setText("-");
-        m_pFormato->setText("-");
+        m_eTamano->setText("-");
+        m_eTamano->setEnabled(false);
+
+        m_cFormato->clear();
+        m_cFormato->addItem("-");
+        m_cFormato->setEnabled(false);
+
         m_pDecimales->setText("-");
         m_pValorDef->setText("-");
         m_pRequerido->setText("-");
@@ -241,60 +271,212 @@ void PestanaTabla::refrescarGeneral_(int fila)
         return;
     }
 
-    if (fila < 0 || fila >= campos.size())
-        fila = 0;
+    if(fila<0||fila>=campos.size())
+        fila=0;
 
-    const Campo& c = campos[fila];
-    const QString t = c.tipo.trimmed().toLower();
+    const Campo& c=campos[fila];
+    const QString t=c.tipo.trimmed().toLower();
 
-    // Defaults aproximados a Access (solo visual)
+    // Defaults visuales
     QString tam, formato, decs, valdef = "-",
-        req = "No", cero = "No", idx = "No";
+        req="No",cero="No",idx="No";
 
-    if (c.pk) {
-        tam     = "Entero largo";
+    if(c.pk)
+    {
+        tam="Entero largo";
+        formato="General número";
+        decs="0";
+        req="Sí";
+        idx="Sí (sin duplicados)";
+        m_eTamano->setEnabled(false);
+        m_eTamano->setText(tam);
+
+        // Para NO fecha, combo deshabilitado con texto fijo
+        m_cFormato->clear();
+        m_cFormato->addItem(formato);
+        m_cFormato->setEnabled(false);
+    }
+    else if(t=="texto"){
+        formato="(General)";
+        decs="-";
+        cero="Sí";
+
+        // Editor de tamaño habilitado
+        const int curLen = m_hoja->maxLenForCol_(fila); // default 255 si no existe
+        m_eTamano->setEnabled(true);
+        m_eTamano->setText(QString::number(qBound(1, curLen, 255)));
+
+        // Combo formateo deshabilitado (no aplica)
+        m_cFormato->clear();
+        m_cFormato->addItem(formato);
+        m_cFormato->setEnabled(false);
+    }
+    else if(t=="entero"){
+
+        tam = "Entero largo";
         formato = "General número";
-        decs    = "0";
-        req     = "Sí";
-        idx     = "Sí (sin duplicados)";
-    } else if (t == "texto") {
-        tam     = "255";
-        formato = "(General)";
-        decs    = "-";
-        cero    = "Sí";
-    } else if (t == "entero") {
-        tam     = "Entero largo";
-        formato = "General número";
-        decs    = "0";
-    } else if (t == "real") {
-        tam     = "Doble";
-        formato = "General número";
-        decs    = "2";
-    } else if (t == "moneda") {
-        tam     = "Moneda";
+        decs = "0";
+        m_eTamano->setEnabled(false);
+        m_eTamano->setText(tam);
+
+        m_cFormato->clear();
+        m_cFormato->addItem(formato);
+        m_cFormato->setEnabled(false);
+
+    }
+    else if(t=="real"){
+
+        tam="Doble";
+        formato="General número";
+        decs ="2";
+        m_eTamano->setEnabled(false);
+        m_eTamano->setText(tam);
+
+        m_cFormato->clear();
+        m_cFormato->addItem(formato);
+        m_cFormato->setEnabled(false);
+
+    }
+    else if(t=="moneda")
+    {
+        tam = "Moneda";
         formato = "Moneda";
-        decs    = "2";
-    } else if (t == "fecha") {
-        tam     = "Fecha/Hora";
-        formato = "Fecha corta";
-        decs    = "-";
-    } else if (t == "booleano") {
-        tam     = "Sí/No";
+        decs = "2";
+        m_eTamano->setEnabled(false);
+        m_eTamano->setText(tam);
+
+        m_cFormato->clear();
+        m_cFormato->addItem(formato);
+        m_cFormato->setEnabled(false);
+    }
+    else if(t=="fecha"){
+        tam="Fecha/Hora";
+        decs="-";
+
+        // --- Combo de formato ACTIVO ---
+        m_cFormato->clear();
+        QStringList opciones;
+        opciones <<tr("Fecha corta")<<tr("Fecha larga")<<tr("Fecha y hora (minutos)")<<tr("Fecha y hora (segundos)")<<tr("Hora (h:mm AM/PM)")<<tr("Hora (h:mm:ss AM/PM)");
+        m_cFormato->addItems(opciones);
+        m_cFormato->setEnabled(true);
+
+        // Seleccionar el formato actual de la Hoja (default yyyy-MM-dd)
+        const QString curFmt =m_hoja->dateFormatForCol(fila);
+        int idx =0;
+        for(int i = 0; i < m_cFormato->count(); ++i)
+        {
+            const QString txt = m_cFormato->itemText(i);
+            if((txt.contains("corta")&&curFmt=="yyyy-MM-dd")||(txt.contains("larga")&&curFmt=="dddd, dd 'de' MMMM 'de' yyyy")||(txt.contains("(minutos)")&&curFmt=="yyyy-MM-dd HH:mm AP")||(txt.contains("(segundos)")&& curFmt == "yyyy-MM-dd HH:mm:ss AP")||(txt.contains("AM/PM")&&((txt.contains("ss")&&curFmt=="h:mm:ss AP")||(!txt.contains("ss")&&curFmt=="h:mm AP"))))
+            {
+
+                idx=i;break;
+
+            }
+        }
+        m_cFormato->setCurrentIndex(idx);
+
+        // Tamaño no aplica en Fecha
+        m_eTamano->setEnabled(false);
+        m_eTamano->setText(tam);
+    }
+    else if (t == "booleano") {
+        tam = "Sí/No";
         formato = "Sí/No";
-        decs    = "-";
-    } else {
-        tam     = "(desconocido)";
-        formato = "(General)";
-        decs    = "-";
+        decs = "-";
+        m_eTamano->setEnabled(false);
+        m_eTamano->setText(tam);
+
+        m_cFormato->clear();
+        m_cFormato->addItem(formato);
+        m_cFormato->setEnabled(false);
+
+    }else{
+
+        tam="(desconocido)";
+        formato="(General)";
+        decs="-";
+        m_eTamano->setEnabled(false);
+        m_eTamano->setText(tam);
+
+        m_cFormato->clear();
+        m_cFormato->addItem(formato);
+        m_cFormato->setEnabled(false);
+
     }
 
+    // Etiquetas comunes
     m_pNombre->setText(c.nombre);
     m_pTipo->setText(c.tipo);
-    m_pTamano->setText(tam);
-    m_pFormato->setText(formato);
     m_pDecimales->setText(decs);
     m_pValorDef->setText(valdef);
     m_pRequerido->setText(req);
     m_pPermiteCero->setText(cero);
     m_pIndexado->setText(idx);
 }
+
+
+void PestanaTabla::aplicarTamanoTextoActual()
+{
+    if(!m_disenio||!m_hoja)return;
+
+    int fila=m_disenio->filaSeleccionadaActual();
+    if(fila<0)fila=0;
+
+    const auto campos=m_disenio->esquema();
+    if(fila>=campos.size())return;
+
+    const QString tipo=campos[fila].tipo.trimmed().toLower();
+    if(tipo!="texto")
+    {
+
+        //No aplica (por si el usuario logra editar cuando no toca)
+        return;
+
+    }
+
+    //Tomar valor del editor
+    bool okNum=false;
+    const int val=m_eTamano->text().trimmed().toInt(&okNum);
+    if(!okNum||val<1)
+    {
+        QMessageBox::information(this,tr("Microsoft Access"),tr("El valor de la propiedad Tamaño del campo debe estar comprendido entre 1 y 255."));
+        //Restablecer visualmente el valor actual (o 255 por defecto)
+        const int cur=m_hoja->maxLenForCol_(fila);
+        m_eTamano->setText(QString::number(qBound(1, cur, 255)));
+        return;
+    }
+    const int fijo=qMin(val, 255);
+
+    //Aplicar a la Hoja (columna = fila de esquema)
+    m_hoja->setTextMaxLengthForColumn(fila, fijo);
+
+}
+void PestanaTabla::aplicarFormatoFechaActual()
+{
+    if(!m_disenio||!m_hoja)return;
+
+    int fila=m_disenio->filaSeleccionadaActual();
+    if(fila<0)fila=0;
+
+    const auto campos=m_disenio->esquema();
+    if(fila>=campos.size())return;
+
+    const QString t=campos[fila].tipo.trimmed().toLower();
+    if(t!="fecha")return;
+
+    const QString visible=m_cFormato->currentText();
+    QString mask;
+    if(visible==tr("Fecha corta"))mask="yyyy-MM-dd";
+    else if(visible==tr("Fecha larga"))mask="dddd, dd 'de' MMMM 'de' yyyy";
+    else if(visible==tr("Fecha y hora (minutos)"))mask="yyyy-MM-dd hh:mm AP";
+    else if(visible==tr("Fecha y hora (segundos)"))mask="yyyy-MM-dd hh:mm:ss AP";
+    else if(visible==tr("Hora (h:mm AM/PM)"))mask="h:mm AP";
+    else if(visible==tr("Hora (h:mm:ss AM/PM)"))mask="h:mm:ss AP";
+    else mask="yyyy-MM-dd";
+
+    m_hoja->setDateFormatForColumn(fila, mask);
+    m_hoja->update();
+}
+
+
+

@@ -334,24 +334,27 @@ void VentanaPrincipal::HacerClavePrimariaActual()
 void VentanaPrincipal::AbrirRelaciones()
 {
     RelacionesWidget*rel =nullptr;
+    //¿Ya hay una pestaña de Relaciones abierta? — si si,se activa
     for(int i=0; i<m_pestanas->count(); ++i)
     {
 
-        rel = qobject_cast<RelacionesWidget*>(m_pestanas->widget(i));
-        if (rel) { m_pestanas->setCurrentIndex(i); break; }
+        rel=qobject_cast<RelacionesWidget*>(m_pestanas->widget(i));
+        if(rel){m_pestanas->setCurrentIndex(i);break;}
 
     }
     if(!rel)
     {
+        //crear relaciones
         rel = new RelacionesWidget(m_pestanas);
         int idx = m_pestanas->addTab(rel, QIcon(":/im/image/relaciones.png"), tr("Relaciones"));
         m_pestanas->setCurrentIndex(idx);
 
+        //enlazar señales de esquema y renombre
         connect(this, &VentanaPrincipal::esquemaTablaCambiado,rel,&RelacionesWidget::aplicarEsquema);
         connect(this, &VentanaPrincipal::tablaRenombradaSignal,rel,&RelacionesWidget::tablaRenombrada);
 
         // Push inicial de todos los esquemas conocidos
-        for (auto it = m_memTablas.begin(); it != m_memTablas.end(); ++it)
+        for(auto it = m_memTablas.begin(); it != m_memTablas.end(); ++it)
             emit esquemaTablaCambiado(it.key(), it.value().schema);
     }else{
 
@@ -364,6 +367,13 @@ void VentanaPrincipal::AbrirRelaciones()
         }
 
     }
+    // PROVEEDOR DE FILAS (PARA VALIDAR DATOS EXISTENTES SIEMPRE)
+    rel->establecerProveedorFilas([this](const QString& tabla)
+    {
+
+        return m_memTablas.contains(tabla)?m_memTablas[tabla].rows:QVector<QVector<QVariant>>{};
+
+    });
 
     const QStringList tablas = m_panel ? m_panel->todasLasTablas() : QStringList{};
     rel->MostrarSelectorTablas(tablas, true);

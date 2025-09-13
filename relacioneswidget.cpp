@@ -135,40 +135,161 @@ void RelacionesWidget::asegurarItemTabla_(const QString& nombre) {
     conectarTableItem_(it);
 }
 
-void RelacionesWidget::aplicarEsquema(const QString& tabla, const QList<Campo>& schema) {
-    m_schemas[tabla] = schema;
+void RelacionesWidget::aplicarEsquema(const QString& tabla, const QList<Campo>& schema)
+{
+    //0)Esquema anterior (si lo habia)
+    const QList<Campo>prev=m_schemas.value(tabla);
 
-    if (auto* it = m_items.value(tabla, nullptr)) it->setCampos(schema);
+    //1)Guardar nuevo esquema y refrescar la tabla en el diagrama
+    m_schemas[tabla]=schema;
+    if(auto*it=m_items.value(tabla,nullptr))
+        it->setCampos(schema);
 
-    QList<QString> invalidas;
-    for (auto it = m_relaciones.begin(); it != m_relaciones.end(); ++it) {
-        if ((it->tablaO == tabla && !campoExiste_(tabla, it->campoO)) ||
-            (it->tablaD == tabla && !campoExiste_(tabla, it->campoD))) {
-            invalidas << it.key();
+    //2)Indices rapidos nombr -> fila del esquema anterior
+    QHash<QString,int>prevIndex;
+    for(int i=0;i<prev.size();++i)
+        prevIndex.insert(prev[i].nombre.toLower(),i);
+
+    auto existsNow = [&](const QString& name)
+    {
+        for(const auto&c:schema)
+            if(c.nombre.compare(name, Qt::CaseInsensitive)==0)
+                return true;
+        return false;
+    };
+
+    // 3) Resolver si un nombre viejo fue renombrado a otro
+    auto resolveRename=[&](const QString& oldName) -> QString
+    {
+        //Si todavia existe con ese nombre, no hay nada que hacer
+        if(existsNow(oldName))return oldName;
+
+        //3.a) Heuristica 1: misma fila/indice
+        const int idx=prevIndex.value(oldName.toLower(),-1);
+        if(idx>=0&&idx<schema.size())
+            return schema[idx].nombre;//se renombro en la misma fila
+
+        // 3.b) Heuristica 2: match unico por (tipo, pk) que antes no existia
+        bool pkOld=false;
+        QString tipoOld;
+        for(const auto&c:prev)
+            if(c.nombre.compare(oldName, Qt::CaseInsensitive)==0)
+            {
+                pkOld=c.pk;
+                tipoOld=c.tipo;
+                break;
+            }
+
+        QString candidate;
+        int matches=0;
+        for(const auto&c:schema)
+        {
+            bool existedBefore=false;
+            for(const auto&p:prev)
+                if(p.nombre.compare(c.nombre, Qt::CaseInsensitive)==0)
+                {
+                    existedBefore=true;break;
+                }
+            if(!existedBefore&&c.pk==pkOld&&c.tipo.compare(tipoOld,Qt::CaseInsensitive)==0)
+            {
+
+                candidate=c.nombre;
+                ++matches;
+
+            }
+        }
+        return(matches==1)?candidate:QString(); // si es ambiguo, no tocar
+    };
+
+    //4)Reescribir relaciones afectadas por esta tabla
+    QMap<QString, Rel>nuevas;//relaciones que quedan tal cual
+    QVector<Rel>porRecrear;//relaciones que cambian algún nombre
+    QVector<QString>aEliminarKeys;//relaciones realmente inválidas
+
+    for(auto it=m_relaciones.begin();it!=m_relaciones.end();++it)
+    {
+        Rel r=it.value();
+        bool touched=false;
+
+        if(r.tablaO==tabla)
+        {
+            const QString nuevo=resolveRename(r.campoO);
+            if(!nuevo.isEmpty()&&nuevo!=r.campoO)
+            {
+                r.campoO=nuevo;
+                touched=true;
+            }
+        }
+        if(r.tablaD==tabla)
+        {
+            const QString nuevo=resolveRename(r.campoD);
+            if(!nuevo.isEmpty()&&nuevo!=r.campoD)
+            {
+                r.campoD=nuevo;
+                touched=true;
+            }
+        }
+
+        //Si tras el intento de mapeo alguno ya no existe -> eliminar
+        if((r.tablaO==tabla&&!existsNow(r.campoO))||(r.tablaD==tabla&&!existsNow(r.campoD)))
+        {
+            // borrar el item viejo
+            if(it->item)
+            {
+                if(it->item->scene()) it->item->scene()->removeItem(it->item);
+                it->item->setParent(nullptr);
+                it->item->deleteLater();
+
+            }
+            aEliminarKeys<<it.key();
+            continue;
+        }
+
+        if(touched)
+        {
+            // Hay cambio de nombre -> borro el item viejo y lo recreo luego con el nuevo key
+            if(it->item)
+            {
+                if(it->item->scene()) it->item->scene()->removeItem(it->item);
+                it->item->setParent(nullptr);
+                it->item->deleteLater();
+            }
+            porRecrear.push_back(r);
+        }else{
+
+            // Sin cambios -> conservar entrada original
+            nuevas.insert(it.key(), r);
+
         }
     }
-    for (const QString& k : invalidas) {
-        auto rel = m_relaciones.take(k);
-        if (rel.item) {
-            if (rel.item->scene()) rel.item->scene()->removeItem(rel.item);
-            rel.item->setParent(nullptr);
-            rel.item->deleteLater();
-        }
-    }
+
+    // 5)Aplicar eliminacion real de las inválidas
+    for(const QString&k:aEliminarKeys)
+        m_relaciones.remove(k);
+
+    //6)Sustituir map por las que siguen validas sin cambios
+    m_relaciones.swap(nuevas);
+
+    //7) Recrear las relaciones mapeadas a los nuevos nombres (conecta señales, etc.)
+    for (const Rel&r:porRecrear)
+        agregarRelacion_(r.tablaO, r.campoO, r.tablaD, r.campoD, r.tipo, r.integridad);
 }
 
+
 void RelacionesWidget::tablaRenombrada(const QString& viejo, const QString& nuevo) {
-    if (viejo == nuevo) return;
+    if(viejo==nuevo)return;
 
-    if (m_schemas.contains(viejo)) m_schemas.insert(nuevo, m_schemas.take(viejo));
+    if(m_schemas.contains(viejo)) m_schemas.insert(nuevo, m_schemas.take(viejo));
 
-    if (auto* it = m_items.take(viejo)) {
+    if(auto* it = m_items.take(viejo))
+    {
         it->setNombre(nuevo);
         m_items.insert(nuevo, it);
     }
 
     QMap<QString, Rel> nuevas;
-    for (auto it = m_relaciones.begin(); it != m_relaciones.end(); ++it) {
+    for (auto it = m_relaciones.begin(); it != m_relaciones.end(); ++it)
+    {
         Rel r = it.value();
         if (r.tablaO == viejo) r.tablaO = nuevo;
         if (r.tablaD == viejo) r.tablaD = nuevo;
@@ -179,11 +300,12 @@ void RelacionesWidget::tablaRenombrada(const QString& viejo, const QString& nuev
 }
 
 void RelacionesWidget::conectarTableItem_(TableItem* it) {
-    QObject::connect(it, &TableItem::soltarCampoSobre, this,
-                     [this](const QString& tablaO, const QString& campoO,
-                            const QString& tablaD, const QString& campoD) {
-                         mostrarDialogoModificarRelacion_(tablaO, campoO, tablaD, campoD);
-                     });
+    QObject::connect(it, &TableItem::soltarCampoSobre, this,[this](const QString& tablaO, const QString& campoO,const QString& tablaD, const QString& campoD)
+    {
+
+        mostrarDialogoModificarRelacion_(tablaO, campoO, tablaD, campoD);
+
+    });
 }
 
 bool RelacionesWidget::campoEsPk_(const QString& tabla, const QString& campo) const {
@@ -194,7 +316,8 @@ bool RelacionesWidget::campoEsPk_(const QString& tabla, const QString& campo) co
     return false;
 }
 
-bool RelacionesWidget::campoExiste_(const QString& tabla, const QString& campo) const {
+bool RelacionesWidget::campoExiste_(const QString& tabla, const QString& campo) const
+{
     const auto schema = m_schemas.value(tabla);
     for (const auto& c : schema)
         if (c.nombre.compare(campo, Qt::CaseInsensitive) == 0)
@@ -206,8 +329,8 @@ void RelacionesWidget::mostrarDialogoModificarRelacion_(const QString& tablaO_in
     // ===== 1) Inferencia "estilo Access"
     auto esPk = [&](const QString& t, const QString& c){ return campoEsPk_(t, c); };
 
-    QString tablaO = tablaO_in, campoO = campoO_in;
-    QString tablaD = tablaD_in, campoD = campoD_in;
+    QString tablaO=tablaO_in,campoO=campoO_in;
+    QString tablaD=tablaD_in,campoD=campoD_in;
 
     const bool pkO = esPk(tablaO, campoO);
     const bool pkD = esPk(tablaD, campoD);
@@ -223,11 +346,12 @@ void RelacionesWidget::mostrarDialogoModificarRelacion_(const QString& tablaO_in
             qSwap(campoO, campoD);
         }
         tipo = RelationItem::Tipo::UnoAMuchos;
-    } else {
-        // noPK ↔ noPK  ->  Access no permite crear integridad; aquí lo impedimos también
-        QMessageBox::warning(this, tr("Relación no válida"),
-                             tr("Debe haber al menos una clave primaria para crear la relación."));
+    }else{
+
+        // noPK ↔ noPK  ->  Access no permite crear integridad; aqui lo impedimos tambirn
+        QMessageBox::warning(this, tr("Relación no válida"),tr("Debe haber al menos una clave primaria para crear la relación."));
         return;
+
     }
 
     // ===== 2) Diálogo minimal como Access (sin elegir tipo manualmente)
@@ -294,19 +418,26 @@ void RelacionesWidget::mostrarDialogoModificarRelacion_(const QString& tablaO_in
     QObject::connect(box, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
     lay->addWidget(box);
 
-    if (dlg.exec() != QDialog::Accepted) return;
+    if(dlg.exec()!=QDialog::Accepted)return;
+    const QString tipoO=campoTipo(tablaO,campoO).toLower();
+    const QString tipoD=campoTipo(tablaD,campoD).toLower();
 
-    const bool integridad = cbIntegridad->isChecked();
-    // Nota: cbActualizar / cbEliminar aún no se aplican en el modelo;
-    // si luego los implementás, aquí es donde leerías sus valores.
+    if(tipoO.isEmpty()||tipoD.isEmpty()||tipoO!=tipoD)
+    {
+
+        QMessageBox::warning(this,tr("Microsoft Access"),tr("La relación debe ser sobre el mismo número de campos con el mismo tipo de datos."));
+        return;
+
+    }
+
+    const bool integridad=cbIntegridad->isChecked();
 
     // ===== 3) Validación final (igual que Access)
-    if (tipo == RelationItem::Tipo::UnoAMuchos) {
+    if(tipo==RelationItem::Tipo::UnoAMuchos)
+    {
         // Por seguridad: origen debe ser PK y destino no PK
         if (!esPk(tablaO, campoO) || esPk(tablaD, campoD)) {
-            QMessageBox::warning(this, tr("No válido"),
-                                 tr("Para 1:N el campo de origen debe ser una clave primaria "
-                                    "y el campo destino no debe serlo."));
+            QMessageBox::warning(this, tr("No válido"),tr("Para 1:N el campo de origen debe ser una clave primaria ""y el campo destino no debe serlo."));
             return;
         }
     } else { // 1:1
@@ -326,39 +457,56 @@ void RelacionesWidget::mostrarDialogoModificarRelacion_(const QString& tablaO_in
 }
 
 
-bool RelacionesWidget::agregarRelacion_(const QString& tablaO, const QString& campoO,
-                                        const QString& tablaD, const QString& campoD,
-                                        RelationItem::Tipo tipo, bool integridad) {
-    if (!m_items.contains(tablaO) || !m_items.contains(tablaD)) return false;
-    if (!campoExiste_(tablaO, campoO) || !campoExiste_(tablaD, campoD)) return false;
+bool RelacionesWidget::agregarRelacion_(const QString& tablaO, const QString& campoO,const QString& tablaD, const QString& campoD,RelationItem::Tipo tipo, bool integridad)
+{
 
-    const QString k = RelationItem::key(tablaO, campoO, tablaD, campoD);
-    if (m_relaciones.contains(k)) return false;
+    if(!m_items.contains(tablaO)||!m_items.contains(tablaD))return false;
+    if(!campoExiste_(tablaO,campoO)||!campoExiste_(tablaD, campoD))return false;
 
-    auto* item = new RelationItem(m_items[tablaO], campoO, m_items[tablaD], campoD, tipo, integridad);
+    const QString tO=campoTipo(tablaO, campoO).toLower();
+    const QString tD=campoTipo(tablaD, campoD).toLower();
+    if(tO.isEmpty()||tD.isEmpty()||tO!=tD)
+    {
+        QMessageBox::warning(this,tr("Microsoft Access"),tr("La relación debe ser sobre el mismo número de campos con el mismo tipo de datos."));
+        return false;
+    }
+    //Validaciin SIEMPRE  si los datos actuales no cumplen, no se crea
+    if(!validarDatosExistentes(tablaO, campoO, tablaD, campoD, tipo))
+    {
+        QMessageBox::warning(this, tr("Microsoft Access"),tr("Definición de campo '%1' no válido en la definición del índice o de la relación.").arg(campoD));
+        return false;
+    }
+
+    const QString k=RelationItem::key(tablaO, campoO, tablaD, campoD);
+    if(m_relaciones.contains(k))return false;
+
+    auto*item= new RelationItem(m_items[tablaO], campoO, m_items[tablaD], campoD, tipo, integridad);
     m_scene->addItem(item);
 
     // Conectar menú "Eliminar relación" (click izquierdo)
-    QObject::connect(item, &RelationItem::eliminarSolicitado, this,
-                     [this](const QString& to, const QString& co, const QString& td, const QString& cd) {
-                         const QString kk = RelationItem::key(to, co, td, cd);
-                         if (m_relaciones.contains(kk)) {
-                             auto rel = m_relaciones.take(kk);  // quitar del mapa
-                             if (rel.item) {
-                                 if (rel.item->scene()) rel.item->scene()->removeItem(rel.item);
-                                 rel.item->setParent(nullptr);
-                                 rel.item->deleteLater();       // diferido
-                             }
-                         }
-                     });
+    QObject::connect(item, &RelationItem::eliminarSolicitado, this,[this](const QString& to, const QString& co, const QString& td, const QString& cd)
+    {
+        const QString kk=RelationItem::key(to,co,td,cd);
+        if(m_relaciones.contains(kk))
+        {
+            auto rel=m_relaciones.take(kk);  // quitar del mapa
+            if (rel.item)
+            {
+                if (rel.item->scene()) rel.item->scene()->removeItem(rel.item);
+                rel.item->setParent(nullptr);
+                rel.item->deleteLater();       // diferido
+            }
+        }
+    });
 
-    Rel r; r.tablaO = tablaO; r.campoO = campoO; r.tablaD = tablaD; r.campoD = campoD;
+    Rel r; r.tablaO=tablaO; r.campoO=campoO; r.tablaD = tablaD; r.campoD = campoD;
     r.tipo = tipo; r.integridad = integridad; r.item = item;
     m_relaciones.insert(k, r);
     return true;
 }
 
-void RelacionesWidget::MostrarSelectorTablas(const QStringList& tablas, bool soloSiPrimeraVez) {
+void RelacionesWidget::MostrarSelectorTablas(const QStringList& tablas, bool soloSiPrimeraVez)
+{
     if (soloSiPrimeraVez && m_selectorMostrado) return;
 
     QDialog dlg(this); dlg.setWindowTitle(tr("Mostrar tabla"));
@@ -366,7 +514,7 @@ void RelacionesWidget::MostrarSelectorTablas(const QStringList& tablas, bool sol
     auto* lay = new QVBoxLayout(&dlg);
     auto* tabs = new QTabWidget(&dlg);
 
-    auto* listTablas   = new QListWidget(&dlg); listTablas->addItems(tablas);
+    auto* listTablas=new QListWidget(&dlg); listTablas->addItems(tablas);
     listTablas->setSelectionMode(QAbstractItemView::ExtendedSelection);
     tabs->addTab(listTablas, tr("Tablas"));
 
@@ -397,3 +545,77 @@ void RelacionesWidget::MostrarSelectorTablas(const QStringList& tablas, bool sol
     }
     m_selectorMostrado = true;
 }
+QString RelacionesWidget::campoTipo(const QString& tabla, const QString& campo)const
+{
+
+    const auto schema=m_schemas.value(tabla);
+    for(const auto&c:schema)
+        if(c.nombre.compare(campo, Qt::CaseInsensitive)==0)
+            return c.tipo.trimmed();
+    return QString();
+
+}
+int RelacionesWidget::indiceColumna(const QString& tabla, const QString& campo) const
+{
+    const auto esquema=m_schemas.value(tabla);
+    for(int i=0;i<esquema.size();++i)
+    {
+        if(esquema[i].nombre.compare(campo, Qt::CaseInsensitive)==0)
+            return i;
+    }
+    return -1;
+}
+bool RelacionesWidget::validarDatosExistentes(const QString& tablaOrigen, const QString& campoOrigen,const QString& tablaDestino, const QString& campoDestino,RelationItem::Tipo tipoRelacion) const
+{
+    //Si no tenemos proveedor, no bloqueamos (pero idealmente siempre se tiene configurado)
+    if(!m_proveedorFilas)return true;
+
+    const int colO=indiceColumna(tablaOrigen, campoOrigen);
+    const int colD=indiceColumna(tablaDestino, campoDestino);
+    if(colO<0||colD<0) return false;
+
+    auto filasO=m_proveedorFilas(tablaOrigen);
+    auto filasD=m_proveedorFilas(tablaDestino);
+
+    //Ignorar la ultima fila "en blanco"
+    auto trimUltimaVacia = [](QVector<QVector<QVariant>>& vv)
+    {
+        if(vv.isEmpty())return;
+        const auto&ult=vv.last();
+        bool vacia=true;
+        for(const auto& x:ult)
+        {
+            if(x.isValid() && !x.toString().trimmed().isEmpty()){vacia=false; break; }
+        }
+        if(vacia) vv.removeLast();
+    };
+    trimUltimaVacia(filasO);
+    trimUltimaVacia(filasD);
+
+    // Conjunto de claves validas del lado ORIGEN (no vacias)
+    QSet<QString> clavesOrigen;
+    clavesOrigen.reserve(filasO.size());
+    for(const auto& fila:filasO)
+    {
+        const QString v=fila.value(colO).toString().trimmed();
+        if(!v.isEmpty())clavesOrigen.insert(v);
+    }
+
+    // 1:N -> cada valor NO vacío en Destino debe existir en Origen
+    // 1:1 -> además, el Destino no puede repetir el valor (único)
+    QSet<QString> usadosDestino;
+    for(const auto& fila:filasD)
+    {
+        const QString v =fila.value(colD).toString().trimmed();
+        if(v.isEmpty()) continue;                 // Access permite NULL
+        if(!clavesOrigen.contains(v)) return false; // huérfano
+
+        if(tipoRelacion==RelationItem::Tipo::UnoAUno)
+        {
+            if(usadosDestino.contains(v)) return false; // duplicado en destino
+            usadosDestino.insert(v);
+        }
+    }
+    return true;
+}
+
