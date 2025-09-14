@@ -18,6 +18,7 @@
 #include<QStyleOptionButton>
 #include<QMenu>
 #include<QDateTimeEdit>
+#include<schema.h>
 
 static constexpr int kCurrencyDecimals=2;
 
@@ -530,5 +531,31 @@ QString VistaHojaDatos::headerForCol(int c)const
 {
 
     return m_modelo?m_modelo->headerData(c,Qt::Horizontal).toString():QString();
+
+}
+int VistaHojaDatos::columnaSeleccionadaActual()const
+{
+
+    if(!m_tabla || !m_tabla->selectionModel()) return -1;
+    const QModelIndex idx =m_tabla->selectionModel()->currentIndex();
+    return idx.isValid() ?idx.column():-1;
+
+}
+void VistaHojaDatos::setCurrencyForColumn(int col, const QString &code)
+{
+
+    if(!m_modelo)return;
+    if(col<0||col>=m_modelo->columnCount())return;
+    if(code!="USD"&&code!="HNL"&&code!="EUR")return;
+
+    m_currencyByCol[col]=code;
+    if(m_tabla&&m_tabla->viewport())
+        m_tabla->viewport()->update();  // fuerza repintado
+
+}
+QStringList VistaHojaDatos::tiposPorColumna()const
+{
+
+    return m_tiposPorCol;
 
 }

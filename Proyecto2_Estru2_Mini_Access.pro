@@ -19,6 +19,7 @@ SOURCES += \
     relacioneswidget.cpp \
     relationitem.cpp \
     ribbongroup.cpp \
+    schema.cpp \
     tableitem.cpp \
     ventanaprincipal.cpp \
     vistadisenio.cpp \
@@ -34,6 +35,7 @@ HEADERS += \
     relacioneswidget.h \
     relationitem.h \
     ribbongroup.h \
+    schema.h \
     tableitem.h \
     ventanaprincipal.h \
     vistadisenio.h \

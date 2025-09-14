@@ -141,26 +141,21 @@ void VistaDisenio::establecerEsquema(const QList<Campo>& campos)
     m_modelo->setRowCount(campos.size());
     for(int r=0; r<campos.size(); ++r)
     {
-        auto* it0 = new QStandardItem();
+        auto*it0=new QStandardItem();
         it0->setEditable(false);
-        m_modelo->setItem(r, 0, it0);
+        m_modelo->setItem(r,0,it0);
 
-        auto* it1 = new QStandardItem(campos[r].nombre);
-        auto* it2 = new QStandardItem(campos[r].tipo);
-        if(r==0)
-        {
+        auto*it1=new QStandardItem(campos[r].nombre);
+        auto*it2=new QStandardItem(campos[r].tipo);
 
-            it1->setFlags(it1->flags()|Qt::ItemIsEditable);
-            it2->setEditable(false);
+        it1->setFlags(it1->flags()|Qt::ItemIsEditable);
+        it2->setData(campos[r].formatoMoneda, RoleFormatoMoneda);
+        if(r==0)it2->setEditable(false);
+        else        it2->setFlags(it2->flags() | Qt::ItemIsEditable);
 
-        }else{
-
-            it1->setFlags(it1->flags() | Qt::ItemIsEditable);
-            it2->setFlags(it2->flags() | Qt::ItemIsEditable);
-
-        }
         m_modelo->setItem(r, 1, it1);
         m_modelo->setItem(r, 2, it2);
+
     }
     ponerIconoLlave(QIcon(":/im/image/llave.png"));
 
@@ -231,13 +226,16 @@ QList<Campo> VistaDisenio::esquema() const
 {
 
     QList<Campo> out;
-    for (int r=0; r<m_modelo->rowCount(); ++r) {
+    for(int r=0; r<m_modelo->rowCount(); ++r)
+    {
         Campo c;
-        c.pk    = (r==m_pkRow);
+        c.pk=(r==m_pkRow);
         c.nombre= m_modelo->index(r,1).data().toString().trimmed();
-        c.tipo  = m_modelo->index(r,2).data().toString().trimmed();
-        if (c.nombre.isEmpty()) c.nombre = (r==0? "Id" : QString("Campo%1").arg(r));
-        if (c.tipo.isEmpty()) c.tipo = (r==0? "Entero":"Texto");
+        c.tipo=m_modelo->index(r,2).data().toString().trimmed();
+        if(c.nombre.isEmpty()) c.nombre = (r==0? "Id" : QString("Campo%1").arg(r));
+        if(c.tipo.isEmpty()) c.tipo = (r==0? "Entero":"Texto");
+        c.tipo= m_modelo->index(r,2).data().toString().trimmed();
+        c.formatoMoneda = m_modelo->index(r,2).data(RoleFormatoMoneda).toString();
         out.push_back(c);
     }
     return out;
@@ -361,5 +359,14 @@ int VistaDisenio::filaSeleccionadaActual()const
 {
 
     return m_tabla->currentIndex().row();
+
+}
+void VistaDisenio::setFormatoMonedaEnFila(int fila, const QString &code)
+{
+
+    if(fila<0||fila>=m_modelo->rowCount())return;
+    auto idxTipo=m_modelo->index(fila,2);
+    m_modelo->setData(idxTipo, code, RoleFormatoMoneda);
+    emit esquemaCambiado();
 
 }

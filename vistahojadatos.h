@@ -4,6 +4,7 @@
 #include <QHash>
 #include <QVector>
 #include <QVariant>
+#include"qstyleditemdelegate.h"
 
 class QTableView;
 class QStandardItemModel;
@@ -41,6 +42,10 @@ public:
     using ValidadorCelda=std::function<bool(const QString& /*tabla*/,const QString& /*campo*/,const QVariant& /*valor*/,QString* /*outError*/)>;
 
     void setValidadorCelda(ValidadorCelda f){m_validador=std::move(f);}
+
+    int columnaSeleccionadaActual() const;
+    void setCurrencyForColumn(int col, const QString& code);
+    QStringList tiposPorColumna() const;
 
     // extra de ayuda
     QString headerForCol(int c) const;

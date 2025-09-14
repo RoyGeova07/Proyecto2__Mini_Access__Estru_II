@@ -11,6 +11,9 @@
 #include <QLabel>
 #include<QIntValidator>
 #include<QStringList>
+#include<QComboBox>
+#include<QLineEdit>
+#include"schema.h"
 
 PestanaTabla::PestanaTabla(const QString& nombreInicial, QWidget* parent):QWidget(parent), m_nombre(nombreInicial)
 {
@@ -80,11 +83,24 @@ PestanaTabla::PestanaTabla(const QString& nombreInicial, QWidget* parent):QWidge
 
     });
     //conexion para aplicar el formato cuando el usuario cambie el combo
-    connect(m_cFormato, &QComboBox::currentTextChanged,this, [this]()
+    connect(m_cFormato, &QComboBox::currentTextChanged, this, [this]()
     {
+        if(!m_disenio||!m_hoja)return;
 
-        aplicarFormatoFechaActual();
+        int fila=m_disenio->filaSeleccionadaActual();
+        if(fila<0)fila=0;
 
+        const auto campos=m_disenio->esquema();
+        if(fila>=campos.size())return;
+
+        const QString t=campos[fila].tipo.trimmed().toLower();
+        if(t=="fecha")
+        {
+            aplicarFormatoFechaActual();
+
+        }else if(t=="moneda"){
+            aplicarFormatoMonedaActual();
+        }
     });
 
     m_panelProp->addTab(pagGeneral, tr("General"));
@@ -257,6 +273,7 @@ void PestanaTabla::refrescarGeneral_(int fila)
         m_eTamano->setText("-");
         m_eTamano->setEnabled(false);
 
+        QSignalBlocker b1(m_cFormato);
         m_cFormato->clear();
         m_cFormato->addItem("-");
         m_cFormato->setEnabled(false);
@@ -305,6 +322,7 @@ void PestanaTabla::refrescarGeneral_(int fila)
         m_eTamano->setText(QString::number(qBound(1, curLen, 255)));
 
         // Combo formateo deshabilitado (no aplica)
+        QSignalBlocker b1(m_cFormato);
         m_cFormato->clear();
         m_cFormato->addItem(formato);
         m_cFormato->setEnabled(false);
@@ -317,6 +335,7 @@ void PestanaTabla::refrescarGeneral_(int fila)
         m_eTamano->setEnabled(false);
         m_eTamano->setText(tam);
 
+        QSignalBlocker b1(m_cFormato);
         m_cFormato->clear();
         m_cFormato->addItem(formato);
         m_cFormato->setEnabled(false);
@@ -330,28 +349,38 @@ void PestanaTabla::refrescarGeneral_(int fila)
         m_eTamano->setEnabled(false);
         m_eTamano->setText(tam);
 
+        QSignalBlocker b1(m_cFormato);
         m_cFormato->clear();
         m_cFormato->addItem(formato);
         m_cFormato->setEnabled(false);
 
-    }
-    else if(t=="moneda")
-    {
-        tam = "Moneda";
-        formato = "Moneda";
-        decs = "2";
+    }else if(t=="moneda"){
+        tam="Moneda"; decs="2";
+
         m_eTamano->setEnabled(false);
         m_eTamano->setText(tam);
 
+        QSignalBlocker b1(m_cFormato);//bloquea señales durante repoblar
         m_cFormato->clear();
-        m_cFormato->addItem(formato);
-        m_cFormato->setEnabled(false);
+        // userData = código ISO ("" = predeterminada del sistema)
+        m_cFormato->addItem(tr("Moneda (predeterminada)"), "");
+        m_cFormato->addItem("USD", "USD");
+        m_cFormato->addItem("HNL", "HNL");
+        m_cFormato->addItem("EUR", "EUR");
+        m_cFormato->setEnabled(true);
+
+        int idxData=m_cFormato->findData(c.formatoMoneda);
+        if(idxData<0)idxData=0;
+        m_cFormato->setCurrentIndex(idxData);
+
+        formato=(idxData==0)?tr("Moneda"):m_cFormato->currentText();
     }
     else if(t=="fecha"){
         tam="Fecha/Hora";
         decs="-";
 
         // --- Combo de formato ACTIVO ---
+        QSignalBlocker b1(m_cFormato);
         m_cFormato->clear();
         QStringList opciones;
         opciones <<tr("Fecha corta")<<tr("Fecha larga")<<tr("Fecha y hora (minutos)")<<tr("Fecha y hora (segundos)")<<tr("Hora (h:mm AM/PM)")<<tr("Hora (h:mm:ss AM/PM)");
@@ -396,6 +425,7 @@ void PestanaTabla::refrescarGeneral_(int fila)
         m_eTamano->setEnabled(false);
         m_eTamano->setText(tam);
 
+        QSignalBlocker b1(m_cFormato);
         m_cFormato->clear();
         m_cFormato->addItem(formato);
         m_cFormato->setEnabled(false);
@@ -476,5 +506,56 @@ void PestanaTabla::aplicarFormatoFechaActual()
     m_hoja->update();
 }
 
+void PestanaTabla::setMonedaEnColumnaActual(const QString &code)
+{
+    if(!m_disenio||!m_hoja)return;
 
+    int fila=m_disenio->filaSeleccionadaActual();
+    if(fila<0)fila=0;
+
+    auto esquema=m_disenio->esquema();
+    if(fila>=esquema.size())return;
+    if(esquema[fila].tipo.trimmed().toLower()!="moneda")return;
+
+    esquema[fila].formatoMoneda=code;
+    m_disenio->establecerEsquema(esquema);
+
+    m_hoja->setCurrencyForColumn(fila, code);
+    m_hoja->update();
+
+    if(m_cFormato)
+    {
+        QSignalBlocker b1(m_cFormato);
+        int idx = m_cFormato->findData(code);
+        if (idx < 0) idx = 0;
+        m_cFormato->setCurrentIndex(idx);
+    }
+
+    emit estadoCambioSolicitado();
+}
+
+void PestanaTabla::aplicarFormatoMonedaActual()
+{
+
+    if(!m_disenio||!m_hoja)return;
+
+    int fila=m_disenio->filaSeleccionadaActual();
+    if(fila<0)fila=0;
+
+    auto esquema=m_disenio->esquema();
+    if(fila>=esquema.size())return;
+    if(esquema[fila].tipo.trimmed().toLower()!="moneda") return;
+
+    const QString code=m_cFormato->currentData().toString(); // "", "USD", "HNL", "EUR"
+
+    // 1) Persistir en DISEÑO sin resetear modelo
+    m_disenio->setFormatoMonedaEnFila(fila, code);
+
+    // 2) Refrescar la hoja
+    m_hoja->setCurrencyForColumn(fila, code);
+    m_hoja->update();
+
+    emit estadoCambioSolicitado();
+
+}
 

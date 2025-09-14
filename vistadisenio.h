@@ -5,20 +5,13 @@
 #include <QList>
 #include <QString>
 #include<QIcon>
+#include"schema.h"
 
 class QTableView;
 class QStandardItemModel;
 class QIcon;
 class QStyledItemDelegate;
 
-struct Campo
-{
-
-    QString nombre;
-    QString tipo;
-    bool pk = false;
-
-};
 
 class VistaDisenio:public QWidget
 {
@@ -28,10 +21,12 @@ class VistaDisenio:public QWidget
 public:
 
     explicit VistaDisenio(QWidget*parent=nullptr);
+    static constexpr int RoleFormatoMoneda=Qt::UserRole+101;
     void ponerIconoLlave(const QIcon&icono);
     QList<Campo> esquema() const;
     Campo campoEnFila(int fila) const;
     int filaSeleccionadaActual() const;
+    void setFormatoMonedaEnFila(int fila, const QString& code);
 
 public slots:
 

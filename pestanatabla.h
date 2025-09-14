@@ -20,6 +20,7 @@ class PestanaTabla:public QWidget
 
 public:
 
+    void aplicarFormatoMonedaActual();
     QList<Campo> esquemaActual() const;
     QVector<QVector<QVariant>> filasActuales() const;
     void cargarSnapshot(const QList<Campo>& schema, const QVector<QVector<QVariant>>& rows);
@@ -35,6 +36,7 @@ signals:
 
 public slots:
 
+    void setMonedaEnColumnaActual(const QString& code);
     void mostrarHojaDatos();
     void mostrarDisenio();
     void agregarColumna();
