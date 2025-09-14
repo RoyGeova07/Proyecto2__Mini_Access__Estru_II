@@ -32,18 +32,28 @@ signals:
     void renombrarCampoSolicitado(int col, const QString& nombre);
 
 public:
+
     // Acceso usado por el delegate (símbolo según divisa actual)
     QString currencyForCol_(int c) const;
     static QString symbolFor_(const QString& code);
     void setDateFormatForColumn(int col, const QString& fmt);
     QString dateFormatForCol(int col) const;
+    using ValidadorCelda=std::function<bool(const QString& /*tabla*/,const QString& /*campo*/,const QVariant& /*valor*/,QString* /*outError*/)>;
+
+    void setValidadorCelda(ValidadorCelda f){m_validador=std::move(f);}
+
+    // extra de ayuda
+    QString headerForCol(int c) const;
+    ValidadorCelda m_validador;
+    QString m_nombreTabla;
 
 private:
     void reconectarSignalsModelo_();
     void asegurarFilaNuevaAlFinal_();
 
 private:
-    QTableView* m_tabla = nullptr;
+
+    QTableView* m_tabla=nullptr;
     QStandardItemModel* m_modelo = nullptr;
     QHash<int, int> m_maxLenByCol;
 

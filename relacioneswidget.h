@@ -29,12 +29,18 @@ public:
     using ProveedorFilas = std::function<QVector<QVector<QVariant>>(const QString& tabla)>;
     void establecerProveedorFilas(ProveedorFilas pf) { m_proveedorFilas = std::move(pf); }
 
+    //callback para saber si una tabla esta abierta en alguna pestaña
+    using ComprobadorTablaAbierta=std::function<bool(const QString& nombre)>;
+    void setComprobadorTablaAbierta(ComprobadorTablaAbierta f){m_isTablaAbierta=std::move(f);}
+    bool validarValorFK(const QString& tablaDestino,const QString& campoDestino,const QString& valor,QString* outError) const;
+
 protected:
     bool eventFilter(QObject* obj, QEvent* ev) override;
     void resizeEvent(QResizeEvent* e) override;
 
 private:
-    struct Rel {
+    struct Rel
+    {
         QString tablaO, campoO, tablaD, campoD;
         RelationItem::Tipo tipo = RelationItem::Tipo::UnoAMuchos;
         bool integridad = false;
@@ -51,21 +57,22 @@ private:
     QString campoTipo(const QString& tabla, const QString& campo)const;
 
 private:
-    QGraphicsView*  m_view =nullptr;
-    QGraphicsScene* m_scene=nullptr;
+    QGraphicsView* m_view =nullptr;
+    QGraphicsScene*m_scene=nullptr;
 
-    QMap<QString, TableItem*>m_items;       // nombre tabla -> item
-    QMap<QString, QList<Campo>>m_schemas;     // nombre tabla -> schema
-    QMap<QString, Rel>m_relaciones;  // key -> relación
+    QMap<QString,TableItem*>m_items;       // nombre tabla -> item
+    QMap<QString,QList<Campo>>m_schemas;     // nombre tabla -> schema
+    QMap<QString,Rel>m_relaciones;  // key -> relación
 
-    bool  m_selectorMostrado = false;
-    QPoint m_next {32, 32};
-    int    m_dx = 260;
-    int    m_dy = 180;
+    bool m_selectorMostrado=false;
+    QPoint m_next {32,32};
+    int m_dx=260;
+    int m_dy=180;
     int indiceColumna(const QString&tabla,const QString&campo)const;
-    // Valida que los datos ya guardados permiten crear la relación (siempre, como pediste)
+    //Valida que los datos ya guardados permiten crear la relación (siempre, como pediste)
     bool validarDatosExistentes(const QString& tablaOrigen, const QString& campoOrigen,const QString& tablaDestino, const QString& campoDestino,RelationItem::Tipo tipoRelacion) const;
     ProveedorFilas m_proveedorFilas;//funcion para obtener las filas actuales de una tabla
+    ComprobadorTablaAbierta m_isTablaAbierta;
 
 
 };

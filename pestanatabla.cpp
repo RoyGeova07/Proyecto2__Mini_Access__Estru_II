@@ -244,11 +244,9 @@ void PestanaTabla::hacerClavePrimaria()
 // === Helpers internos ===
 void PestanaTabla::syncHojaConDisenio_()
 {
-    const auto campos = m_disenio->esquema();
+    const auto campos=m_disenio->esquema();
     m_hoja->reconstruirColumnas(campos);
 }
-
-static QString s_bool(bool v){ return v ? QObject::tr("Sí") : QObject::tr("No"); }
 void PestanaTabla::refrescarGeneral_(int fila)
 {
     const auto campos=m_disenio->esquema();

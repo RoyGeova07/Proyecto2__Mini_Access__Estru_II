@@ -238,6 +238,24 @@ void VentanaPrincipal::mostrarHojaDatosActual()
     {
 
         p->mostrarHojaDatos();
+        if(auto*hoja=p->hojaDatosWidget())
+        {
+            hoja->setValidadorCelda([this](const QString& tabla,const QString& campo,const QVariant& valor,QString* msg) -> bool
+            {
+                // Busca un RelacionesWidget abierto
+                RelacionesWidget*rel=nullptr;
+                for(int i=0;i<m_pestanas->count();++i)
+                {
+                    rel=qobject_cast<RelacionesWidget*>(m_pestanas->widget(i));
+                    if(rel) break;
+                }
+                if(!rel)return true;//si no esta abierto, no bloqueamos
+
+                //Validar contra las relaciones declaradas
+                const QString v=valor.toString();
+                return rel->validarValorFK(tabla,campo,v,msg);
+            });
+        }
         if(statusBar())
         {
 
@@ -367,6 +385,23 @@ void VentanaPrincipal::AbrirRelaciones()
         }
 
     }
+    rel->setComprobadorTablaAbierta([this](const QString&nombre)->bool{
+
+        for(int i=0;i<m_pestanas->count();++i)
+        {
+
+            if(m_pestanas->tabText(i).compare(nombre,Qt::CaseInsensitive)==0)
+            {
+
+                //Esta abierta si la pestaña es una tabla (no Relaciones/Consultas)
+                return (qobject_cast<PestanaTabla*>(m_pestanas->widget(i))!=nullptr);
+
+            }
+
+        }
+        return false;
+
+    });
     // PROVEEDOR DE FILAS (PARA VALIDAR DATOS EXISTENTES SIEMPRE)
     rel->establecerProveedorFilas([this](const QString& tabla)
     {

@@ -99,31 +99,66 @@ public:
 
     void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const override
     {
-        if (auto* e = qobject_cast<QLineEdit*>(editor)) {
-            const QString t = e->text().trimmed();
-            if(tipo_ == "entero")
+        //Helper: valida contra relaciones (si hay validador) y, si pasa, asigna el valor al modelo
+        auto validarYAsignar = [&](const QVariant& v) -> bool
+        {
+            if(owner_&& owner_->m_validador)
             {
+                //Nombre del campo (header). Si no hay helper, caemos al header del modelo.
+                const QString campo=owner_? owner_->headerForCol(col_): model->headerData(col_,Qt::Horizontal).toString();
 
+                QString err;
+                const bool okFK=owner_->m_validador(owner_->m_nombreTabla, campo, v, &err);
+                if(!okFK)
+                {
+                    QMessageBox::warning(const_cast<VistaHojaDatos*>(owner_),QObject::tr("Microsoft Access"),err);
+                    return false; // NO guardar el valor
+                }
+            }
+            model->setData(index, v);
+            return true;
+        };
+
+        // --- Editor QLineEdit (texto/entero/real/moneda) ---
+        if(auto* e = qobject_cast<QLineEdit*>(editor))
+        {
+            const QString t=e->text().trimmed();
+            QVariant toSet=t; // por defecto: texto
+
+            if(tipo_=="entero")
+            {
                 bool ok=false; const int iv = QLocale().toInt(t, &ok);
-                model->setData(index, ok ? QVariant(iv) : QVariant());
+                toSet=ok ? QVariant(iv) : QVariant();  // inválido -> QVariant()
+            }else if (tipo_=="real"||tipo_=="moneda"){
 
-            } else if (tipo_ == "real" || tipo_ == "moneda"){
                 bool ok=false; const double dv = QLocale().toDouble(t, &ok);
-                model->setData(index, ok ? QVariant(dv) : QVariant());
+                toSet = ok ? QVariant(dv) : QVariant();
 
             }else{
 
-                int mx=owner_?owner_->maxLenForCol_(col_):255;
-                mx=qBound(1,mx,255);
-                model->setData(index,t.left(mx));//recorta la longitud permitida
+                int mx =owner_?owner_->maxLenForCol_(col_):255;
+                mx= qBound(1,mx,255);
+                toSet= t.left(mx);
+
             }
-        }else if(auto* d = qobject_cast<QDateTimeEdit*>(editor)){
 
-            //Guardar SIEMPRE en ISO (con hora)
-            model->setData(index,d->dateTime().toString(Qt::ISODate));
+            validarYAsignar(toSet);
+            return;
+        }
 
-        } else if (auto* cb = qobject_cast<QComboBox*>(editor)) {
-            model->setData(index, cb->currentText());
+        // --- Editor QDateTimeEdit (fecha/hora) ---
+        if (auto* d = qobject_cast<QDateTimeEdit*>(editor)) {
+            // Guardar SIEMPRE en ISO (con hora)
+            const QVariant toSet = d->dateTime().toString(Qt::ISODate);
+            validarYAsignar(toSet);
+            return;
+        }
+
+        // --- Editor QComboBox (listas) ---
+        if (auto* cb = qobject_cast<QComboBox*>(editor)) {
+            const QVariant toSet = cb->currentText();
+            validarYAsignar(toSet);
+            return;
         }
     }
 
@@ -185,7 +220,7 @@ private:
 };
 
 // ===== VistaHojaDatos =====
-VistaHojaDatos::VistaHojaDatos(const QString& /*nombreTabla*/, QWidget* parent):QWidget(parent)
+VistaHojaDatos::VistaHojaDatos(const QString& nombreTabla, QWidget* parent):QWidget(parent)
 {
     auto*lay= new QVBoxLayout(this);
     lay->setContentsMargins(6,6,6,6);
@@ -193,6 +228,8 @@ VistaHojaDatos::VistaHojaDatos(const QString& /*nombreTabla*/, QWidget* parent):
 
     m_tabla=new QTableView(this);
     m_modelo=new QStandardItemModel(this);
+
+    m_nombreTabla=nombreTabla;
 
     m_modelo->setColumnCount(1);
     m_modelo->setHeaderData(0, Qt::Horizontal, QStringLiteral("Id"));
@@ -487,5 +524,11 @@ QString VistaHojaDatos::dateFormatForCol(int col) const
 {
 
     return m_dateFormatByCol.value(col,QStringLiteral("yyyy-MM-dd"));
+
+}
+QString VistaHojaDatos::headerForCol(int c)const
+{
+
+    return m_modelo?m_modelo->headerData(c,Qt::Horizontal).toString():QString();
 
 }
