@@ -52,9 +52,14 @@ public:
     ValidadorCelda m_validador;
     QString m_nombreTabla;
 
+    // Marca una fila como "eliminada": se limpia y queda disponible para reutilizacion
+    void eliminarFila(int r);
+    // Lectura del avail list (para debug/inspeccion)
+    const QVector<int>& huecosDisponibles() const { return m_availRows; }
+
 private:
-    void reconectarSignalsModelo_();
-    void asegurarFilaNuevaAlFinal_();
+    void reconectarSignalsModelo();
+    void asegurarFilaNuevaAlFinal();
 
 private:
 
@@ -68,5 +73,14 @@ private:
     QHash<int, QString> m_currencyByCol;   // col -> "HNL","USD","EUR"
     QStringList m_tiposPorCol;             // tipo lógico por columna
     QHash<int, QString> m_dateFormatByCol;//formato para fecha por columna
+
+    bool filaVacia(int r) const;
+    void recomputarHuecos();
+    void ocuparHuecoSiConviene(int editedRow);
+    void copiarFila(int from, int to);
+    void limpiarFila(int r);
+    void normalizarUltimaFilaNueva();
+
+    QVector<int> m_availRows; // índices de filas reutilizables (excluye la última "(Nuevo)")
 
 };

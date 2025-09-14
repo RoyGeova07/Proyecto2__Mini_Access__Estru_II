@@ -242,7 +242,7 @@ VistaHojaDatos::VistaHojaDatos(const QString& nombreTabla, QWidget* parent):QWid
     m_tabla->setEditTriggers(QAbstractItemView::AllEditTriggers);
     lay->addWidget(m_tabla);
 
-    reconectarSignalsModelo_();
+    reconectarSignalsModelo();
 
     auto* hh=m_tabla->horizontalHeader();
     hh->setSectionsClickable(true);
@@ -302,21 +302,7 @@ VistaHojaDatos::VistaHojaDatos(const QString& nombreTabla, QWidget* parent):QWid
         m_tabla->viewport()->update(); // refresca render
     });
 }
-
-void VistaHojaDatos::reconectarSignalsModelo_()
-{
-    disconnect(m_modelo, nullptr, this, nullptr);
-
-    connect(m_modelo, &QStandardItemModel::dataChanged, this,[this](const QModelIndex&, const QModelIndex&)
-            {
-                asegurarFilaNuevaAlFinal_();
-                emit datosCambiaron();
-            });
-    connect(m_modelo, &QStandardItemModel::rowsInserted, this,[this](const QModelIndex&, int, int){ emit datosCambiaron(); });
-    connect(m_modelo, &QStandardItemModel::rowsRemoved, this,[this](const QModelIndex&, int, int){ emit datosCambiaron(); });
-}
-
-void VistaHojaDatos::asegurarFilaNuevaAlFinal_()
+void VistaHojaDatos::asegurarFilaNuevaAlFinal()
 {
     int r = m_modelo->rowCount();
     if (r==0) { m_modelo->setRowCount(1); return; }
@@ -446,7 +432,7 @@ void VistaHojaDatos::reconstruirColumnas(const QList<Campo>& campos)
     // ===== 9) Ajustes de tabla y signals =====
     m_tabla->horizontalHeader()->setStretchLastSection(true);
     m_tabla->setEditTriggers(QAbstractItemView::AllEditTriggers);
-    reconectarSignalsModelo_();
+    reconectarSignalsModelo();
 }
 
 
@@ -559,3 +545,157 @@ QStringList VistaHojaDatos::tiposPorColumna()const
     return m_tiposPorCol;
 
 }
+void VistaHojaDatos::reconectarSignalsModelo()
+{
+
+    disconnect(m_modelo, nullptr, this, nullptr);
+
+    connect(m_modelo, &QStandardItemModel::dataChanged, this,[this](const QModelIndex& topLeft, const QModelIndex& bottomRight)
+    {
+        // 1) Mantener la fila "(Nuevo)" al final como ya lo hacías
+        asegurarFilaNuevaAlFinal();
+
+        // 2) Si el usuario acaba de "crear" un registro en la penultima fila,
+        //y existen huecos, mover ese nuevo registro al primer hueco disponible.
+        for(int r=topLeft.row();r<=bottomRight.row();++r)
+        {
+
+            ocuparHuecoSiConviene(r);
+
+        }
+
+        emit datosCambiaron();
+    });
+
+    connect(m_modelo, &QStandardItemModel::rowsInserted, this,[this](const QModelIndex&, int, int)
+    {
+        // Recalcula huecos por si cambian índices
+        recomputarHuecos();
+        emit datosCambiaron();
+    });
+
+    connect(m_modelo, &QStandardItemModel::rowsRemoved, this,[this](const QModelIndex&, int, int)
+    {
+        // Recalcula huecos por si cambian indices
+        recomputarHuecos();
+        emit datosCambiaron();
+    });
+
+    // En el (re)enganche recalculamos los huecos del estado actual
+    recomputarHuecos();
+
+}
+bool VistaHojaDatos::filaVacia(int r) const
+{
+    if(!m_modelo) return true;
+    if(r<0||r>=m_modelo->rowCount()) return true;
+    for(int c=0;c<m_modelo->columnCount();++c)
+    {
+        const QVariant v=m_modelo->index(r,c).data();
+        if (v.isValid()&&!v.toString().trimmed().isEmpty()) return false;
+    }
+    return true;
+}
+
+void VistaHojaDatos::recomputarHuecos()
+{
+    m_availRows.clear();
+    if(!m_modelo) return;
+    const int rows = m_modelo->rowCount();
+    const int last = rows - 1; // última es "(Nuevo)"
+    for(int r = 0; r < last; ++r)
+    {
+        if (filaVacia(r))
+            m_availRows.push_back(r);
+    }
+}
+
+void VistaHojaDatos::copiarFila(int from, int to)
+{
+    if(!m_modelo)return;
+    if(from==to)return;
+    const int cols = m_modelo->columnCount();
+    for(int c=0; c<cols;++c)
+    {
+        const QVariant v=m_modelo->index(from, c).data();
+        m_modelo->setData(m_modelo->index(to, c), v);
+    }
+}
+
+void VistaHojaDatos::limpiarFila(int r)
+{
+    if(!m_modelo) return;
+    const int cols = m_modelo->columnCount();
+    for(int c = 0; c < cols; ++c)
+        m_modelo->setData(m_modelo->index(r, c), QVariant());
+}
+
+void VistaHojaDatos::normalizarUltimaFilaNueva()
+{
+    //Garantiza que solo haya UNA fila vacua al final.
+    if(!m_modelo) return;
+    while(m_modelo->rowCount()>=2)
+    {
+        const int last=m_modelo->rowCount()-1;
+        const int plast=last-1;
+        if(filaVacia(last)&&filaVacia(plast))
+        {
+            //Quita la penultima vacia; deja la ultima como "(Nuevo)"
+            m_modelo->removeRow(plast);
+
+        }else{
+
+            break;
+
+        }
+    }
+}
+
+void VistaHojaDatos::ocuparHuecoSiConviene(int editedRow)
+{
+    if(!m_modelo) return;
+    // Condicion: el usuario acaba de llenar la "penultima" (la que provoca la nueva "(Nuevo)")
+    const int last = m_modelo->rowCount() - 1;
+    const int recienCreada = last - 1; // donde suele quedar el registro recien escrito
+
+    if(editedRow!=recienCreada) return;
+    if(m_availRows.isEmpty()) return;
+    if(filaVacia(recienCreada)) return; // nada que mover
+
+    // Tomar el primer hueco disponible (menor índice)
+    std::sort(m_availRows.begin(), m_availRows.end());
+    int hueco= m_availRows.front();
+    if(hueco==recienCreada)
+    {
+        // ya cayo justo en un hueco; no hay que mover
+        m_availRows.pop_front();
+        return;
+    }
+
+    // Mover datos: recienCreada -> hueco
+    copiarFila(recienCreada, hueco);
+    // Limpiar la recienCreada (que ahora ya no debe quedar como registro válido)
+    limpiarFila(recienCreada);
+
+    // Actualizar avail list:
+    // - 'hueco' ya está ocupado -> quitalo
+    m_availRows.pop_front();
+    // - 'recienCreada' está vacia -> ahora es un hueco
+    m_availRows.push_back(recienCreada);
+
+    // Mantener solo una fila "(Nuevo)" al final
+    normalizarUltimaFilaNueva();
+}
+
+void VistaHojaDatos::eliminarFila(int r)
+{
+    if(!m_modelo)return;
+    const int last = m_modelo->rowCount() - 1;
+    if(r<0||r>=last) return; //no borrar la ultima "(Nuevo)"
+
+    limpiarFila(r);
+    if(!m_availRows.contains(r))
+        m_availRows.push_back(r);
+    normalizarUltimaFilaNueva();
+}
+
