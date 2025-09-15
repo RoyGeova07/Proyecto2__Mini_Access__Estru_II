@@ -80,11 +80,9 @@ Makefile: ../../Proyecto2_Estru2_Mini_Access.pro C:/Qt/6.7.3/mingw_64/mkspecs/wi
 		C:/Qt/6.7.3/mingw_64/mkspecs/common/g++-win32.conf \
 		C:/Qt/6.7.3/mingw_64/mkspecs/common/windows-desktop.conf \
 		C:/Qt/6.7.3/mingw_64/mkspecs/qconfig.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_ext_archive.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_ext_freetype.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_ext_libjpeg.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_ext_libpng.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_ext_yaml.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_3danimation.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_3danimation_private.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_3dcore.pri \
@@ -111,26 +109,6 @@ Makefile: ../../Proyecto2_Estru2_Mini_Access.pro C:/Qt/6.7.3/mingw_64/mkspecs/wi
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_3drender_private.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_activeqt.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_activeqt_private.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_application_main_private.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_application_private.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_common_private.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_crypto_private.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_dbus_private.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_intent_client_private.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_intent_server_private.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_main_private.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_manager_private.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_monitor_private.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_package_private.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_plugininterfaces_private.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_qml.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_qml_application.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_qml_application_private.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_qml_private.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_qml_systemui.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_qml_systemui_private.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_shared_main_private.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_window_private.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_axbase_private.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_axcontainer.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_axcontainer_private.pri \
@@ -143,8 +121,6 @@ Makefile: ../../Proyecto2_Estru2_Mini_Access.pro C:/Qt/6.7.3/mingw_64/mkspecs/wi
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_charts_private.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_chartsqml.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_chartsqml_private.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_coap.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_coap_private.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_concurrent.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_concurrent_private.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_core.pri \
@@ -157,8 +133,6 @@ Makefile: ../../Proyecto2_Estru2_Mini_Access.pro C:/Qt/6.7.3/mingw_64/mkspecs/wi
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_datavisualizationqml_private.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_dbus.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_dbus_private.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_declarativeopcua.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_declarativeopcua_private.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_designer.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_designer_private.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_designercomponents_private.pri \
@@ -180,14 +154,10 @@ Makefile: ../../Proyecto2_Estru2_Mini_Access.pro C:/Qt/6.7.3/mingw_64/mkspecs/wi
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_help_private.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_httpserver.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_httpserver_private.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_ifremoteobjects_helper.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_ifremoteobjects_helper_private.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_insighttracker.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_insighttracker_private.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_insighttrackerqml.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_insighttrackerqml_private.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_interfaceframework.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_interfaceframework_private.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_jpeg_private.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_jsonrpc_private.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_labsanimation.pri \
@@ -206,8 +176,6 @@ Makefile: ../../Proyecto2_Estru2_Mini_Access.pro C:/Qt/6.7.3/mingw_64/mkspecs/wi
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_linguist.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_location.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_location_private.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_mqtt.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_mqtt_private.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_multimedia.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_multimedia_private.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_multimediaquick_private.pri \
@@ -219,8 +187,6 @@ Makefile: ../../Proyecto2_Estru2_Mini_Access.pro C:/Qt/6.7.3/mingw_64/mkspecs/wi
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_networkauth_private.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_nfc.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_nfc_private.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_opcua.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_opcua_private.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_opengl.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_opengl_private.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_openglwidgets.pri \
@@ -256,7 +222,6 @@ Makefile: ../../Proyecto2_Estru2_Mini_Access.pro C:/Qt/6.7.3/mingw_64/mkspecs/wi
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_qmlbuiltins_private.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_qmlcompiler.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_qmlcompiler_private.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_qmlcompilerplus_private.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_qmlcore.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_qmlcore_private.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_qmldebug_private.pri \
@@ -399,9 +364,6 @@ Makefile: ../../Proyecto2_Estru2_Mini_Access.pro C:/Qt/6.7.3/mingw_64/mkspecs/wi
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_virtualkeyboard_private.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_virtualkeyboardsettings.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_virtualkeyboardsettings_private.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_vncserver.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_vncserver_private.pri \
-		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_vncserverquick_private.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_webchannel.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_webchannel_private.pri \
 		C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_webchannelquick.pri \
@@ -464,11 +426,9 @@ C:/Qt/6.7.3/mingw_64/mkspecs/common/windows-vulkan.conf:
 C:/Qt/6.7.3/mingw_64/mkspecs/common/g++-win32.conf:
 C:/Qt/6.7.3/mingw_64/mkspecs/common/windows-desktop.conf:
 C:/Qt/6.7.3/mingw_64/mkspecs/qconfig.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_ext_archive.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_ext_freetype.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_ext_libjpeg.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_ext_libpng.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_ext_yaml.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_3danimation.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_3danimation_private.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_3dcore.pri:
@@ -495,26 +455,6 @@ C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_3drender.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_3drender_private.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_activeqt.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_activeqt_private.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_application_main_private.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_application_private.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_common_private.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_crypto_private.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_dbus_private.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_intent_client_private.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_intent_server_private.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_main_private.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_manager_private.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_monitor_private.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_package_private.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_plugininterfaces_private.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_qml.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_qml_application.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_qml_application_private.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_qml_private.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_qml_systemui.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_qml_systemui_private.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_shared_main_private.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_appman_window_private.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_axbase_private.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_axcontainer.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_axcontainer_private.pri:
@@ -527,8 +467,6 @@ C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_charts.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_charts_private.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_chartsqml.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_chartsqml_private.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_coap.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_coap_private.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_concurrent.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_concurrent_private.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_core.pri:
@@ -541,8 +479,6 @@ C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_datavisualizationqml.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_datavisualizationqml_private.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_dbus.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_dbus_private.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_declarativeopcua.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_declarativeopcua_private.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_designer.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_designer_private.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_designercomponents_private.pri:
@@ -564,14 +500,10 @@ C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_help.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_help_private.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_httpserver.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_httpserver_private.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_ifremoteobjects_helper.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_ifremoteobjects_helper_private.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_insighttracker.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_insighttracker_private.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_insighttrackerqml.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_insighttrackerqml_private.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_interfaceframework.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_interfaceframework_private.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_jpeg_private.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_jsonrpc_private.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_labsanimation.pri:
@@ -590,8 +522,6 @@ C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_languageserver_private.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_linguist.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_location.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_location_private.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_mqtt.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_mqtt_private.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_multimedia.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_multimedia_private.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_multimediaquick_private.pri:
@@ -603,8 +533,6 @@ C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_networkauth.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_networkauth_private.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_nfc.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_nfc_private.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_opcua.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_opcua_private.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_opengl.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_opengl_private.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_openglwidgets.pri:
@@ -640,7 +568,6 @@ C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_qmlbuiltins.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_qmlbuiltins_private.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_qmlcompiler.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_qmlcompiler_private.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_qmlcompilerplus_private.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_qmlcore.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_qmlcore_private.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_qmldebug_private.pri:
@@ -783,9 +710,6 @@ C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_virtualkeyboard.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_virtualkeyboard_private.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_virtualkeyboardsettings.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_virtualkeyboardsettings_private.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_vncserver.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_vncserver_private.pri:
-C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_vncserverquick_private.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_webchannel.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_webchannel_private.pri:
 C:/Qt/6.7.3/mingw_64/mkspecs/modules/qt_lib_webchannelquick.pri:

@@ -8,6 +8,7 @@ release/pestanatabla.o
 release/relacioneswidget.o
 release/relationitem.o
 release/ribbongroup.o
+release/schema.o
 release/tableitem.o
 release/ventanaprincipal.o
 release/vistadisenio.o

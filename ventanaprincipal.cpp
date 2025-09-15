@@ -99,6 +99,35 @@ VentanaPrincipal::VentanaPrincipal(QWidget*parent):QMainWindow(parent)
     });
 
 }
+void VentanaPrincipal::AbrirConsultas()
+{
+    for(int i=0;i<m_pestanas->count();++i)
+    {
+        if(m_pestanas->tabText(i)==tr("Consultas"))
+        {
+            m_pestanas->setCurrentIndex(i);
+            m_cinta->MostrarBotonClavePrimaria(false);
+            return;
+        }
+    }
+
+    auto* w = new ConsultaWidget(m_pestanas);
+    int idx = m_pestanas->addTab(w, QIcon(":/im/image/consultas.png"), tr("Consultas"));
+    m_pestanas->setCurrentIndex(idx);
+
+    // ⚠️ PROVEEDORES: sin esto, la rejilla aparece vacía.
+    w->setAllTablesProvider([this]{
+        return m_panel ? m_panel->todasLasTablas() : QStringList{};
+    });
+    w->setSchemaProvider([this](const QString& t){
+        return m_memTablas.contains(t) ? m_memTablas[t].schema : QList<Campo>{};
+    });
+    w->setRowsProvider([this](const QString& t){
+        return m_memTablas.contains(t) ? m_memTablas[t].rows   : QVector<QVector<QVariant>>{};
+    });
+
+
+}
 
 void VentanaPrincipal::crearTablaNueva()
 {
@@ -423,30 +452,6 @@ void VentanaPrincipal::AbrirRelaciones()
     }
     rel->MostrarSelectorTablas(tablas, true);
     m_cinta->MostrarBotonClavePrimaria(false);
-}
-
-
-void VentanaPrincipal::AbrirConsultas()
-{
-
-    for(int i=0;i<m_pestanas->count();++i)
-    {
-
-        if(m_pestanas->tabText(i)==tr("Consultas"))
-        {
-
-            m_pestanas->setCurrentIndex(i);
-            m_cinta->MostrarBotonClavePrimaria(false);//que no se vea el boton de la clave
-            return;
-
-        }
-
-    }
-    auto*w=new ConsultaWidget(m_pestanas);
-    int idx=m_pestanas->addTab(w,QIcon(":/im/image/consultas.png"),tr("Consultas"));
-    m_pestanas->setCurrentIndex(idx);
-    m_cinta->MostrarBotonClavePrimaria(false);//no quiero que se muestre la clave
-
 }
 
 void VentanaPrincipal::renombrarTablaPorSolicitud(const QString &viejo, const QString &nuevo)

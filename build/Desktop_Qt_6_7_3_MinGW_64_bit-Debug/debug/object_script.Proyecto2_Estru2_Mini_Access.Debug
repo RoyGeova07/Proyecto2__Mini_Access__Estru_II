@@ -8,6 +8,7 @@ debug/pestanatabla.o
 debug/relacioneswidget.o
 debug/relationitem.o
 debug/ribbongroup.o
+debug/schema.o
 debug/tableitem.o
 debug/ventanaprincipal.o
 debug/vistadisenio.o
