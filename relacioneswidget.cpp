@@ -649,79 +649,59 @@ bool RelacionesWidget::validarDatosExistentes(const QString& tablaOrigen, const 
     }
     return true;
 }
-bool RelacionesWidget::validarValorFK(const QString &tablaDestino, const QString &campoDestino, const QString &valor, QString *outError) const
+bool RelacionesWidget::validarValorFK(const QString& tablaDestino,const QString& campoDestino,const QString& valor,QString* outError) const
 {
-
-    //Si no tenemos proveedor de filas, no bloqueamos (igual que hoy)
     if(!m_proveedorFilas)return true;
 
-    //Busca relaciones donde este campo sea el DESTINO (lado "N" o 1:1)
-    for(auto it=m_relaciones.begin();it!=m_relaciones.end();++it)
+    for(auto it = m_relaciones.begin(); it != m_relaciones.end(); ++it)
     {
+        const Rel& r= it.value();
+        if(r.tablaD.compare(tablaDestino, Qt::CaseInsensitive)!=0)continue;
+        if(r.campoD.compare(campoDestino, Qt::CaseInsensitive)!=0)continue;
 
-        const Rel&r=it.value();
-        if(r.tablaD.compare(tablaDestino,Qt::CaseInsensitive)!=0)continue;
-        if(r.campoD.compare(campoDestino,Qt::CaseInsensitive)!=0)continue;
+        // columnas en origen/destino
+        const int colO =indiceColumna(r.tablaO, r.campoO);
+        const int colD= indiceColumna(r.tablaD, r.campoD);
+        if(colO<0||colD<0)continue;
 
-        //Columnas en origen/destino
-        const int colO=indiceColumna(r.tablaO,r.campoO);
-        const int colD=indiceColumna(r.tablaD,r.campoD);
+        //filas actuales
+        auto filasO= m_proveedorFilas(r.tablaO);
+        auto filasD =m_proveedorFilas(r.tablaD);
 
-        if(colO<0||colD<0)continue;//esquema inconsistente -> no bloquear
-
-        //Filas actuales
-        QVector<QVector<QVariant>> filasO=m_proveedorFilas(r.tablaO);
-        QVector<QVector<QVariant>> filasD=m_proveedorFilas(r.tablaD);
-
-        //Recorta la iltima fila en blanco (igual que haces en otras validaciones)
-        auto trimUltimaVacia=[](QVector<QVector<QVariant>>& vv)
+        auto trimUltimaVacia =[](QVector<QVector<QVariant>>& vv)
         {
-            if(vv.isEmpty())return;
-            const auto&ult=vv.last();
-            bool vacia=true;
-            for(const auto&x:ult)
+            if(vv.isEmpty()) return;
+            const auto& ult= vv.last();
+            bool vacia =true;
+            for(const auto& x : ult)
             {
-
-                if(x.isValid()&&!x.toString().trimmed().isEmpty()){vacia=false;break;}
-
+                if (x.isValid() && !x.toString().trimmed().isEmpty()) { vacia=false; break; }
             }
-            if(vacia)vv.removeLast();
+            if(vacia) vv.removeLast();
         };
         trimUltimaVacia(filasO);
         trimUltimaVacia(filasD);
 
-        //permite null/vacio destino
+        //Access permite vacio en FK si no es obligatorio
         const QString v=valor.trimmed();
-        if(v.isEmpty())return true;
+        if(v.isEmpty()) return true;
 
-        //Conjunto de claves válidas en ORIGEN
+        //conjunto de claves validas en ORIGEN
         QSet<QString> clavesO;
         clavesO.reserve(filasO.size());
-        for(const auto&f:filasO)
+        for(const auto& f : filasO)
         {
-
-            const QString vv=f.value(colO).toString().trimmed();
-            if(!vv.isEmpty())clavesO.insert(vv);
-
+            const QString vv = f.value(colO).toString().trimmed();
+            if (!vv.isEmpty()) clavesO.insert(vv);
         }
-        //¿Existe en Origen?
         if(!clavesO.contains(v))
         {
-
             if(outError)
             {
-
-                *outError=tr("No se puede agregar o cambiar el registro porque se necesita un registro relacionado en la tabla '%1'.").arg(r.tablaO);
-
+                *outError= tr("No se puede agregar o cambiar el registro porque se necesita ""un registro relacionado en la tabla '%1'.").arg(r.tablaO);
             }
             return false;
-
         }
-        //si sirve para el 1:1 despues lo agregare
-
     }
-    //si no hay relacion que afecte a (tablaDestino,campoDestino), no se bloqueaaaa
     return true;
-
 }
-

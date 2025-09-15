@@ -100,68 +100,102 @@ public:
 
     void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const override
     {
-        //Helper: valida contra relaciones (si hay validador) y, si pasa, asigna el valor al modelo
+        // --- helper: ¿duplicado en PK? (tratamos la PK como la columna 0) ---
+        auto esDuplicadoPK = [&](const QVariant& v) -> bool
+        {
+            if(col_!=0) return false;//solo en PK (columna 0)
+            const QString nv = v.toString().trimmed();
+            if(nv.isEmpty()) return false;//permite vacio si así lo quieres
+            const int rows =model->rowCount();
+            for(int r = 0; r < rows; ++r)
+            {
+                if(r==index.row()) continue;//ignora la fila editada
+                const QVariant cur =model->index(r,0).data();
+                if (!cur.isValid()) continue;
+                const QString cv=cur.toString().trimmed();
+                if(cv.isEmpty()) continue;
+
+                // Igualdad robusta: numérica si se puede, si no compare texto
+                bool ok1=false, ok2=false;
+                const double d1 =nv.toDouble(&ok1);
+                const double d2= cv.toDouble(&ok2);
+                if((ok1 && ok2 && qFuzzyCompare(1.0+d1,1.0+d2))||
+                    (!ok1||!ok2)&& (QString::compare(nv, cv, Qt::CaseInsensitive)==0))
+                    return true;
+            }
+            return false;
+        };
+
+        // --- helper: valida FK (si hay validador) y asigna ---
         auto validarYAsignar = [&](const QVariant& v) -> bool
         {
-            if(owner_&& owner_->m_validador)
+            // 1) Duplicados en PK -> bloquear y mostrar mensaje estilo Access
+            if(esDuplicadoPK(v))
             {
-                //Nombre del campo (header). Si no hay helper, caemos al header del modelo.
-                const QString campo=owner_? owner_->headerForCol(col_): model->headerData(col_,Qt::Horizontal).toString();
+                QMessageBox::warning(const_cast<VistaHojaDatos*>(owner_),QObject::tr("Microsoft Access"),QObject::tr("Los cambios solicitados en la tabla no se realizaron correctamente porque crearían valores duplicados en el índice, clave principal o relación. Cambie los datos en el campo o los campos que contienen datos duplicados, quite el índice o vuelva a definirlo para permitir entradas duplicadas e inténtelo de nuevo."));
+                return false;
+            }
 
+            //2) Validacion de relaciones (si la tienes activada)
+            if(owner_ && owner_->m_validador)
+            {
+                const QString campo =owner_?owner_->headerForCol(col_):model->headerData(col_, Qt::Horizontal).toString();
                 QString err;
-                const bool okFK=owner_->m_validador(owner_->m_nombreTabla, campo, v, &err);
-                if(!okFK)
+                if(!owner_->m_validador(owner_->m_nombreTabla, campo, v, &err))
                 {
-                    QMessageBox::warning(const_cast<VistaHojaDatos*>(owner_),QObject::tr("Microsoft Access"),err);
-                    return false; // NO guardar el valor
+                    QMessageBox::warning(const_cast<VistaHojaDatos*>(owner_),QObject::tr("Microsoft Access"), err);
+                    return false;
                 }
             }
+
+            // 3) OK -> guardar en el modelo
             model->setData(index, v);
             return true;
         };
 
         // --- Editor QLineEdit (texto/entero/real/moneda) ---
-        if(auto* e = qobject_cast<QLineEdit*>(editor))
+        if(auto* e =qobject_cast<QLineEdit*>(editor))
         {
-            const QString t=e->text().trimmed();
-            QVariant toSet=t; // por defecto: texto
+            const QString t= e->text().trimmed();
+            QVariant toSet =t; // texto por defecto
 
-            if(tipo_=="entero")
+            if(tipo_ =="entero")
             {
                 bool ok=false; const int iv = QLocale().toInt(t, &ok);
-                toSet=ok ? QVariant(iv) : QVariant();  // inválido -> QVariant()
-            }else if (tipo_=="real"||tipo_=="moneda"){
+                toSet = ok ? QVariant(iv):QVariant();
+            }else if (tipo_ == "real"||tipo_=="moneda"){
 
-                bool ok=false; const double dv = QLocale().toDouble(t, &ok);
-                toSet = ok ? QVariant(dv) : QVariant();
+                bool ok=false; const double dv=QLocale().toDouble(t, &ok);
+                toSet =ok ? QVariant(dv):QVariant();
 
             }else{
 
-                int mx =owner_?owner_->maxLenForCol_(col_):255;
-                mx= qBound(1,mx,255);
-                toSet= t.left(mx);
+                int mx= owner_?owner_->maxLenForCol_(col_):255;
+                mx =qBound(1, mx, 255);
+                toSet=t.left(mx);
 
             }
-
             validarYAsignar(toSet);
             return;
         }
 
         // --- Editor QDateTimeEdit (fecha/hora) ---
-        if (auto* d = qobject_cast<QDateTimeEdit*>(editor)) {
-            // Guardar SIEMPRE en ISO (con hora)
-            const QVariant toSet = d->dateTime().toString(Qt::ISODate);
+        if(auto* d =qobject_cast<QDateTimeEdit*>(editor))
+        {
+            const QVariant toSet =d->dateTime().toString(Qt::ISODate); // ISO siempre
             validarYAsignar(toSet);
             return;
         }
 
-        // --- Editor QComboBox (listas) ---
-        if (auto* cb = qobject_cast<QComboBox*>(editor)) {
-            const QVariant toSet = cb->currentText();
+        // --- Editor QComboBox (booleano, etc.) ---
+        if(auto*cb= qobject_cast<QComboBox*>(editor))
+        {
+            const QVariant toSet =cb->currentText();
             validarYAsignar(toSet);
             return;
         }
     }
+
 
     QString displayText(const QVariant& value, const QLocale& locale) const override {
         if (tipo_ == "moneda") {

@@ -10,6 +10,8 @@ class PestanaTabla;
 #include <QHash>
 #include "vistadisenio.h"   // por 'Campo'
 #include <QVariant>
+#include"relacioneswidget.h"
+#include"vistahojadatos.h"
 
 struct TablaSnapshot
 {
@@ -57,6 +59,7 @@ private:
     int m_contadorTablas=1;
 
     void abrirOTraerAPrimerPlano(const QString& nombre);
+    void instalarValidadorFKEn(PestanaTabla* pt);
 
 };
 

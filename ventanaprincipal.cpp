@@ -9,7 +9,6 @@
 #include<QIcon>
 #include<QInputDialog>
 #include<QRegularExpression>
-#include"relacioneswidget.h"
 #include"consultawidget.h"
 #include"accesstheme.h"
 #include<QFrame>
@@ -168,46 +167,54 @@ void VentanaPrincipal::abrirTablaDesdeLista(const QString&nombre)
 
 void VentanaPrincipal::abrirOTraerAPrimerPlano(const QString& nombre)
 {
-    for(int i=0; i<m_pestanas->count(); ++i)
-    {
+    for (int i = 0; i < m_pestanas->count(); ++i) {
+        if (m_pestanas->tabText(i) == nombre) {
+            m_pestanas->setCurrentIndex(i);
 
-        if (m_pestanas->tabText(i) == nombre) { m_pestanas->setCurrentIndex(i); return; }
+            // <-- Asegura validador si ya estaba abierta
+            if (auto* pt = qobject_cast<PestanaTabla*>(m_pestanas->currentWidget()))
+                instalarValidadorFKEn(pt);
 
+            return;
+        }
     }
 
     auto* vista = new PestanaTabla(nombre, m_pestanas);
 
-    if (m_memTablas.contains(nombre))
-    {
-
+    if (m_memTablas.contains(nombre)) {
         const auto& snap = m_memTablas[nombre];
         vista->cargarSnapshot(snap.schema, snap.rows);
-
     }
 
-    connect(vista, &PestanaTabla::estadoCambioSolicitado,this,[this,vista]()
-    {
-
-        const QString nombreActual=vista->nombreTabla();
+    connect(vista, &PestanaTabla::estadoCambioSolicitado, this, [this, vista]() {
+        const QString nombreActual = vista->nombreTabla();
         TablaSnapshot s;
-        s.schema=vista->esquemaActual();
-        s.rows=vista->filasActuales();
-        m_memTablas[nombreActual]=std::move(s);
-
+        s.schema = vista->esquemaActual();
+        s.rows   = vista->filasActuales();
+        m_memTablas[nombreActual] = std::move(s);
         emit esquemaTablaCambiado(nombreActual, m_memTablas[nombreActual].schema);
     });
 
-    const int idx = m_pestanas->addTab(vista,QIcon(":/im/image/tabla.png"),nombre);
+    const int idx = m_pestanas->addTab(vista, QIcon(":/im/image/tabla.png"), nombre);
     m_pestanas->setCurrentIndex(idx);
 
-    //Si ya tenemos esquema guardado, emitir señal inicial
-    if(m_memTablas.contains(nombre))
-    {
+    // <-- **CLAVE**: instala el validador de FK para esta hoja
+    instalarValidadorFKEn(vista);
 
-        emit esquemaTablaCambiado(nombre,m_memTablas[nombre].schema);
-
+    // Si ya tenemos esquema guardado, emitir señal inicial
+    if (m_memTablas.contains(nombre)) {
+        emit esquemaTablaCambiado(nombre, m_memTablas[nombre].schema);
     }
 
+    // Opcional pero útil: si cambias de pestaña, re-instala el validador en la hoja activa
+    static bool hook = false;
+    if (!hook) {
+        hook = true;
+        connect(m_pestanas, &QTabWidget::currentChanged, this, [this](int) {
+            if (auto* pt = qobject_cast<PestanaTabla*>(m_pestanas->currentWidget()))
+                instalarValidadorFKEn(pt);
+        });
+    }
 }
 
 void VentanaPrincipal::cerrarPestana(int idx)
@@ -240,20 +247,18 @@ void VentanaPrincipal::mostrarHojaDatosActual()
         p->mostrarHojaDatos();
         if(auto*hoja=p->hojaDatosWidget())
         {
-            hoja->setValidadorCelda([this](const QString& tabla,const QString& campo,const QVariant& valor,QString* msg) -> bool
-            {
+            hoja->setValidadorCelda([this](const QString& tabla,const QString& campo,
+                                           const QVariant& valor,QString* msg) -> bool {
                 // Busca un RelacionesWidget abierto
-                RelacionesWidget*rel=nullptr;
-                for(int i=0;i<m_pestanas->count();++i)
-                {
-                    rel=qobject_cast<RelacionesWidget*>(m_pestanas->widget(i));
-                    if(rel) break;
+                RelacionesWidget* rel = nullptr;
+                for (int i = 0; i < m_pestanas->count(); ++i) {
+                    rel = qobject_cast<RelacionesWidget*>(m_pestanas->widget(i));
+                    if (rel) break;
                 }
-                if(!rel)return true;//si no esta abierto, no bloqueamos
+                if (!rel) return true; // si no está abierto, no bloqueamos
 
-                //Validar contra las relaciones declaradas
-                const QString v=valor.toString();
-                return rel->validarValorFK(tabla,campo,v,msg);
+                const QString v = valor.toString();
+                return rel->validarValorFK(tabla, campo, v, msg);
             });
         }
         if(statusBar())
@@ -411,6 +416,11 @@ void VentanaPrincipal::AbrirRelaciones()
     });
 
     const QStringList tablas = m_panel ? m_panel->todasLasTablas() : QStringList{};
+    for (int i = 0; i < m_pestanas->count(); ++i) {
+        if (auto* pt = qobject_cast<PestanaTabla*>(m_pestanas->widget(i))) {
+            instalarValidadorFKEn(pt);
+        }
+    }
     rel->MostrarSelectorTablas(tablas, true);
     m_cinta->MostrarBotonClavePrimaria(false);
 }
@@ -485,3 +495,31 @@ void VentanaPrincipal::renombrarTablaPorSolicitud(const QString &viejo, const QS
     emit tablaRenombradaSignal(viejo, nuevo);
 
 }
+void VentanaPrincipal::instalarValidadorFKEn(PestanaTabla* pt)
+{
+    if (!pt) return;
+
+    //Si la hoja de datos no existe (p.ej. esta en "Diseño"),
+    //no hacemos nada; se instalara cuando llames mostrarHojaDatosActual().
+    auto*hoja= pt->hojaDatosWidget();
+    if(!hoja)return;
+
+    //Buscar un RelacionesWidget abierto (si no hay, no bloqueamos)
+    RelacionesWidget* rel=nullptr;
+    for(int i =0; i<m_pestanas->count(); ++i)
+    {
+        rel= qobject_cast<RelacionesWidget*>(m_pestanas->widget(i));
+        if(rel) break;
+    }
+    if(!rel)return;
+
+    // Instalar el validador que usa RelacionesWidget::validarValorFK(...)
+    hoja->setValidadorCelda([this, rel](const QString& tabla,const QString& campo,const QVariant& valor,QString* msg) -> bool
+    {
+
+        const QString v=valor.toString();
+        return rel->validarValorFK(tabla,campo,v,msg);
+
+    });
+}
+
