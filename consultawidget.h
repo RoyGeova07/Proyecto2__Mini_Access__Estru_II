@@ -5,9 +5,11 @@
 #include <QVector>
 #include <QVariant>
 #include <QStringList>
+#include <QMap>
 #include <QSet>
 #include <functional>
 #include "schema.h"
+#include "tableitem.h"
 
 class QTableWidget;
 class QGraphicsView;
@@ -16,6 +18,7 @@ class QSplitter;
 class QPushButton;
 class QTableView;
 class QStandardItemModel;
+class QComboBox;
 
 class ConsultaWidget : public QWidget
 {
@@ -23,45 +26,24 @@ class ConsultaWidget : public QWidget
 public:
     explicit ConsultaWidget(QWidget* parent = nullptr);
 
-    // Proveedores (¡conéctalos en VentanaPrincipal!)
+    // Proveedores: conéctalos desde VentanaPrincipal
     void setAllTablesProvider(std::function<QStringList()> fn);
     void setSchemaProvider(std::function<QList<Campo>(const QString&)> fn);
     void setRowsProvider(std::function<QVector<QVector<QVariant>>(const QString&)> fn);
+
+    // Abrir el selector de tablas
     void MostrarSelectorTablas(const QStringList& tablas, bool soloSiPrimeraVez=false);
 
 signals:
-    void info(const QString&); // opcional
+    void info(const QString&);    // opcional (estado en barra)
+    void ejecutar();              // no usado, pero disponible
 
 private slots:
     void onEjecutar();
     void onVolver();
-    void onAgregarConsulta();//esta funcion abre el selector de tablas
+    void onAgregarConsulta();     // abre el selector de tablas
 
 private:
-
-    // ================== B-Tree tipado ==================
-    void fillCamposForRow_(int r);
-    bool rowIsEmpty_(int r) const;
-    int  selectedFieldCountForTable_(const QString& tabla) const;
-    void pruneEmptyTopRows_();
-    template<typename K>
-    struct BTreeT {
-        // nodo solo para cumplir el requerimiento (no usado en ejecución)
-        struct nodo { bool hoja=true; QList<K> claves; QList<nodo*> hijos; nodo* padre=nullptr; };
-        void clear(){ map_.clear(); }
-        void insert(const K& k, int r){ map_[k].append(r); }
-        QList<int> eq(const K& k) const           { return map_.value(k); }
-        QList<int> lt(const K& k) const           { QList<int> o; for(auto it=map_.cbegin(); it!=map_.cend()&&it.key()<k; ++it) o+=it.value(); return o; }
-        QList<int> lte(const K& k) const          { QList<int> o; for(auto it=map_.cbegin(); it!=map_.cend()&&it.key()<=k; ++it) o+=it.value(); return o; }
-        QList<int> gt(const K& k) const           { QList<int> o; for(auto it=map_.upperBound(k); it!=map_.cend(); ++it) o+=it.value(); return o; }
-        QList<int> gte(const K& k) const          { QList<int> o; for(auto it=map_.lowerBound(k); it!=map_.cend(); ++it) o+=it.value(); return o; }
-        template<typename P> QList<int> like(const P& pred) const { QList<int> o; for(auto it=map_.cbegin(); it!=map_.cend(); ++it) if(pred(it.key())) o+=it.value(); return o; }
-    private:
-        QMap<K, QList<int>> map_;
-    };
-    void asegurarUnaFilaParaTabla(const QString&tabla);
-    bool m_selectorMostrado=false;
-
     // ================== estructuras de rejilla ==================
     struct ColSpec {
         QString tabla;
@@ -69,7 +51,7 @@ private:
         QString orden;   // Ninguno | Ascendente | Descendente
         bool    mostrar = true;
         QString criterio;
-        bool tieneCriterio = false;
+        bool    tieneCriterio = false;
     };
 
     struct ResolvedTable {
@@ -87,46 +69,70 @@ private:
         bool valid=false;
     };
 
-private:
-    // UI
-    QSplitter*           m_split=nullptr;
-    QWidget*             m_designArea=nullptr;
-    QGraphicsView*       m_view=nullptr;
-    QGraphicsScene*      m_scene=nullptr;
-    QTableWidget*        m_grid=nullptr;
-    QPushButton*         m_btnRun=nullptr;
-    QPushButton*         m_btnBack=nullptr;
-    QWidget*             m_resultsPanel=nullptr;
-    QTableView*          m_resultsView=nullptr;
-    QStandardItemModel*  m_resultsModel=nullptr;
-    QPushButton*m_btnAdd=nullptr;
+    template<typename K>
+    struct BTreeT {
+        // nodo solo para cumplir el requerimiento (no usado en ejecución)
+        struct nodo { bool hoja=true; QList<K> claves; QList<nodo*> hijos; nodo* padre=nullptr; };
+        void clear(){ map_.clear(); }
+        void insert(const K& k, int r){ map_[k].append(r); }
+        QList<int> eq(const K& k)  const { return map_.value(k); }
+        QList<int> lt(const K& k)  const { QList<int> o; for(auto it=map_.cbegin(); it!=map_.cend()&&it.key()<k;  ++it) o+=it.value(); return o; }
+        QList<int> lte(const K& k) const { QList<int> o; for(auto it=map_.cbegin(); it!=map_.cend()&&it.key()<=k; ++it) o+=it.value(); return o; }
+        QList<int> gt(const K& k)  const { QList<int> o; for(auto it=map_.upperBound(k); it!=map_.cend();        ++it) o+=it.value(); return o; }
+        QList<int> gte(const K& k) const { QList<int> o; for(auto it=map_.lowerBound(k); it!=map_.cend();        ++it) o+=it.value(); return o; }
+        template<typename P> QList<int> like(const P& pred) const { QList<int> o; for(auto it=map_.cbegin(); it!=map_.cend(); ++it) if(pred(it.key())) o+=it.value(); return o; }
+    private:
+        QMap<K, QList<int>> map_;
+    };
 
-    // proveedores
+private:
+    // ========= Proveedores conectados desde fuera =========
     std::function<QStringList()> m_allTables;
     std::function<QList<Campo>(const QString&)> m_schemaOf;
     std::function<QVector<QVector<QVariant>>(const QString&)> m_rowsOf;
 
-    // helpers UI
+    // ========= UI =========
+    QSplitter*           m_split          = nullptr;   // diseño (arriba/abajo)
+    QGraphicsView*       m_view           = nullptr;
+    QGraphicsScene*      m_scene          = nullptr;
+    QTableWidget*        m_grid           = nullptr;   // rejilla Access (filas fijas / columnas dinámicas)
+    QPushButton*         m_btnRun         = nullptr;   // Ejecutar
+    QPushButton*         m_btnBack        = nullptr;   // Vista Diseño
+    QPushButton*         m_btnAdd         = nullptr;   // + Agregar consultas
+
+    QWidget*             m_resultsPanel   = nullptr;
+    QTableView*          m_resultsView    = nullptr;
+    QStandardItemModel*  m_resultsModel   = nullptr;
+
+    QHash<QString, TableItem*> m_cards;   // tarjetas visibles en el lienzo
+    bool m_selectorMostrado=false;
+
+    // ========= helpers UI =========
     void buildUi_();
-    void ensureRow_(int r);
-    void populateRow_(int r);
-    void refreshDiagram_();
+    void createColumn_(int c);
+    void wireColumn_(int c);
+    void refillCampoCombo_(QComboBox* cbCampo, const QString& tabla);
+    bool columnIsEmpty_(int c) const;
+    void ensureOneEmptyColumn_();
     QStringList currentTables_() const;
+    void refreshDiagram_();
+    void agregarTablaAlLienzo_(const QString& nombreTabla);
+    QStringList usedFieldsForTable_(const QString& tabla) const;
+    void asegurarUnaFilaParaTabla(const QString& tabla);
+    int  selectedFieldCountForTable_(const QString& tabla) const;
+    int  schemaFieldCount_(const QString& tabla) const;
     QList<ColSpec> readSpec_() const;
-
-    // datos
+    int selectedFieldCountForTableExcluding_(const QString& tabla, int excludeCol) const;
+    // ========= datos / ejecución =========
     bool resolveTables_(const QList<ColSpec>& cols, QMap<QString, ResolvedTable>& out, QString* err) const;
-
-    // criterios
     Crit parseCrit_(const QString& raw, const QString& tipoCampo) const;
-
-    // filtrado por tabla usando B-trees tipados
     QVector<int> filterTableWithIndexes_(const ResolvedTable& T, const QList<ColSpec>& specs, QString* err) const;
 
     // proyección + orden + distinct + rellenar modelo resultados
     static QString makeDistinctKey_(const QVector<QVariant>& row, const QList<int>& cols);
     void buildResults_(const QList<ColSpec>& cols, const QMap<QString, ResolvedTable>& tabs, QString* err);
 
+    // util
     static bool isEmpty_(const QVariant& v){ return (!v.isValid() || v.toString().trimmed().isEmpty()); }
 };
 

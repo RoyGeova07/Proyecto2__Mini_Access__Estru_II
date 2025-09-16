@@ -18,248 +18,531 @@
 #include <QTableView>
 #include <QMessageBox>
 #include <QIcon>
-#include <QSet>
-#include <algorithm>
-#include<QDialog>
-#include<QDialogButtonBox>
-#include<QListWidget>
-#include<QTabWidget>
-#include"tableitem.h"   // tarjetas de tabla (como en Relaciones)
+#include <QDialog>
+#include <QDialogButtonBox>
+#include <QListWidget>
+#include <QTabWidget>
 
 // ====== API pública ======
-ConsultaWidget::ConsultaWidget(QWidget* parent) : QWidget(parent)
-{
+ConsultaWidget::ConsultaWidget(QWidget* parent): QWidget(parent) {
     buildUi_();
-    ensureRow_(0);
+    ensureOneEmptyColumn_();
 }
+
+// ¿columna sin nada? (helper; NO dupes si ya lo tienes)
+bool ConsultaWidget::columnIsEmpty_(int c) const {
+    if (!m_grid) return true;
+    auto* cbT = qobject_cast<QComboBox*>(m_grid->cellWidget(1, c)); // fila "Tabla"
+    auto* cbC = qobject_cast<QComboBox*>(m_grid->cellWidget(0, c)); // fila "Campo"
+    if (!cbT || !cbC) return true;
+    return cbT->currentText().trimmed().isEmpty() && cbC->currentText().trimmed().isEmpty();
+}
+
+// Mantener EXACTAMENTE UNA columna vacía al final (estilo Access)
+void ConsultaWidget::ensureOneEmptyColumn_() {
+    if (!m_grid) return;
+
+    // 1) elimina columnas vacías que no sean la última
+    for (int c = 0; c < m_grid->columnCount() - 1; ++c) {
+        if (columnIsEmpty_(c)) { m_grid->removeColumn(c); --c; }
+    }
+
+    // 2) si no hay columnas, crea la primera
+    if (m_grid->columnCount() == 0) {
+        createColumn_(0);
+        return;
+    }
+
+    // 3) si la última ya tiene algo, crea una nueva vacía al final
+    const int last = m_grid->columnCount() - 1;
+    if (!columnIsEmpty_(last)) {
+        createColumn_(m_grid->columnCount());
+    }
+}
+
+// Redibuja las tarjetas (arriba) según las tablas presentes en la rejilla
+void ConsultaWidget::refreshDiagram_() {
+    if (!m_scene) return;
+
+    m_scene->clear();
+    m_cards.clear();
+
+    // Tablas únicas actualmente seleccionadas en la rejilla
+    const QStringList tabs = currentTables_();
+
+    int x = 24, y = 16, col = 0;
+    for (const auto& t : tabs) {
+        const QList<Campo> schema = m_schemaOf ? m_schemaOf(t) : QList<Campo>{};
+
+        auto* item = new TableItem(t, schema);
+        item->setPos(x, y);
+        m_scene->addItem(item);
+        m_cards.insert(t, item);
+
+        // Permitir “arrastrar campo” desde la tarjeta para autollenar la rejilla
+        connect(item, &TableItem::soltarCampoSobre, this,
+                [=](const QString& /*tablaO*/, const QString& campoO,
+                    const QString&, const QString&) {
+                    // crear una nueva columna al final y preseleccionar Tabla/Campo
+                    const int c = m_grid->columnCount();
+                    createColumn_(c);
+
+                    auto* cbT = qobject_cast<QComboBox*>(m_grid->cellWidget(1, c)); // fila “Tabla”
+                    auto* cbC = qobject_cast<QComboBox*>(m_grid->cellWidget(0, c)); // fila “Campo”
+                    if (cbT) {
+                        int idxT = cbT->findText(t, Qt::MatchFixedString);
+                        if (idxT < 0) { cbT->addItem(t); idxT = cbT->findText(t, Qt::MatchFixedString); }
+                        cbT->setCurrentIndex(idxT < 0 ? 0 : idxT);
+                    }
+                    if (cbC) {
+                        refillCampoCombo_(cbC, t);
+                        int idxC = cbC->findText(campoO, Qt::MatchFixedString);
+                        if (idxC >= 0) cbC->setCurrentIndex(idxC);
+                        else if (cbC->count() > 0) cbC->setCurrentIndex(0);
+                    }
+                    ensureOneEmptyColumn_();
+                });
+
+        // layout simple en grilla 3xN
+        x += 260; ++col;
+        if (col == 3) { col = 0; x = 24; y += 200; }
+    }
+}
+
 
 void ConsultaWidget::setAllTablesProvider(std::function<QStringList()> fn){ m_allTables=std::move(fn); }
 void ConsultaWidget::setSchemaProvider(std::function<QList<Campo>(const QString&)> fn){ m_schemaOf=std::move(fn); }
 void ConsultaWidget::setRowsProvider(std::function<QVector<QVector<QVariant>>(const QString&)> fn){ m_rowsOf=std::move(fn); }
 
 // ====== UI ======
-void ConsultaWidget::buildUi_()
-{
-    auto* root = new QVBoxLayout(this);
-    root->setContentsMargins(0,0,0,0);
-    root->setSpacing(0);
+void ConsultaWidget::buildUi_() {
+    auto* lay = new QVBoxLayout(this);
+    lay->setContentsMargins(10,10,10,10);
+    lay->setSpacing(8);
 
-    // barra superior
+    // barra superior estilo Access (botones)
     {
-        auto* top = new QWidget(this);
-        auto* h = new QHBoxLayout(top); h->setContentsMargins(8,6,8,6);
-        auto* title = new QLabel(tr("Diseño de consulta"), top);
-        title->setStyleSheet("color:#A4373A;font-weight:700;");
-        h->addWidget(title); h->addStretch();
+        auto* strip = new QWidget(this);
+        auto* h = new QHBoxLayout(strip);
+        h->setContentsMargins(0,0,0,0);
+        h->setSpacing(8);
 
-        m_btnRun= new QPushButton(tr("Ejecutar"), top);
-        m_btnRun->setObjectName("btnRun");
-        m_btnRun->setIcon(QIcon(":/im/image/play.png"));
-
-        m_btnBack = new QPushButton(tr("Ver (Regresar)"), top);
-        m_btnBack->setObjectName("btnBack");
-        m_btnBack->setIcon(QIcon(":/im/image/ver.png"));
+        m_btnAdd  = new QPushButton(tr("+ Agregar consultas"), strip);
+        m_btnRun  = new QPushButton(tr("Ejecutar"), strip);
+        m_btnBack = new QPushButton(tr("Vista Diseño"), strip);
         m_btnBack->setEnabled(false);
 
-        m_btnAdd=new QPushButton(tr("+ Agregar Consultas"),top);
-        m_btnAdd->setObjectName("btnAddConsulta");
-        m_btnAdd->setToolTip(tr("Agregar tablas a esta consulta (abrir selector)"));
-        m_btnAdd->setCursor(Qt::PointingHandCursor);
-
         h->addWidget(m_btnAdd);
+        h->addStretch(1);
         h->addWidget(m_btnRun);
         h->addWidget(m_btnBack);
-        root->addWidget(top);
+        lay->addWidget(strip);
 
-        // Estilo claro de boton (borde, fondo, hover)
-        top->setStyleSheet(R"(
-          QPushButton#btnAddConsulta, QPushButton#btnRun, QPushButton#btnBack {
-            background: #f7f7f7;
-            border: 1px solid #c9c9c9;
-            border-radius: 8px;
-            padding: 6px 12px;
-            font-weight: 600;
-          }
-          QPushButton#btnAddConsulta:hover, QPushButton#btnRun:hover, QPushButton#btnBack:hover {
-            background: #ffffff;
-          }
-          QPushButton#btnAddConsulta:pressed, QPushButton#btnRun:pressed, QPushButton#btnBack:pressed {
-            background: #ececec;
-          }
-          QPushButton#btnAddConsulta:disabled, QPushButton#btnRun:disabled, QPushButton#btnBack:disabled {
-            color: #888;
-          }
-        )");
-
-
-        connect(m_btnAdd,&QPushButton::clicked,this,&ConsultaWidget::onAgregarConsulta);
-        connect(m_btnRun,&QPushButton::clicked,this,&ConsultaWidget::onEjecutar);
-        connect(m_btnBack,&QPushButton::clicked,this,&ConsultaWidget::onVolver);
+        connect(m_btnAdd,  &QPushButton::clicked, this, &ConsultaWidget::onAgregarConsulta);
+        connect(m_btnRun,  &QPushButton::clicked, this, &ConsultaWidget::onEjecutar);
+        connect(m_btnBack, &QPushButton::clicked, this, &ConsultaWidget::onVolver);
     }
 
-    // zona diseño (arriba diagrama / abajo rejilla)
+    // superficie superior (tarjetas)
+    m_scene = new QGraphicsScene(this);
+    m_view  = new QGraphicsView(m_scene, this);
+    m_view->setRenderHint(QPainter::Antialiasing, true);
+    m_view->setBackgroundBrush(QColor("#f3f3f3"));
+    m_view->setMinimumHeight(260);
+
+    // rejilla inferior (transpuesta)
+    m_grid = new QTableWidget(this);
+    m_grid->setRowCount(6);
+    QStringList filas = {tr("Campo"), tr("Tabla"), tr("Orden"), tr("Mostrar"), tr("Criterio"), tr("o:")};
+    m_grid->setVerticalHeaderLabels(filas);
+    m_grid->setColumnCount(0);
+    m_grid->horizontalHeader()->setDefaultSectionSize(180);
+    m_grid->verticalHeader()->setDefaultSectionSize(28);
+    m_grid->setAlternatingRowColors(true);
+    m_grid->setShowGrid(true);
+    m_grid->setSelectionMode(QAbstractItemView::NoSelection);
+    m_grid->setFocusPolicy(Qt::NoFocus);
+
+    // splitter
     m_split = new QSplitter(Qt::Vertical, this);
-    root->addWidget(m_split, 1);
+    m_split->addWidget(m_view);
+    m_split->addWidget(m_grid);
+    m_split->setStretchFactor(0, 3);
+    m_split->setStretchFactor(1, 2);
+    lay->addWidget(m_split, 1);
 
-    // diagrama
-    {
-        m_designArea = new QWidget(m_split);
-        auto* v = new QVBoxLayout(m_designArea); v->setContentsMargins(8,4,8,4);
-        m_view = new QGraphicsView(m_designArea);
-        m_scene = new QGraphicsScene(m_view);
-        m_view->setScene(m_scene);
-        m_view->setRenderHint(QPainter::Antialiasing, true);
-        m_view->setBackgroundBrush(QColor("#e6e6e6"));
-        v->addWidget(m_view, 1);
-    }
-
-    // rejilla
-    {
-        m_grid = new QTableWidget(0, 5, m_split);
-        m_grid->setHorizontalHeaderLabels({ tr("Campo"), tr("Tabla"), tr("Orden"), tr("Mostrar"), tr("Criterio") });
-        m_grid->horizontalHeader()->setStretchLastSection(true);
-        m_grid->verticalHeader()->setVisible(false);
-        m_grid->setAlternatingRowColors(true);
-    }
-
-    // panel de resultados (oculto hasta ejecutar)
+    // panel de resultados
     m_resultsPanel = new QWidget(this);
-    {
-        auto* v = new QVBoxLayout(m_resultsPanel); v->setContentsMargins(0,0,0,0);
-        m_resultsModel = new QStandardItemModel(m_resultsPanel);
-        m_resultsView  = new QTableView(m_resultsPanel);
-        m_resultsView->setModel(m_resultsModel);
-        m_resultsView->horizontalHeader()->setStretchLastSection(true);
-        v->addWidget(m_resultsView);
-        m_resultsPanel->setVisible(false);
-        root->addWidget(m_resultsPanel, 1);
-    }
+    auto* rlay = new QVBoxLayout(m_resultsPanel);
+    rlay->setContentsMargins(0,0,0,0);
+    rlay->setSpacing(6);
+    m_resultsView  = new QTableView(m_resultsPanel);
+    m_resultsModel = new QStandardItemModel(m_resultsView);
+    m_resultsView->setModel(m_resultsModel);
+    rlay->addWidget(m_resultsView);
+    m_resultsPanel->setVisible(false);
+    lay->addWidget(m_resultsPanel, 1);
+
+    // QSS para “look Access”
+    setStyleSheet(R"(
+      QGraphicsView { border: 1px solid #d9d9d9; }
+      QTableWidget { gridline-color:#dcdcdc; alternate-background-color:#fafafa; }
+      QHeaderView::section { background:#f4f0f0; padding:6px; border:1px solid #d8d8d8; font-weight:600; }
+      QTableCornerButton::section { background:#f4f0f0; border: 1px solid #d8d8d8; }
+      QTableWidget QLineEdit { border:1px solid #cfcfcf; padding:3px; }
+      QTableWidget QComboBox { border:1px solid #cfcfcf; padding:2px 18px 2px 6px; }
+      QTableWidget::item { padding:2px; }
+    )");
 }
 
-void ConsultaWidget::ensureRow_(int r)
-{
-    if (r < m_grid->rowCount()) return;
-    m_grid->insertRow(r);
-    populateRow_(r);
-}
-void ConsultaWidget::populateRow_(int r)
-{
-    // Campo
+// crea la columna 'c' con los 6 controles
+void ConsultaWidget::createColumn_(int c) {
+    m_grid->insertColumn(c);
+    m_grid->horizontalHeader()->setSectionResizeMode(c, QHeaderView::Fixed);
+    m_grid->setHorizontalHeaderItem(c, new QTableWidgetItem(QString())); // encabezado en blanco
+
+    // --- fila 1: Campo ---
     auto* cbCampo = new QComboBox(m_grid); cbCampo->setEditable(false);
+    cbCampo->setInsertPolicy(QComboBox::NoInsert);
+    m_grid->setCellWidget(0, c, cbCampo);
 
-    // Tabla
-    auto* cbTabla = new QComboBox(m_grid); cbTabla->setEditable(false);
-    cbTabla->addItem(QString()); // opción vacía arriba
-    QStringList tablas;
-    if (m_allTables) tablas = m_allTables();
-    for (const auto& t : tablas) cbTabla->addItem(t);
+    // --- fila 2: Tabla ---
+    auto* cbTabla = new QComboBox(m_grid);
+    cbTabla->addItem(QString()); // vacío
+    if (m_allTables) {
+        const auto tabs = m_allTables();
+        for (const auto& t : tabs) cbTabla->addItem(t);
+    }
+    m_grid->setCellWidget(1, c, cbTabla);
 
-    // Autopreselección si hay SOLO una tabla
-    if (tablas.size() == 1) cbTabla->setCurrentIndex(1); // 0 = vacío
-
-    // Orden
+    // --- fila 3: Orden ---
     auto* cbOrden = new QComboBox(m_grid);
-    cbOrden->addItems({ tr("Ninguno"), tr("Ascendente"), tr("Descendente") });
+    cbOrden->addItems({tr("Ninguno"), tr("Ascendente"), tr("Descendente")});
+    m_grid->setCellWidget(2, c, cbOrden);
 
-    // Mostrar
+    // --- fila 4: Mostrar ---
     auto* chk = new QCheckBox(m_grid); chk->setChecked(true);
+    chk->setStyleSheet("margin-left: 12px;");
+    QWidget* cellChk = new QWidget(m_grid);
+    { auto* l = new QHBoxLayout(cellChk); l->setContentsMargins(0,0,0,0); l->addWidget(chk); l->addStretch(); }
+    m_grid->setCellWidget(3, c, cellChk);
 
-    // Criterio
-    auto* e = new QLineEdit(m_grid);
+    // --- fila 5: Criterio ---
+    m_grid->setCellWidget(4, c, new QLineEdit(m_grid));
+    // --- fila 6: o: ---
+    m_grid->setCellWidget(5, c, new QLineEdit(m_grid));
 
-    m_grid->setCellWidget(r, 0, cbCampo);
-    m_grid->setCellWidget(r, 1, cbTabla);
-    m_grid->setCellWidget(r, 2, cbOrden);
-    m_grid->setCellWidget(r, 3, chk);
-    m_grid->setCellWidget(r, 4, e);
-
-    // ——— Enlaces ———
-    auto repoblar = [=](){
-        fillCamposForRow_(r);
-        refreshDiagram_();
-    };
-    connect(cbTabla, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [=](int){
-        repoblar();
-        pruneEmptyTopRows_(); // si la fila de arriba quedó vacía, se quita
-    });
-    connect(cbTabla, &QComboBox::currentTextChanged, this, [=](const QString&){
-        repoblar();
-        pruneEmptyTopRows_();
-    });
-
-    // Crear nueva fila SOLO cuando:
-    //  - estás en la última fila
-    //  - hay tabla y campo seleccionados
-    //  - y todavía quedan campos disponibles en esa tabla (no repetimos más de los que existen)
-    auto ensureNewSmart = [=]{
-        if (r != m_grid->rowCount()-1) return;
-
-        const QString t = cbTabla->currentText().trimmed();
-        const QString c = cbCampo->currentText().trimmed();
-        if (t.isEmpty() || c.isEmpty() || !m_schemaOf) return;
-
-        const auto schema = m_schemaOf(t);
-        const int used    = selectedFieldCountForTable_(t);
-        if (used >= schema.size()) return;                 // no más filas: ya están todos los campos
-        ensureRow_(m_grid->rowCount());                    // ahora sí, crea la siguiente fila
-    };
-    connect(cbTabla, &QComboBox::activated, this, [=](int){ ensureNewSmart(); });
-    connect(cbCampo, &QComboBox::activated, this, [=](int){ ensureNewSmart(); });
-
-    // Si ya quedó preseleccionada la única tabla, carga de una vez los campos
-    fillCamposForRow_(r);
+    wireColumn_(c);
 }
 
-QStringList ConsultaWidget::currentTables_() const
-{
-    QSet<QString> s;
-    for (int r=0; r<m_grid->rowCount(); ++r){
-        if (auto* cb = qobject_cast<QComboBox*>(m_grid->cellWidget(r,1))){
-            const QString t = cb->currentText().trimmed();
-            if (!t.isEmpty()) s.insert(t);
+// rellena el combo de campos según tabla
+void ConsultaWidget::refillCampoCombo_(QComboBox* cbCampo, const QString& tabla) {
+    if (!cbCampo) return;
+    cbCampo->blockSignals(true);
+    cbCampo->clear();
+
+    if (m_schemaOf && !tabla.trimmed().isEmpty()) {
+        cbCampo->addItem(QString());                 // opción vacía (—)
+        for (const auto& c : m_schemaOf(tabla))      // agrega campos
+            cbCampo->addItem(c.nombre);
+        cbCampo->setCurrentIndex(0);                 // queda en blanco
+    }
+
+    cbCampo->blockSignals(false);
+}
+int ConsultaWidget::selectedFieldCountForTableExcluding_(const QString& tabla, int excludeCol) const {
+    int cnt = 0;
+    for (int c = 0; c < m_grid->columnCount(); ++c) {
+        if (c == excludeCol) continue;
+        auto* cbT = qobject_cast<QComboBox*>(m_grid->cellWidget(1, c)); // Tabla
+        auto* cbC = qobject_cast<QComboBox*>(m_grid->cellWidget(0, c)); // Campo
+        if (!cbT || !cbC) continue;
+        if (cbT->currentText().trimmed() == tabla && !cbC->currentText().trimmed().isEmpty())
+            ++cnt;
+    }
+    return cnt;
+}
+
+
+// conecta cambios para comportamiento Access
+void ConsultaWidget::wireColumn_(int c) {
+    auto* cbCampo = qobject_cast<QComboBox*>(m_grid->cellWidget(0, c));
+    auto* cbTabla = qobject_cast<QComboBox*>(m_grid->cellWidget(1, c));
+    if (!cbCampo || !cbTabla) return;
+
+    // al elegir tabla → cargar campos y validar
+    connect(cbTabla, &QComboBox::currentTextChanged, this, [=](const QString& t){
+        // 1) cargar lista de campos (con opción vacía; no auto-seleccionar)
+        refillCampoCombo_(cbCampo, t);
+
+        // 2) validación: ¿ya están todos los campos de esa tabla en otras columnas?
+        if (!t.isEmpty()) {
+            const int used  = selectedFieldCountForTableExcluding_(t, c);
+            const int total = schemaFieldCount_(t);
+            if (total > 0 && used >= total) {
+                QMessageBox::information(this, tr("Consultas"),
+                                         tr("Todos los campos de '%1' ya están agregados.").arg(t));
+                // revertir selección y dejar el combo Campo vacío
+                cbTabla->blockSignals(true);
+                cbTabla->setCurrentIndex(0);
+                cbTabla->blockSignals(false);
+
+                if (cbCampo) {
+                    cbCampo->blockSignals(true);
+                    cbCampo->clear();
+                    cbCampo->blockSignals(false);
+                }
+                return;
+            }
         }
-    }
-    return s.values();
+
+        // 3) comportamiento Access: mantener 1 columna vacía y actualizar tarjetas
+        ensureOneEmptyColumn_();
+        refreshDiagram_();
+    });
+
+    // al elegir campo → si esta es la última columna, crear otra vacía (estilo Access)
+    connect(cbCampo, &QComboBox::currentTextChanged, this, [=](const QString&){
+        ensureOneEmptyColumn_();
+    });
 }
 
-void ConsultaWidget::refreshDiagram_()
+
+// --- Agrega (o enfoca) la tarjeta de una tabla en el diagrama superior ---
+void ConsultaWidget::agregarTablaAlLienzo_(const QString& nombreTabla)
 {
-    m_scene->clear();
-    const QStringList tabs = currentTables_();
-    int x=24, y=16;
-    for (const auto& t : tabs){
-        QList<Campo> schema = m_schemaOf ? m_schemaOf(t) : QList<Campo>{};
-        auto* item = new TableItem(t, schema);
-        item->setPos(x,y);
-        m_scene->addItem(item);
-        x += 260; if (x > 820){ x=24; y+=220; }
+    if (!m_schemaOf) return;
+
+    // Si ya existe, solo la seleccionamos
+    if (m_cards.contains(nombreTabla)) {
+        if (auto* it = m_cards.value(nombreTabla)) it->setSelected(true);
+        return;
     }
+
+    // Crear la tarjeta con el esquema actual de la tabla
+    QList<Campo> schema = m_schemaOf(nombreTabla);
+    auto* card = new TableItem(nombreTabla, schema);
+
+    // Posición en una cuadrícula simple
+    const int n = m_scene ? m_scene->items().size() : 0;
+    const int col = n % 3;
+    const int row = n / 3;
+    const int dx  = 220;     // separación horizontal
+    const int dy  = 160;     // separación vertical
+    const int x0  = 40;
+    const int y0  = 40;
+    card->setPos(x0 + col*dx, y0 + row*dy);
+
+    if (m_scene) m_scene->addItem(card);
+    m_cards.insert(nombreTabla, card);
+
+    // Permitir “arrastrar campo” desde la tarjeta para autollenar la rejilla
+    connect(card, &TableItem::soltarCampoSobre, this,
+            [=](const QString& /*tablaO*/, const QString& campoO,
+                const QString&, const QString&) {
+                // crear una nueva columna al final y preseleccionar Tabla/Campo
+                const int c = m_grid->columnCount();
+                createColumn_(c);
+
+                auto* cbT = qobject_cast<QComboBox*>(m_grid->cellWidget(1, c)); // fila “Tabla”
+                auto* cbC = qobject_cast<QComboBox*>(m_grid->cellWidget(0, c)); // fila “Campo”
+                if (cbT) {
+                    int idxT = cbT->findText(nombreTabla, Qt::MatchFixedString);
+                    if (idxT < 0) { cbT->addItem(nombreTabla); idxT = cbT->findText(nombreTabla, Qt::MatchFixedString); }
+                    cbT->setCurrentIndex(idxT < 0 ? 0 : idxT);
+                }
+                if (cbC) {
+                    refillCampoCombo_(cbC, nombreTabla);
+                    int idxC = cbC->findText(campoO, Qt::MatchFixedString);
+                    if (idxC >= 0) cbC->setCurrentIndex(idxC);
+                    else if (cbC->count() > 0) cbC->setCurrentIndex(0);
+                }
+                ensureOneEmptyColumn_();
+            });
+}
+// Devuelve la lista de campos ya usados (seleccionados) para una tabla en la rejilla
+QStringList ConsultaWidget::usedFieldsForTable_(const QString& tabla) const
+{
+    QStringList used;
+    if (!m_grid) return used;
+
+    for (int r = 0; r < m_grid->rowCount(); ++r) {
+        auto* cbT = qobject_cast<QComboBox*>(m_grid->cellWidget(r, 1));
+        auto* cbC = qobject_cast<QComboBox*>(m_grid->cellWidget(r, 0));
+        if (!cbT || !cbC) continue;
+        if (cbT->currentText().trimmed().compare(tabla, Qt::CaseInsensitive) != 0) continue;
+        const QString c = cbC->currentText().trimmed();
+        if (!c.isEmpty()) used << c;
+    }
+    return used;
+}
+// Asegura una NUEVA columna para 'tabla' y preselecciona el próximo campo libre.
+// Si ya están todos los campos de esa tabla, muestra un mensaje y no agrega.
+void ConsultaWidget::asegurarUnaFilaParaTabla(const QString& tabla)
+{
+    if (!m_grid || !m_schemaOf) return;
+
+    const auto schema = m_schemaOf(tabla);
+    const int total   = schema.size();
+    if (total <= 0) return;
+
+    // ¿cuántos campos de esa tabla ya están seleccionados en la rejilla?
+    const QStringList usados = usedFieldsForTable_(tabla);
+    if (usados.size() >= total) {
+        QMessageBox::information(this, tr("Consultas"),
+                                 tr("Todos los campos de '%1' ya están agregados.").arg(tabla));
+        return;
+    }
+
+    // Siempre mantener exactamente 1 columna vacía al final
+    ensureOneEmptyColumn_();
+    int last = m_grid->columnCount() - 1;             // índice de la columna vacía
+    if (last < 0) { createColumn_(0); last = 0; }
+
+    // Widgets de la columna vacía
+    auto* cbTabla = qobject_cast<QComboBox*>(m_grid->cellWidget(1, last)); // fila "Tabla"
+    auto* cbCampo = qobject_cast<QComboBox*>(m_grid->cellWidget(0, last)); // fila "Campo"
+    if (!cbTabla || !cbCampo) return;
+
+    // Seleccionar tabla
+    int idxT = cbTabla->findText(tabla, Qt::MatchFixedString);
+    if (idxT < 0) { cbTabla->addItem(tabla); idxT = cbTabla->findText(tabla, Qt::MatchFixedString); }
+    cbTabla->setCurrentIndex(idxT < 0 ? 0 : idxT);
+
+    // Rellenar campos de esa tabla
+    refillCampoCombo_(cbCampo, tabla);
+
+    // Elegir el PRÓXIMO campo no usado
+    int pick = -1;
+    for (int i = 0; i < cbCampo->count(); ++i) {
+        const QString nombreCampo = cbCampo->itemText(i).trimmed();
+        bool repetido = false;
+        for (const auto& u : usados)
+            if (QString::compare(u, nombreCampo, Qt::CaseInsensitive) == 0) { repetido = true; break; }
+        if (!repetido) { pick = i; break; }
+    }
+    if (pick >= 0) cbCampo->setCurrentIndex(pick);
+    else if (cbCampo->count() > 0) cbCampo->setCurrentIndex(0);
+
+    // Deja nuevamente una columna vacía al final y refresca el diagrama
+    ensureOneEmptyColumn_();
+    refreshDiagram_();
+}
+// ======= Selector de tablas =======
+void ConsultaWidget::MostrarSelectorTablas(const QStringList& tablas, bool soloSiPrimeraVez)
+{
+    if (soloSiPrimeraVez && m_selectorMostrado) return;
+    if (tablas.isEmpty()) { m_selectorMostrado = true; return; }
+
+    QDialog dlg(this);
+    dlg.setWindowTitle(tr("Mostrar tabla"));
+    dlg.resize(460, 520);
+
+    auto* lay  = new QVBoxLayout(&dlg);
+    auto* tabs = new QTabWidget(&dlg);
+
+    auto* listTablas = new QListWidget(&dlg);
+    listTablas->addItems(tablas);
+    listTablas->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    tabs->addTab(listTablas, tr("Tablas"));
+
+    // Placeholder para consultas guardadas
+    auto* listConsultas = new QListWidget(&dlg);
+    tabs->addTab(listConsultas, tr("Consultas"));
+
+    auto* listAmbas = new QListWidget(&dlg);
+    listAmbas->addItems(tablas);
+    listAmbas->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    tabs->addTab(listAmbas, tr("Ambas"));
+
+    lay->addWidget(tabs);
+
+    auto* box = new QDialogButtonBox(&dlg);
+    box->addButton(tr("Agregar"), QDialogButtonBox::AcceptRole)->setDefault(true);
+    box->addButton(tr("Cerrar"),  QDialogButtonBox::RejectRole);
+    connect(box, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
+    connect(box, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
+    lay->addWidget(box);
+
+    if (dlg.exec() == QDialog::Accepted) {
+        QStringList seleccion;
+        auto collect = [&](QListWidget* lw) {
+            for (auto* it : lw->selectedItems()) seleccion << it->text();
+        };
+        if (tabs->currentIndex() == 0)      collect(listTablas);
+        else if (tabs->currentIndex() == 1) collect(listConsultas);
+        else                                 collect(listAmbas);
+
+        for (const QString& t : std::as_const(seleccion)) {
+            // ✅ Validación: ¿ya están todos los campos de esa tabla en la rejilla?
+            const int used  = selectedFieldCountForTable_(t);
+            const int total = schemaFieldCount_(t);
+            if (total > 0 && used >= total) {
+                QMessageBox::information(this, tr("Consultas"),
+                                         tr("Todos los campos de '%1' ya aparecen en la vista.").arg(t));
+                continue;
+            }
+
+            // Añade/Enfoca la tarjeta en el diagrama superior
+            agregarTablaAlLienzo_(t);
+
+            // Si la última columna de la rejilla está vacía, preselecciona la tabla y su primer campo
+            int last = m_grid->columnCount() - 1;
+            if (last < 0) { createColumn_(0); last = 0; }
+
+            auto* cbTabla = qobject_cast<QComboBox*>(m_grid->cellWidget(1, last)); // fila "Tabla"
+            auto* cbCampo = qobject_cast<QComboBox*>(m_grid->cellWidget(0, last)); // fila "Campo"
+
+            if (cbTabla && cbCampo && cbTabla->currentText().trimmed().isEmpty()) {
+                int idx = cbTabla->findText(t, Qt::MatchFixedString);
+                if (idx < 0) { cbTabla->addItem(t); idx = cbTabla->findText(t, Qt::MatchFixedString); }
+                cbTabla->setCurrentIndex(idx < 0 ? 0 : idx);
+
+                // Rellenar campos y elegir el primero
+                refillCampoCombo_(cbCampo, t);
+                if (cbCampo->count() > 0) cbCampo->setCurrentIndex(0);
+
+                // Asegurar siempre una columna vacía al final
+                ensureOneEmptyColumn_();
+            }
+        }
+
+        // Redibuja tarjetas según tablas presentes en la rejilla
+        refreshDiagram_();
+    }
+
+    m_selectorMostrado = true;
 }
 
+
+// ==== Lectura de especificación desde la rejilla ====
 QList<ConsultaWidget::ColSpec> ConsultaWidget::readSpec_() const
 {
     QList<ColSpec> out;
-    for(int r=0; r<m_grid->rowCount(); ++r){
-        auto* cbCampo = qobject_cast<QComboBox*>(m_grid->cellWidget(r,0));
-        auto* cbTabla = qobject_cast<QComboBox*>(m_grid->cellWidget(r,1));
-        auto* cbOrden = qobject_cast<QComboBox*>(m_grid->cellWidget(r,2));
-        auto* chk     = qobject_cast<QCheckBox*>(m_grid->cellWidget(r,3));
-        auto* eCrit   = qobject_cast<QLineEdit*>(m_grid->cellWidget(r,4));
+
+    const int cols = m_grid->columnCount();
+    for (int c=0; c<cols; ++c) {
+        auto* cbCampo = qobject_cast<QComboBox*>(m_grid->cellWidget(0,c));
+        auto* cbTabla = qobject_cast<QComboBox*>(m_grid->cellWidget(1,c));
+        auto* cbOrden = qobject_cast<QComboBox*>(m_grid->cellWidget(2,c));
+        auto* cellChk = m_grid->cellWidget(3,c);
+        auto* chk     = cellChk ? cellChk->findChild<QCheckBox*>() : nullptr;
+        auto* eCrit   = qobject_cast<QLineEdit*>(m_grid->cellWidget(4,c));
+        // fila 5 ("o:") no la interpretamos en esta versión
+
         if(!cbCampo || !cbTabla || !cbOrden || !chk || !eCrit) continue;
 
         const QString t = cbTabla->currentText().trimmed();
-        QString c = cbCampo->currentText().trimmed();
-        if (c.isEmpty() && !t.isEmpty() && m_schemaOf) {
+        QString cfield  = cbCampo->currentText().trimmed();
+        if (cfield.isEmpty() && !t.isEmpty() && m_schemaOf) {
             const auto sch = m_schemaOf(t);
-            if (!sch.isEmpty()) c = sch.first().nombre;
+            if (!sch.isEmpty()) cfield = sch.first().nombre;
         }
-        if (t.isEmpty() || c.isEmpty()) continue;
-
-
+        if (t.isEmpty() || cfield.isEmpty()) continue;
 
         ColSpec s;
         s.tabla   = t;
-        s.campo   = c;
+        s.campo   = cfield;
         s.orden   = cbOrden->currentText();
         s.mostrar = chk->isChecked();
         s.criterio= eCrit->text().trimmed();
@@ -267,31 +550,6 @@ QList<ConsultaWidget::ColSpec> ConsultaWidget::readSpec_() const
         out.push_back(s);
     }
     return out;
-}
-
-bool ConsultaWidget::resolveTables_(const QList<ColSpec>& cols, QMap<QString, ResolvedTable>& out, QString* err) const
-{
-    out.clear();
-    QSet<QString> tnames; for(const auto& c : cols) tnames.insert(c.tabla);
-    for(const auto& t : tnames){
-        ResolvedTable R; R.name = t;
-        R.schema = m_schemaOf? m_schemaOf(t) : QList<Campo>{};
-        for(const auto& c : R.schema) R.headers << c.nombre;
-
-        R.rows   = m_rowsOf ? m_rowsOf(t) : QVector<QVector<QVariant>>{};
-        // quitar posible última vacía
-        if (!R.rows.isEmpty()){
-            bool lastEmpty=true;
-            for (const auto& v : R.rows.last()) if(!isEmpty_(v)){ lastEmpty=false; break; }
-            if (lastEmpty) R.rows.removeLast();
-        }
-        out.insert(t, std::move(R));
-    }
-    if (out.isEmpty()){
-        if (err) *err = tr("No hay tablas seleccionadas.");
-        return false;
-    }
-    return true;
 }
 
 // ===================== Criterios =====================
@@ -333,13 +591,12 @@ ConsultaWidget::Crit ConsultaWidget::parseCrit_(const QString& raw, const QStrin
         if(!ok) return c;
         c.rhs = v; c.valid=true;
     } else if (t=="fecha"){
-        // admitir yyyy-MM-dd o ISO completo
         QDateTime dt = QDateTime::fromString(rhs, Qt::ISODate);
         if(!dt.isValid()){
             dt = QDateTime(QDate::fromString(rhs, "yyyy-MM-dd"), QTime(0,0,0));
         }
         if(!dt.isValid()) return c;
-        c.rhs = dt.toMSecsSinceEpoch(); c.valid=true; // comparamos por epoch
+        c.rhs = dt.toMSecsSinceEpoch(); c.valid=true;
     } else if (t=="booleano"){
         const QString v = rhs.toLower();
         if (v=="1"||v=="true"||v=="si"||v=="sí"){ c.rhs=true;  c.valid=true; }
@@ -371,11 +628,10 @@ QVector<int> ConsultaWidget::filterTableWithIndexes_(
     struct Ix {
         int col=-1; QString tipo;
         Op op=Op::NONE; QVariant rhs; QString rhsTxt;
-        // índices tipados
-        BTreeT<int>    bix;   // entero/booleano
-        BTreeT<double> dix;   // real/moneda
-        BTreeT<qint64> tix;   // fecha epoch
-        BTreeT<QString> six;  // texto lower
+        BTreeT<int>     bix;   // entero/booleano
+        BTreeT<double>  dix;   // real/moneda
+        BTreeT<qint64>  tix;   // fecha epoch
+        BTreeT<QString> six;   // texto lower
     };
     QVector<Ix> idxs;
 
@@ -408,7 +664,6 @@ QVector<int> ConsultaWidget::filterTableWithIndexes_(
             }
         } else if (tipo=="fecha"){
             for (int r=0; r<T.rows.size(); ++r){
-                // aceptar “yyyy-MM-dd” o ISO
                 const QString sdt = T.rows[r].value(c).toString().trimmed();
                 QDateTime dt = QDateTime::fromString(sdt, Qt::ISODate);
                 if(!dt.isValid()){
@@ -550,73 +805,31 @@ after_first:
     std::sort(out.begin(), out.end());
     return out;
 }
-bool ConsultaWidget::rowIsEmpty_(int r) const
+
+// ========= Resolve tablas =========
+bool ConsultaWidget::resolveTables_(const QList<ColSpec>& cols, QMap<QString, ResolvedTable>& out, QString* err) const
 {
-    if (!m_grid || r < 0 || r >= m_grid->rowCount()) return true;
-    auto* cbCampo = qobject_cast<QComboBox*>(m_grid->cellWidget(r, 0));
-    auto* cbTabla = qobject_cast<QComboBox*>(m_grid->cellWidget(r, 1));
-    auto* cbOrden = qobject_cast<QComboBox*>(m_grid->cellWidget(r, 2));
-    auto* chkMost = qobject_cast<QCheckBox*>(m_grid->cellWidget(r, 3));
-    auto* eCrit   = qobject_cast<QLineEdit*>(m_grid->cellWidget(r, 4));
+    out.clear();
+    QSet<QString> tnames; for(const auto& c : cols) tnames.insert(c.tabla);
+    for(const auto& t : tnames){
+        ResolvedTable R; R.name = t;
+        R.schema = m_schemaOf? m_schemaOf(t) : QList<Campo>{};
+        for(const auto& c : R.schema) R.headers << c.nombre;
 
-    const bool emptyCampo = !cbCampo || cbCampo->currentText().trimmed().isEmpty();
-    const bool emptyTabla = !cbTabla || cbTabla->currentText().trimmed().isEmpty();
-    const bool noneOrden  = !cbOrden || cbOrden->currentIndex() == 0;
-    const bool showOn     = !chkMost || chkMost->isChecked();
-    const bool critEmpty  = !eCrit   || eCrit->text().trimmed().isEmpty();
-    return emptyCampo && emptyTabla && noneOrden && showOn && critEmpty;
-}
-
-int ConsultaWidget::selectedFieldCountForTable_(const QString& tabla) const
-{
-    if (!m_grid) return 0;
-    int cnt = 0;
-    for (int r = 0; r < m_grid->rowCount(); ++r) {
-        auto* cbT = qobject_cast<QComboBox*>(m_grid->cellWidget(r, 1));
-        auto* cbC = qobject_cast<QComboBox*>(m_grid->cellWidget(r, 0));
-        if (!cbT || !cbC) continue;
-        if (cbT->currentText().trimmed() == tabla && !cbC->currentText().trimmed().isEmpty())
-            ++cnt;
-    }
-    return cnt;
-}
-
-void ConsultaWidget::fillCamposForRow_(int r)
-{
-    if (!m_grid || r < 0 || r >= m_grid->rowCount()) return;
-
-    auto* cbTabla = qobject_cast<QComboBox*>(m_grid->cellWidget(r, 1));
-    auto* cbCampo = qobject_cast<QComboBox*>(m_grid->cellWidget(r, 0));
-    if (!cbTabla || !cbCampo) return;
-
-    const QString t = cbTabla->currentText().trimmed();
-
-    cbCampo->blockSignals(true);
-    cbCampo->clear();
-
-    if (!t.isEmpty() && m_schemaOf) {
-        const auto schema = m_schemaOf(t);
-        for (const auto& c : schema) cbCampo->addItem(c.nombre);
-        // Si hay campos, preselecciona el primero (evita la “primera fila gris”)
-        if (cbCampo->count() > 0 && cbCampo->currentIndex() < 0)
-            cbCampo->setCurrentIndex(0);
-    }
-
-    cbCampo->blockSignals(false);
-}
-
-void ConsultaWidget::pruneEmptyTopRows_()
-{
-    if (!m_grid) return;
-    // Mantener SIEMPRE una fila vacía al final (estilo Access)
-    for (int r = 0; r < m_grid->rowCount()-1; /*no++*/) {
-        if (rowIsEmpty_(r)) {
-            m_grid->removeRow(r);
-            // no avanzamos el índice: la siguiente fila “subió”
-        } else {
-            ++r;
+        R.rows   = m_rowsOf ? m_rowsOf(t) : QVector<QVector<QVariant>>{};
+        // quitar posible última vacía
+        if (!R.rows.isEmpty()){
+            bool lastEmpty=true;
+            for (const auto& v : R.rows.last()) if(!isEmpty_(v)){ lastEmpty=false; break; }
+            if (lastEmpty) R.rows.removeLast();
         }
+        out.insert(t, std::move(R));
     }
+    if (out.isEmpty()){
+        if (err) *err = tr("No hay tablas seleccionadas.");
+        return false;
+    }
+    return true;
 }
 
 // ===================== Resultados =====================
@@ -627,58 +840,86 @@ QString ConsultaWidget::makeDistinctKey_(const QVector<QVariant>& row, const QLi
     return parts.join(QChar(0x1F));
 }
 
-void ConsultaWidget::buildResults_(const QList<ColSpec>& cols, const QMap<QString, ResolvedTable>& tabs, QString* err)
+void ConsultaWidget::buildResults_(const QList<ColSpec>& cols,
+                                   const QMap<QString, ResolvedTable>& tabs,
+                                   QString* err)
 {
     Q_UNUSED(err);
 
-    // 1) headers (en orden de la rejilla y solo “Mostrar”)
+    // 1) Cabeceras globales en orden de la rejilla (solo Mostrar)
     QStringList headers;
-    for (const auto& s : cols) if (s.mostrar) headers << s.campo;
+    struct GC { QString tabla, campo; };
+    QVector<GC> glob; glob.reserve(cols.size());
+    for (const auto& s : cols) {
+        if (!s.mostrar) continue;
+        headers << s.campo;
+        glob.push_back({s.tabla, s.campo});
+    }
 
-    // 2) resultado por tabla
+    // Nada visible -> limpiar y salir
+    m_resultsModel->clear();
+    if (glob.isEmpty()) return;
+
     QVector<QVector<QVariant>> allRows;
 
-    for (auto it=tabs.begin(); it!=tabs.end(); ++it){
+    // 2) Procesar por tabla
+    for (auto it = tabs.begin(); it != tabs.end(); ++it) {
         const auto& T = it.value();
 
-        // columnas visibles y columnas de orden (relativas a la tabla)
-        QList<int> projCols;
-        QList<int> orderCols; QList<bool> orderAsc;
+        // Mapeo global->tabla para esta tabla
+        QVector<int> g2t(headers.size(), -1);
+        for (int gi = 0; gi < glob.size(); ++gi) {
+            if (glob[gi].tabla != T.name) continue;
+            const int c = T.headers.indexOf(glob[gi].campo);
+            g2t[gi] = c; // -1 si ese campo visible no pertenece a esta tabla
+        }
 
+        // Especificaciones que aplican a esta tabla (para filtro/orden)
         QList<ColSpec> specsThis;
-        for (const auto& s : cols){
+        QVector<int> orderGlobIdx;
+        QVector<bool> orderAsc;
+
+        for (const auto& s : cols) {
             if (s.tabla != T.name) continue;
             specsThis.push_back(s);
 
-            const int c = T.headers.indexOf(s.campo);
-            if (c<0) continue;
-            if (s.mostrar) projCols << c;
-            if (s.orden==tr("Ascendente"))  { orderCols << c; orderAsc << true; }
-            if (s.orden==tr("Descendente")) { orderCols << c; orderAsc << false; }
+            // ordenar -> buscar índice global del campo
+            for (int gi = 0; gi < glob.size(); ++gi) {
+                if (glob[gi].tabla == s.tabla && glob[gi].campo == s.campo) {
+                    if (s.orden == tr("Ascendente"))  { orderGlobIdx << gi; orderAsc << true;  }
+                    if (s.orden == tr("Descendente")) { orderGlobIdx << gi; orderAsc << false; }
+                    break;
+                }
+            }
         }
 
-        if (projCols.isEmpty()) continue;
+        // No hay ninguna columna visible de esta tabla → nada que proyectar
+        bool anyVisible = false;
+        for (int gi = 0; gi < g2t.size(); ++gi) if (g2t[gi] >= 0) { anyVisible = true; break; }
+        if (!anyVisible) continue;
 
-        // filtrar con índices
+        // 3) Filtrar filas de esta tabla con índices
         const QVector<int> keep = filterTableWithIndexes_(T, specsThis, nullptr);
 
-        // proyectar
-        QVector<QVector<QVariant>> local;
-        local.reserve(keep.size());
-        for (int r:keep){
-            QVector<QVariant> row; row.reserve(projCols.size());
-            for(int c:projCols) row.push_back(T.rows[r].value(c));
+        // 4) Proyección alineada a columnas globales
+        QVector<QVector<QVariant>> local; local.reserve(keep.size());
+        for (int r : keep) {
+            QVector<QVariant> row(headers.size()); // tamaño GLOBAL
+            for (int gi = 0; gi < g2t.size(); ++gi) {
+                const int tc = g2t[gi];
+                if (tc >= 0) row[gi] = T.rows[r].value(tc);
+            }
             local.push_back(std::move(row));
         }
 
-        // DISTINCT si 1–2 columnas
-        QList<int> vis; for(int i=0;i<projCols.size();++i) vis<<i;
-        if (vis.size() <= 2){
+        // 5) DISTINCT por tabla si hay 1–2 columnas visibles de ESTA tabla
+        QList<int> visIdx;
+        for (int gi = 0; gi < g2t.size(); ++gi) if (g2t[gi] >= 0) visIdx << gi;
+        if (visIdx.size() <= 2) {
             QSet<QString> seen;
-            QVector<QVector<QVariant>> dedup;
-            dedup.reserve(local.size());
-            for (const auto& rr : local){
-                const QString k = makeDistinctKey_(rr, vis);
+            QVector<QVector<QVariant>> dedup; dedup.reserve(local.size());
+            for (const auto& rr : local) {
+                const QString k = makeDistinctKey_(rr, visIdx);
                 if (seen.contains(k)) continue;
                 seen.insert(k);
                 dedup.push_back(rr);
@@ -686,33 +927,33 @@ void ConsultaWidget::buildResults_(const QList<ColSpec>& cols, const QMap<QStrin
             local.swap(dedup);
         }
 
-        // ordenar
-        if (!orderCols.isEmpty()){
+        // 6) Ordenar por los índices GLOBALes que pertenezcan a esta tabla
+        if (!orderGlobIdx.isEmpty()) {
             std::stable_sort(local.begin(), local.end(), [&](const auto& a, const auto& b){
-                for (int i=0;i<orderCols.size();++i){
-                    const int colReal = orderCols[i];
-                    const int pj = projCols.indexOf(colReal);
-                    if (pj<0) continue;
-                    const QString sa=a[pj].toString(), sb=b[pj].toString();
-                    if (sa==sb) continue;
-                    return orderAsc[i] ? (sa<sb) : (sa>sb);
+                for (int i = 0; i < orderGlobIdx.size(); ++i) {
+                    const int g = orderGlobIdx[i];
+                    const QString sa = a[g].toString(), sb = b[g].toString();
+                    if (sa == sb) continue;
+                    return orderAsc[i] ? (sa < sb) : (sa > sb);
                 }
                 return false;
             });
         }
 
-        // concatenar
-        for(auto& r : local) allRows.push_back(std::move(r));
+        // 7) Concatenar
+        for (auto& r : local) allRows.push_back(std::move(r));
     }
 
-    // 3) volcar al modelo
+    // 8) Volcar al modelo
     m_resultsModel->clear();
     m_resultsModel->setColumnCount(headers.size());
-    for(int c=0;c<headers.size();++c) m_resultsModel->setHeaderData(c, Qt::Horizontal, headers[c]);
+    for (int c = 0; c < headers.size(); ++c)
+        m_resultsModel->setHeaderData(c, Qt::Horizontal, headers[c]);
+
     m_resultsModel->setRowCount(allRows.size());
-    for (int r=0;r<allRows.size();++r)
-        for (int c=0;c<allRows[r].size();++c)
-            m_resultsModel->setData(m_resultsModel->index(r,c), allRows[r][c]);
+    for (int r = 0; r < allRows.size(); ++r)
+        for (int c = 0; c < allRows[r].size(); ++c)
+            m_resultsModel->setData(m_resultsModel->index(r, c), allRows[r][c]);
 }
 
 // ===================== slots =====================
@@ -757,7 +998,41 @@ void ConsultaWidget::onEjecutar()
     m_btnBack->setEnabled(true);
     emit info(tr("Consulta: %1 filas").arg(m_resultsModel->rowCount()));
 }
+int ConsultaWidget::selectedFieldCountForTable_(const QString& tabla) const {
+    int cnt = 0;
+    for (int c = 0; c < m_grid->columnCount(); ++c) {
+        auto* cbT = qobject_cast<QComboBox*>(m_grid->cellWidget(1, c)); // Tabla
+        auto* cbC = qobject_cast<QComboBox*>(m_grid->cellWidget(0, c)); // Campo
+        if (!cbT || !cbC) continue;
+        if (cbT->currentText().trimmed() == tabla &&
+            !cbC->currentText().trimmed().isEmpty())
+            ++cnt;
+    }
+    return cnt;
+}
+QStringList ConsultaWidget::currentTables_() const
+{
+    if (!m_grid) return {};
 
+    QStringList out;
+    QSet<QString> seen;
+
+    // Leemos la fila "Tabla" (fila 1) de cada columna de la rejilla
+    for (int c = 0; c < m_grid->columnCount(); ++c) {
+        if (auto* cb = qobject_cast<QComboBox*>(m_grid->cellWidget(1, c))) {
+            const QString t = cb->currentText().trimmed();
+            if (!t.isEmpty() && !seen.contains(t)) {
+                seen.insert(t);
+                out << t;  // preserva el orden de aparición
+            }
+        }
+    }
+    return out;
+}
+
+int ConsultaWidget::schemaFieldCount_(const QString& tabla) const {
+    return m_schemaOf ? m_schemaOf(tabla).size() : 0;
+}
 
 void ConsultaWidget::onVolver()
 {
@@ -768,106 +1043,13 @@ void ConsultaWidget::onVolver()
     refreshDiagram_();
     emit info(tr("Diseño de consulta"));
 }
-void ConsultaWidget::MostrarSelectorTablas(const QStringList &tablas, bool soloSiPrimeraVez)
-{
 
-    if(soloSiPrimeraVez&&m_selectorMostrado)return;
-    if(tablas.isEmpty()){m_selectorMostrado=true;return;}
-
-    QDialog dlg(this);
-    dlg.setWindowTitle(tr("Mostrar tabla"));
-    dlg.resize(460,520);
-
-    auto*lay=new QVBoxLayout(&dlg);
-    auto*tabs=new QTabWidget(&dlg);
-
-    auto* listTablas=new QListWidget(&dlg);
-    listTablas->addItems(tablas);
-    listTablas->setSelectionMode(QAbstractItemView::ExtendedSelection);
-    tabs->addTab(listTablas, tr("Tablas"));
-
-    //Placeholder para el futuro (consultas guardadas)
-    auto*listConsultas=new QListWidget(&dlg);
-    tabs->addTab(listConsultas,tr("Consultas"));
-
-    auto*listAmbas=new QListWidget(&dlg);
-    listAmbas->addItems(tablas);
-    listAmbas->setSelectionMode(QAbstractItemView::ExtendedSelection);
-    tabs->addTab(listAmbas, tr("Ambas"));
-
-    lay->addWidget(tabs);
-
-    auto*box=new QDialogButtonBox(&dlg);
-    box->addButton(tr("Agregar"),QDialogButtonBox::AcceptRole)->setDefault(true);
-    box->addButton(tr("Cerrar"),QDialogButtonBox::RejectRole);
-    QObject::connect(box, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
-    QObject::connect(box, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
-    lay->addWidget(box);
-
-    if(dlg.exec()==QDialog::Accepted)
-    {
-        QStringList seleccion;
-        auto collect=[&](QListWidget* lw)
-        {
-            for(auto*it:lw->selectedItems()) seleccion<<it->text();
-        };
-        if(tabs->currentIndex() ==0) collect(listTablas);
-        else if(tabs->currentIndex()== 1) collect(listConsultas);
-        else collect(listAmbas);
-
-        //Por cada tabla elegida, garantizamos al menos una fila en la rejilla
-        for(const QString&t:seleccion)
-            asegurarUnaFilaParaTabla(t);
-
-        // Redibuja las tarjetas arriba (se basa en qué tablas están en la rejilla)
-        refreshDiagram_(); // ya existe
-    }
-
-    m_selectorMostrado=true;
-
-}
-void ConsultaWidget::asegurarUnaFilaParaTabla(const QString &tabla)
-{
-
-    if(!m_grid)return;
-
-    //Ya esta en la rejilla? entonces no hacemos nada extra
-    if(selectedFieldCountForTable_(tabla)>0)return;
-
-    const int r=m_grid->rowCount();
-    ensureRow_(r); // crea la fila y coloca widgets(combos,etc.)
-
-    //setear la tabla en el combo de la columna 1
-    if(auto*cbTabla=qobject_cast<QComboBox*>(m_grid->cellWidget(r,1)))
-    {
-        int idx=cbTabla->findText(tabla, Qt::MatchFixedString);
-        if(idx<0)
-        { // si por alguna razon no esta, reinyectamos
-            cbTabla->addItem(tabla);
-            idx = cbTabla->findText(tabla, Qt::MatchFixedString);
-        }
-        cbTabla->setCurrentIndex(idx<0?0:idx);
-    }
-
-    //poblar campos para esa tabla y seleccionar el primero (si existe)
-    fillCamposForRow_(r);
-    if(auto*cbCampo= qobject_cast<QComboBox*>(m_grid->cellWidget(r,0)))
-    {
-        if(cbCampo->count()>0)cbCampo->setCurrentIndex(0);
-    }
-
-}
 void ConsultaWidget::onAgregarConsulta()
 {
-
-    const QStringList tablas=m_allTables?m_allTables():QStringList{};
-    if(tablas.isEmpty())
-    {
-
-        QMessageBox::information(this, tr("Consultas"),tr("No hay tablas disponibles."));
+    const QStringList tablas = m_allTables ? m_allTables() : QStringList{};
+    if (tablas.isEmpty()){
+        QMessageBox::information(this, tr("Consultas"), tr("No hay tablas disponibles."));
         return;
-
     }
-    MostrarSelectorTablas(tablas,false);
-
+    MostrarSelectorTablas(tablas, false);
 }

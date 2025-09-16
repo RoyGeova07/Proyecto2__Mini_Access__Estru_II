@@ -211,6 +211,15 @@ void VentanaPrincipal::abrirOTraerAPrimerPlano(const QString& nombre)
 
     auto* vista = new PestanaTabla(nombre, m_pestanas);
 
+    // ✅ si no existe snapshot previo, crear uno inicial desde la vista
+    if (!m_memTablas.contains(nombre)) {
+        TablaSnapshot s;
+        s.schema = vista->esquemaActual();
+        s.rows   = vista->filasActuales();
+        m_memTablas.insert(nombre, s);
+        emit esquemaTablaCambiado(nombre, s.schema);
+    }
+
     if (m_memTablas.contains(nombre)) {
         const auto& snap = m_memTablas[nombre];
         vista->cargarSnapshot(snap.schema, snap.rows);
