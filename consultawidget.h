@@ -25,8 +25,9 @@ public:
 
     // Proveedores (¡conéctalos en VentanaPrincipal!)
     void setAllTablesProvider(std::function<QStringList()> fn);
-    void setSchemaProvider   (std::function<QList<Campo>(const QString&)> fn);
-    void setRowsProvider     (std::function<QVector<QVector<QVariant>>(const QString&)> fn);
+    void setSchemaProvider(std::function<QList<Campo>(const QString&)> fn);
+    void setRowsProvider(std::function<QVector<QVector<QVariant>>(const QString&)> fn);
+    void MostrarSelectorTablas(const QStringList& tablas, bool soloSiPrimeraVez=false);
 
 signals:
     void info(const QString&); // opcional
@@ -34,8 +35,10 @@ signals:
 private slots:
     void onEjecutar();
     void onVolver();
+    void onAgregarConsulta();//esta funcion abre el selector de tablas
 
 private:
+
     // ================== B-Tree tipado ==================
     void fillCamposForRow_(int r);
     bool rowIsEmpty_(int r) const;
@@ -56,6 +59,8 @@ private:
     private:
         QMap<K, QList<int>> map_;
     };
+    void asegurarUnaFilaParaTabla(const QString&tabla);
+    bool m_selectorMostrado=false;
 
     // ================== estructuras de rejilla ==================
     struct ColSpec {
@@ -94,6 +99,7 @@ private:
     QWidget*             m_resultsPanel=nullptr;
     QTableView*          m_resultsView=nullptr;
     QStandardItemModel*  m_resultsModel=nullptr;
+    QPushButton*m_btnAdd=nullptr;
 
     // proveedores
     std::function<QStringList()> m_allTables;

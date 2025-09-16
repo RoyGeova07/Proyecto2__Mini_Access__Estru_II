@@ -115,7 +115,6 @@ void VentanaPrincipal::AbrirConsultas()
     int idx = m_pestanas->addTab(w, QIcon(":/im/image/consultas.png"), tr("Consultas"));
     m_pestanas->setCurrentIndex(idx);
 
-    // ⚠️ PROVEEDORES: sin esto, la rejilla aparece vacía.
     w->setAllTablesProvider([this]{
         return m_panel ? m_panel->todasLasTablas() : QStringList{};
     });
@@ -125,6 +124,8 @@ void VentanaPrincipal::AbrirConsultas()
     w->setRowsProvider([this](const QString& t){
         return m_memTablas.contains(t) ? m_memTablas[t].rows   : QVector<QVector<QVariant>>{};
     });
+    const QStringList tablas=m_panel?m_panel->todasLasTablas():QStringList{};
+    w->MostrarSelectorTablas(tablas,true);
 
 
 }

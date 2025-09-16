@@ -20,8 +20,11 @@
 #include <QIcon>
 #include <QSet>
 #include <algorithm>
-
-#include "tableitem.h"   // tarjetas de tabla (como en Relaciones)
+#include<QDialog>
+#include<QDialogButtonBox>
+#include<QListWidget>
+#include<QTabWidget>
+#include"tableitem.h"   // tarjetas de tabla (como en Relaciones)
 
 // ====== API pública ======
 ConsultaWidget::ConsultaWidget(QWidget* parent) : QWidget(parent)
@@ -49,17 +52,49 @@ void ConsultaWidget::buildUi_()
         title->setStyleSheet("color:#A4373A;font-weight:700;");
         h->addWidget(title); h->addStretch();
 
-        m_btnRun  = new QPushButton(tr("Ejecutar"), top);
+        m_btnRun= new QPushButton(tr("Ejecutar"), top);
+        m_btnRun->setObjectName("btnRun");
         m_btnRun->setIcon(QIcon(":/im/image/play.png"));
+
         m_btnBack = new QPushButton(tr("Ver (Regresar)"), top);
+        m_btnBack->setObjectName("btnBack");
         m_btnBack->setIcon(QIcon(":/im/image/ver.png"));
         m_btnBack->setEnabled(false);
+
+        m_btnAdd=new QPushButton(tr("+ Agregar Consultas"),top);
+        m_btnAdd->setObjectName("btnAddConsulta");
+        m_btnAdd->setToolTip(tr("Agregar tablas a esta consulta (abrir selector)"));
+        m_btnAdd->setCursor(Qt::PointingHandCursor);
+
+        h->addWidget(m_btnAdd);
         h->addWidget(m_btnRun);
         h->addWidget(m_btnBack);
         root->addWidget(top);
 
-        connect(m_btnRun,  &QPushButton::clicked, this, &ConsultaWidget::onEjecutar);
-        connect(m_btnBack, &QPushButton::clicked, this, &ConsultaWidget::onVolver);
+        // Estilo claro de boton (borde, fondo, hover)
+        top->setStyleSheet(R"(
+          QPushButton#btnAddConsulta, QPushButton#btnRun, QPushButton#btnBack {
+            background: #f7f7f7;
+            border: 1px solid #c9c9c9;
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-weight: 600;
+          }
+          QPushButton#btnAddConsulta:hover, QPushButton#btnRun:hover, QPushButton#btnBack:hover {
+            background: #ffffff;
+          }
+          QPushButton#btnAddConsulta:pressed, QPushButton#btnRun:pressed, QPushButton#btnBack:pressed {
+            background: #ececec;
+          }
+          QPushButton#btnAddConsulta:disabled, QPushButton#btnRun:disabled, QPushButton#btnBack:disabled {
+            color: #888;
+          }
+        )");
+
+
+        connect(m_btnAdd,&QPushButton::clicked,this,&ConsultaWidget::onAgregarConsulta);
+        connect(m_btnRun,&QPushButton::clicked,this,&ConsultaWidget::onEjecutar);
+        connect(m_btnBack,&QPushButton::clicked,this,&ConsultaWidget::onVolver);
     }
 
     // zona diseño (arriba diagrama / abajo rejilla)
@@ -732,4 +767,107 @@ void ConsultaWidget::onVolver()
     m_btnBack->setEnabled(false);
     refreshDiagram_();
     emit info(tr("Diseño de consulta"));
+}
+void ConsultaWidget::MostrarSelectorTablas(const QStringList &tablas, bool soloSiPrimeraVez)
+{
+
+    if(soloSiPrimeraVez&&m_selectorMostrado)return;
+    if(tablas.isEmpty()){m_selectorMostrado=true;return;}
+
+    QDialog dlg(this);
+    dlg.setWindowTitle(tr("Mostrar tabla"));
+    dlg.resize(460,520);
+
+    auto*lay=new QVBoxLayout(&dlg);
+    auto*tabs=new QTabWidget(&dlg);
+
+    auto* listTablas=new QListWidget(&dlg);
+    listTablas->addItems(tablas);
+    listTablas->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    tabs->addTab(listTablas, tr("Tablas"));
+
+    //Placeholder para el futuro (consultas guardadas)
+    auto*listConsultas=new QListWidget(&dlg);
+    tabs->addTab(listConsultas,tr("Consultas"));
+
+    auto*listAmbas=new QListWidget(&dlg);
+    listAmbas->addItems(tablas);
+    listAmbas->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    tabs->addTab(listAmbas, tr("Ambas"));
+
+    lay->addWidget(tabs);
+
+    auto*box=new QDialogButtonBox(&dlg);
+    box->addButton(tr("Agregar"),QDialogButtonBox::AcceptRole)->setDefault(true);
+    box->addButton(tr("Cerrar"),QDialogButtonBox::RejectRole);
+    QObject::connect(box, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
+    QObject::connect(box, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
+    lay->addWidget(box);
+
+    if(dlg.exec()==QDialog::Accepted)
+    {
+        QStringList seleccion;
+        auto collect=[&](QListWidget* lw)
+        {
+            for(auto*it:lw->selectedItems()) seleccion<<it->text();
+        };
+        if(tabs->currentIndex() ==0) collect(listTablas);
+        else if(tabs->currentIndex()== 1) collect(listConsultas);
+        else collect(listAmbas);
+
+        //Por cada tabla elegida, garantizamos al menos una fila en la rejilla
+        for(const QString&t:seleccion)
+            asegurarUnaFilaParaTabla(t);
+
+        // Redibuja las tarjetas arriba (se basa en qué tablas están en la rejilla)
+        refreshDiagram_(); // ya existe
+    }
+
+    m_selectorMostrado=true;
+
+}
+void ConsultaWidget::asegurarUnaFilaParaTabla(const QString &tabla)
+{
+
+    if(!m_grid)return;
+
+    //Ya esta en la rejilla? entonces no hacemos nada extra
+    if(selectedFieldCountForTable_(tabla)>0)return;
+
+    const int r=m_grid->rowCount();
+    ensureRow_(r); // crea la fila y coloca widgets(combos,etc.)
+
+    //setear la tabla en el combo de la columna 1
+    if(auto*cbTabla=qobject_cast<QComboBox*>(m_grid->cellWidget(r,1)))
+    {
+        int idx=cbTabla->findText(tabla, Qt::MatchFixedString);
+        if(idx<0)
+        { // si por alguna razon no esta, reinyectamos
+            cbTabla->addItem(tabla);
+            idx = cbTabla->findText(tabla, Qt::MatchFixedString);
+        }
+        cbTabla->setCurrentIndex(idx<0?0:idx);
+    }
+
+    //poblar campos para esa tabla y seleccionar el primero (si existe)
+    fillCamposForRow_(r);
+    if(auto*cbCampo= qobject_cast<QComboBox*>(m_grid->cellWidget(r,0)))
+    {
+        if(cbCampo->count()>0)cbCampo->setCurrentIndex(0);
+    }
+
+}
+void ConsultaWidget::onAgregarConsulta()
+{
+
+    const QStringList tablas=m_allTables?m_allTables():QStringList{};
+    if(tablas.isEmpty())
+    {
+
+        QMessageBox::information(this, tr("Consultas"),tr("No hay tablas disponibles."));
+        return;
+
+    }
+    MostrarSelectorTablas(tablas,false);
+
 }
