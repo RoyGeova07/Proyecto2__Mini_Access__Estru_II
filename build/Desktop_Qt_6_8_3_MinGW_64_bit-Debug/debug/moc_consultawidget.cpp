@@ -40,6 +40,7 @@ static constexpr auto qt_meta_stringdata_ZN14ConsultaWidgetE = QtMocHelpers::str
     "ConsultaWidget",
     "info",
     "",
+    "ejecutar",
     "onEjecutar",
     "onVolver",
     "onAgregarConsulta"
@@ -54,23 +55,25 @@ Q_CONSTINIT static const uint qt_meta_data_ZN14ConsultaWidgetE[] = {
       12,       // revision
        0,       // classname
        0,    0, // classinfo
-       4,   14, // methods
+       5,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
        0,       // flags
-       1,       // signalCount
+       2,       // signalCount
 
  // signals: name, argc, parameters, tag, flags, initial metatype offsets
-       1,    1,   38,    2, 0x06,    1 /* Public */,
+       1,    1,   44,    2, 0x06,    1 /* Public */,
+       3,    0,   47,    2, 0x06,    3 /* Public */,
 
  // slots: name, argc, parameters, tag, flags, initial metatype offsets
-       3,    0,   41,    2, 0x08,    3 /* Private */,
-       4,    0,   42,    2, 0x08,    4 /* Private */,
-       5,    0,   43,    2, 0x08,    5 /* Private */,
+       4,    0,   48,    2, 0x08,    4 /* Private */,
+       5,    0,   49,    2, 0x08,    5 /* Private */,
+       6,    0,   50,    2, 0x08,    6 /* Private */,
 
  // signals: parameters
     QMetaType::Void, QMetaType::QString,    2,
+    QMetaType::Void,
 
  // slots: parameters
     QMetaType::Void,
@@ -92,6 +95,8 @@ Q_CONSTINIT const QMetaObject ConsultaWidget::staticMetaObject = { {
         // method 'info'
         QtPrivate::TypeAndForceComplete<void, std::false_type>,
         QtPrivate::TypeAndForceComplete<const QString &, std::false_type>,
+        // method 'ejecutar'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>,
         // method 'onEjecutar'
         QtPrivate::TypeAndForceComplete<void, std::false_type>,
         // method 'onVolver'
@@ -108,9 +113,10 @@ void ConsultaWidget::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _
     if (_c == QMetaObject::InvokeMetaMethod) {
         switch (_id) {
         case 0: _t->info((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1]))); break;
-        case 1: _t->onEjecutar(); break;
-        case 2: _t->onVolver(); break;
-        case 3: _t->onAgregarConsulta(); break;
+        case 1: _t->ejecutar(); break;
+        case 2: _t->onEjecutar(); break;
+        case 3: _t->onVolver(); break;
+        case 4: _t->onAgregarConsulta(); break;
         default: ;
         }
     }
@@ -120,6 +126,13 @@ void ConsultaWidget::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _
             using _q_method_type = void (ConsultaWidget::*)(const QString & );
             if (_q_method_type _q_method = &ConsultaWidget::info; *reinterpret_cast<_q_method_type *>(_a[1]) == _q_method) {
                 *result = 0;
+                return;
+            }
+        }
+        {
+            using _q_method_type = void (ConsultaWidget::*)();
+            if (_q_method_type _q_method = &ConsultaWidget::ejecutar; *reinterpret_cast<_q_method_type *>(_a[1]) == _q_method) {
+                *result = 1;
                 return;
             }
         }
@@ -145,14 +158,14 @@ int ConsultaWidget::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 4)
+        if (_id < 5)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 4;
+        _id -= 5;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 4)
+        if (_id < 5)
             *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
-        _id -= 4;
+        _id -= 5;
     }
     return _id;
 }
@@ -162,5 +175,11 @@ void ConsultaWidget::info(const QString & _t1)
 {
     void *_a[] = { nullptr, const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t1))) };
     QMetaObject::activate(this, &staticMetaObject, 0, _a);
+}
+
+// SIGNAL 1
+void ConsultaWidget::ejecutar()
+{
+    QMetaObject::activate(this, &staticMetaObject, 1, nullptr);
 }
 QT_WARNING_POP

@@ -22,11 +22,14 @@ public:
 
     explicit VistaDisenio(QWidget*parent=nullptr);
     static constexpr int RoleFormatoMoneda=Qt::UserRole+101;
+    static constexpr int RoleIndexado=Qt::UserRole+102;
     void ponerIconoLlave(const QIcon&icono);
     QList<Campo> esquema() const;
     Campo campoEnFila(int fila) const;
     int filaSeleccionadaActual() const;
     void setFormatoMonedaEnFila(int fila, const QString& code);
+    void setIndexadoEnFila(int fila, CampoIndexado::Modo m);
+    CampoIndexado::Modo indexadoEnFila(int fila) const;
 
 public slots:
 
@@ -43,12 +46,17 @@ signals:
     void esquemaCambiado();
     void filaSeleccionada(int fila);
 
+protected:
+
+    void showEvent(QShowEvent*e)override;
+
 private:
 
     QTableView* m_tabla;
-    QStandardItemModel* m_modelo;
-    QStyledItemDelegate* m_tipoDelegate;
-    QStyledItemDelegate* m_nombreDelegate;
+    QStandardItemModel*m_modelo;
+    QStyledItemDelegate*m_tipoDelegate;
+    QStyledItemDelegate*m_nombreDelegate;
+    void AjustarColumnas();
 
     int m_pkRow=0;
     QIcon m_iconPk;

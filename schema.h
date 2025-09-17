@@ -3,11 +3,16 @@
 
 #include <QString>
 
-struct Campo {
+struct CampoIndexado { enum Modo { NoIndex, ConDuplicados, SinDuplicados }; };
+
+struct Campo
+{
     bool pk = false;
     QString nombre;
     QString tipo;              // "Entero", "Texto", "Moneda", "Fecha", ...
     QString formatoMoneda;     // "", "USD", "HNL", "EUR" (solo si tipo == "Moneda")
+    CampoIndexado::Modo indexado=CampoIndexado::NoIndex;
+
 };
 
 

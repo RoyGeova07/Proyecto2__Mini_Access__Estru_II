@@ -62,7 +62,7 @@ private:
     QLabel*m_pValorDef=nullptr;
     QLabel*m_pRequerido=nullptr;
     QLabel*m_pPermiteCero=nullptr;
-    QLabel*m_pIndexado=nullptr;
+    QComboBox*m_cIndexado=nullptr;
 
     void refrescarGeneral_(int fila);
     void aplicarTamanoTextoActual();

@@ -73,6 +73,9 @@ private:
     bool validarDatosExistentes(const QString& tablaOrigen, const QString& campoOrigen,const QString& tablaDestino, const QString& campoDestino,RelationItem::Tipo tipoRelacion) const;
     ProveedorFilas m_proveedorFilas;//funcion para obtener las filas actuales de una tabla
     ComprobadorTablaAbierta m_isTablaAbierta;
+    CampoIndexado::Modo campoIndexado(const QString& tabla, const QString& campo) const;
+    //esta funcion compara nombres de campos ignorando caso, separadores y prefijo/sufijo 'id'
+    bool nombresCamposSimilares(const QString& a, const QString& b)const;
 
 
 };

@@ -126,11 +126,37 @@ public:
             return false;
         };
 
+        auto esDuplicadoUnico=[&](const QVariant& v) -> bool
+        {
+            if(!owner_)return false;
+            if(owner_->indexadoForCol(col_) !=CampoIndexado::SinDuplicados)return false;
+
+            const QString nv =v.toString().trimmed();
+            if(nv.isEmpty())return false;
+
+            const int rows =model->rowCount();
+            for(int r=0;r<rows;++r)
+            {
+                if(r==index.row()) continue;
+                const QVariant cur =model->index(r, col_).data();
+                if(!cur.isValid()) continue;
+                const QString cv =cur.toString().trimmed();
+                if(cv.isEmpty())continue;
+
+                bool ok1=false, ok2=false;
+                const double d1= nv.toDouble(&ok1);
+                const double d2=cv.toDouble(&ok2);
+                if((ok1&&ok2&&qFuzzyCompare(1.0+d1,1.0+d2))||((!ok1||!ok2) && QString::compare(nv,cv,Qt::CaseInsensitive) ==0))
+                    return true;
+            }
+            return false;
+        };
+
         // --- helper: valida FK (si hay validador) y asigna ---
         auto validarYAsignar = [&](const QVariant& v) -> bool
         {
             // 1) Duplicados en PK -> bloquear y mostrar mensaje estilo Access
-            if(esDuplicadoPK(v))
+            if(esDuplicadoPK(v)||esDuplicadoUnico(v))
             {
                 QMessageBox::warning(const_cast<VistaHojaDatos*>(owner_),QObject::tr("Microsoft Access"),QObject::tr("Los cambios solicitados en la tabla no se realizaron correctamente porque crearían valores duplicados en el índice, clave principal o relación. Cambie los datos en el campo o los campos que contienen datos duplicados, quite el índice o vuelva a definirlo para permitir entradas duplicadas e inténtelo de nuevo."));
                 return false;
@@ -403,6 +429,14 @@ void VistaHojaDatos::reconstruirColumnas(const QList<Campo>& campos)
     m_modelo=newModel;
     m_tabla->setModel(m_modelo);
 
+    m_indexadoByCol.clear();
+    // Crear delegates por columna y defaults...
+    for (int c = 0; c < campos.size(); ++c)
+    {
+        // Guarda el modo de indexado que viene del esquema
+        m_indexadoByCol[c] = int(campos[c].indexado);
+        // (el resto de tu for ya existente: tipos, maxLen, delegates, etc.)
+    }
     // ===== 6) Limpiar delegates previos =====
     for(auto* d : m_delegates) d->deleteLater();
     m_delegates.clear();
@@ -421,7 +455,7 @@ void VistaHojaDatos::reconstruirColumnas(const QList<Campo>& campos)
     }
 
     // Crear delegates por columna y defaults de moneda / long max. de texto
-    for (int c = 0; c < campos.size(); ++c)
+    for(int c = 0; c < campos.size(); ++c)
     {
         const QString tipo = (c == 0 ? "Entero" : campos[c].tipo);
         m_tiposPorCol << tipo;
@@ -732,4 +766,10 @@ void VistaHojaDatos::eliminarFila(int r)
         m_availRows.push_back(r);
     normalizarUltimaFilaNueva();
 }
+CampoIndexado::Modo VistaHojaDatos::indexadoForCol(int col)const
+{
 
+    if(col==0)return CampoIndexado::SinDuplicados;
+    return CampoIndexado::Modo(m_indexadoByCol.value(col, int(CampoIndexado::NoIndex)));
+
+}

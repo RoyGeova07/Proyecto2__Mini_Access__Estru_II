@@ -55,7 +55,9 @@ public:
     // Marca una fila como "eliminada": se limpia y queda disponible para reutilizacion
     void eliminarFila(int r);
     // Lectura del avail list (para debug/inspeccion)
-    const QVector<int>& huecosDisponibles() const { return m_availRows; }
+    const QVector<int>& huecosDisponibles()const{return m_availRows;}
+    CampoIndexado::Modo indexadoForCol(int col)const;
+    QHash<int,int>m_indexadoByCol;
 
 private:
     void reconectarSignalsModelo();

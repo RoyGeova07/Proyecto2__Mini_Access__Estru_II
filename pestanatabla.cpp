@@ -63,7 +63,19 @@ PestanaTabla::PestanaTabla(const QString& nombreInicial, QWidget* parent):QWidge
     m_pValorDef=new QLabel("-", pagGeneral);
     m_pRequerido=new QLabel("-", pagGeneral);
     m_pPermiteCero=new QLabel("-", pagGeneral);
-    m_pIndexado=new QLabel("-", pagGeneral);
+
+    m_cIndexado=new QComboBox(pagGeneral);
+    {
+
+        QSignalBlocker b2(m_cIndexado);
+        m_cIndexado->setEnabled(false);
+        m_cIndexado->setCurrentIndex(0); // "No"
+
+    }
+    m_cIndexado->addItem(tr("No"),CampoIndexado::NoIndex);
+    m_cIndexado->addItem(tr("Sí (con duplicados)"),CampoIndexado::ConDuplicados);
+    m_cIndexado->addItem(tr("Sí (sin duplicados)"),CampoIndexado::SinDuplicados);
+
 
     form->addRow(tr("Nombre del campo:"),m_pNombre);
     form->addRow(tr("Tipo de datos:"),           m_pTipo);
@@ -73,7 +85,7 @@ PestanaTabla::PestanaTabla(const QString& nombreInicial, QWidget* parent):QWidge
     form->addRow(tr("Valor predeterminado:"),    m_pValorDef);
     form->addRow(tr("Requerido:"),               m_pRequerido);
     form->addRow(tr("Permitir longitud cero:"),  m_pPermiteCero);
-    form->addRow(tr("Indexado:"),                m_pIndexado);
+    form->addRow(tr("Indexado:"),m_cIndexado);
 
     //Cuando el usuario termina de editar el tamaño
     connect(m_eTamano, &QLineEdit::editingFinished, this, [this]()
@@ -101,6 +113,15 @@ PestanaTabla::PestanaTabla(const QString& nombreInicial, QWidget* parent):QWidge
         }else if(t=="moneda"){
             aplicarFormatoMonedaActual();
         }
+    });
+    connect(m_cIndexado, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int)
+    {
+        if(!m_disenio)return;
+        int fila=m_disenio->filaSeleccionadaActual();
+        if(fila<0)fila=0;
+        const auto modo=static_cast<CampoIndexado::Modo>(m_cIndexado->currentData().toInt());
+        m_disenio->setIndexadoEnFila(fila,modo);
+        emit estadoCambioSolicitado();
     });
 
     m_panelProp->addTab(pagGeneral, tr("General"));
@@ -282,7 +303,6 @@ void PestanaTabla::refrescarGeneral_(int fila)
         m_pValorDef->setText("-");
         m_pRequerido->setText("-");
         m_pPermiteCero->setText("-");
-        m_pIndexado->setText("-");
         return;
     }
 
@@ -439,7 +459,22 @@ void PestanaTabla::refrescarGeneral_(int fila)
     m_pValorDef->setText(valdef);
     m_pRequerido->setText(req);
     m_pPermiteCero->setText(cero);
-    m_pIndexado->setText(idx);
+    {
+        QSignalBlocker b2(m_cIndexado);
+        int pos=(c.indexado == CampoIndexado::NoIndex)?0:(c.indexado==CampoIndexado::ConDuplicados)?1:2;
+        m_cIndexado->setCurrentIndex(pos);
+        // Si es PK, fuerza "Sí (sin duplicados)" y bloquear
+        if(c.pk)
+        {
+            m_cIndexado->setCurrentIndex(2);
+            m_cIndexado->setEnabled(false);
+        }else{
+
+            m_cIndexado->setEnabled(true);
+
+        }
+    }
+
 }
 
 

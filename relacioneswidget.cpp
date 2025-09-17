@@ -15,8 +15,8 @@
 #include <QHeaderView>
 #include <QKeyEvent>
 #include <QMessageBox>
-
-#include "tableitem.h"   // construcción de TableItem
+#include "tableitem.h"
+#include<QRegularExpression>
 
 // === Constructor ==============================================================
 RelacionesWidget::RelacionesWidget(QWidget* parent) : QWidget(parent) {
@@ -334,10 +334,6 @@ void RelacionesWidget::mostrarDialogoModificarRelacion_(const QString& tablaO_in
 
     QString tablaO=tablaO_in,campoO=campoO_in;
     QString tablaD=tablaD_in,campoD=campoD_in;
-
-    const bool pkO = esPk(tablaO, campoO);
-    const bool pkD = esPk(tablaD, campoD);
-
     if(m_isTablaAbierta)
     {
 
@@ -354,38 +350,59 @@ void RelacionesWidget::mostrarDialogoModificarRelacion_(const QString& tablaO_in
         }
 
     }
+    //deben ser similares  IdAlumno ~ id_alumno ~ AlumnoId, etc.
+    if(!nombresCamposSimilares(campoO,campoD))
+    {
 
-    RelationItem::Tipo tipo;
-    if (pkO && pkD) {
-        // PK ↔ PK  ->  1:1
-        tipo = RelationItem::Tipo::UnoAUno;
-    } else if (pkO ^ pkD) {
-        // PK ↔ noPK  ->  1:N (el lado PK debe quedar como ORIGEN, como en Access)
-        if (!pkO && pkD) {
-            qSwap(tablaO, tablaD);
-            qSwap(campoO, campoD);
-        }
-        tipo = RelationItem::Tipo::UnoAMuchos;
-    }else{
-
-        // noPK ↔ noPK  ->  Access no permite crear integridad; aqui lo impedimos tambirn
-        QMessageBox::warning(this, tr("Relación no válida"),tr("Debe haber al menos una clave primaria para crear la relación."));
+        QMessageBox::warning(this, tr("Microsoft Access"),tr("No es posible crear la relación porque los nombres de los campos no parecen referirse a la misma clave (ej.: \"IdAlumno\" \u2194 \"idalumno\")."));
         return;
 
     }
 
+    // --- Unicidad por PK o por indice "Sin duplicados"
+    const bool pkO=esPk(tablaO, campoO);
+    const bool pkD=esPk(tablaD, campoD);
+    const auto idxO=campoIndexado(tablaO, campoO);
+    const auto idxD=campoIndexado(tablaD, campoD);
+
+    auto esUnico=[&](bool esPkX, CampoIndexado::Modo m)
+    {
+
+        return esPkX||m==CampoIndexado::SinDuplicados;
+
+    };
+    bool unO=esUnico(pkO, idxO);
+    bool unD=esUnico(pkD, idxD);
+
+    RelationItem::Tipo tipo;
+    if(unO && unD)
+    {
+        // PK<->PK o unico<->unico => 1:1
+        tipo = RelationItem::Tipo::UnoAUno;
+    }else if (unO ^ unD){
+
+        //unico<->No unico => 1:N. El ORIGEN debe ser el lado unico
+        if(!unO){qSwap(tablaO, tablaD); qSwap(campoO, campoD);}
+        tipo = RelationItem::Tipo::UnoAMuchos;
+
+
+    }else{
+        // No hay ni PK ni índices únicos en ninguno
+        QMessageBox::warning(this, tr("Relación no válida"),tr("Debe haber al menos una clave primaria o un índice 'Sin duplicados' ""para crear la relación."));
+        return;
+    }
     // ===== 2) Diálogo minimal como Access (sin elegir tipo manualmente)
     QDialog dlg(this);
     dlg.setWindowTitle(tr("Modificar relaciones"));
-    dlg.resize(560, 300);
-    auto* lay = new QVBoxLayout(&dlg);
+    dlg.resize(560,300);
+    auto*lay=new QVBoxLayout(&dlg);
 
     // Cabecera con tablas
     {
-        auto* fila = new QWidget(&dlg);
-        auto* h = new QHBoxLayout(fila); h->setContentsMargins(0,0,0,0);
+        auto*fila=new QWidget(&dlg);
+        auto*h=new QHBoxLayout(fila); h->setContentsMargins(0,0,0,0);
         h->addWidget(new QLabel(tr("Tabla o consulta:")));
-        auto* lA = new QLabel(tablaO); lA->setStyleSheet("font-weight:600;");
+        auto*lA=new QLabel(tablaO); lA->setStyleSheet("font-weight:600;");
         h->addWidget(lA, 1);
         h->addSpacing(16);
         h->addWidget(new QLabel(tr("Tabla o consulta:")));
@@ -422,9 +439,7 @@ void RelacionesWidget::mostrarDialogoModificarRelacion_(const QString& tablaO_in
 
     // Texto informativo del tipo (inferencia automática)
     {
-        const QString txtTipo = (tipo == RelationItem::Tipo::UnoAUno)
-        ? tr("Tipo de relación: Uno a uno (1:1)")
-        : tr("Tipo de relación: Uno a varios (1:N)");
+        const QString txtTipo =(tipo==RelationItem::Tipo::UnoAUno)?tr("Tipo de relación: Uno a uno (1:1)"):tr("Tipo de relación: Uno a varios (1:N)");
         auto* lbl = new QLabel(txtTipo, &dlg);
         lbl->setStyleSheet("color:#555;");
         lay->addWidget(lbl);
@@ -451,27 +466,38 @@ void RelacionesWidget::mostrarDialogoModificarRelacion_(const QString& tablaO_in
     }
 
     const bool integridad=cbIntegridad->isChecked();
+    auto esUnicoActual=[&](const QString& t, const QString& c)
+    {
+        return campoEsPk_(t,c)||campoIndexado(t,c)==CampoIndexado::SinDuplicados;
+    };
 
-    // ===== 3) Validación final (igual que Access)
+    // ===== 3) Validacin final (igual que Access)
     if(tipo==RelationItem::Tipo::UnoAMuchos)
     {
-        // Por seguridad: origen debe ser PK y destino no PK
-        if (!esPk(tablaO, campoO) || esPk(tablaD, campoD)) {
-            QMessageBox::warning(this, tr("No válido"),tr("Para 1:N el campo de origen debe ser una clave primaria ""y el campo destino no debe serlo."));
+        // ORIGEN (tablaO,campoO) debe ser único; DESTINO (tablaD,campoD) debe permitir duplicados
+        const bool origenUnico=esUnicoActual(tablaO, campoO);
+        const bool destinoUnico=esUnicoActual(tablaD, campoD);
+
+        if(!origenUnico||destinoUnico)
+        {
+            QMessageBox::warning(this, tr("No válido"),tr("Para una relación 1:N, el campo de origen debe ser clave primaria ""o tener un índice 'Sin duplicados', y el campo destino debe permitir duplicados."));
             return;
         }
-    } else { // 1:1
-        if (!(esPk(tablaO, campoO) && esPk(tablaD, campoD))) {
-            QMessageBox::warning(this, tr("No válido"),
-                                 tr("Para 1:1 ambos campos deben ser clave primaria."));
+    }else{//1:1
+
+        const bool oUn=esUnicoActual(tablaO,campoO);
+        const bool dUn=esUnicoActual(tablaD,campoD);
+        if(!(oUn&&dUn))
+        {
+            QMessageBox::warning(this, tr("No válido"),tr("Para una relación 1:1, ambos campos deben ser clave primaria ""o tener un índice 'Sin duplicados'."));
             return;
         }
     }
 
-    // ===== 4) Crear relación (si no existe)
-    if (!agregarRelacion_(tablaO, campoO, tablaD, campoD, tipo, integridad)) {
-        QMessageBox::information(this, tr("Relación"),
-                                 tr("Esa relación ya existe o no es válida."));
+    // ===== 4) Crear relacion (si no existe)
+    if(!agregarRelacion_(tablaO, campoO, tablaD, campoD, tipo, integridad))
+    {
+        QMessageBox::information(this, tr("Relación"),tr("Esa relación ya existe o no es válida."));
         return;
     }
 }
@@ -704,4 +730,41 @@ bool RelacionesWidget::validarValorFK(const QString& tablaDestino,const QString&
         }
     }
     return true;
+}
+CampoIndexado::Modo RelacionesWidget::campoIndexado(const QString& tabla, const QString& campo)const
+{
+    const auto schema=m_schemas.value(tabla);
+    for(const auto&c:schema)
+        if(c.nombre.compare(campo, Qt::CaseInsensitive)==0)
+            return c.indexado;
+    return CampoIndexado::NoIndex;
+}
+bool RelacionesWidget::nombresCamposSimilares(const QString &a, const QString &b) const
+{
+
+    auto canon=[](QString s)
+    {
+        //minusculas
+        s=s.toLower();
+        //quitar separadores
+        s.remove(QRegularExpression("[^a-z0-9]"));
+        return s;
+
+    };
+    auto stripId=[](const QString&s)
+    {
+
+        if(s.startsWith("id")&&s.size()>2)return s.mid(2);
+        if(s.endsWith("id")&&s.size()>2)return s.left(s.size()-2);
+        return s;
+
+    };
+    QString ca=canon(a),cb=canon(b);
+    if(ca==cb)return true;
+
+    //Quita "id" en cualquiera de los lados y vuelve a comparar
+    QString sa=stripId(ca),sb=stripId(cb);
+    return sa==sb;
+
+
 }

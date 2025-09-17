@@ -210,12 +210,20 @@ void VentanaPrincipal::abrirOTraerAPrimerPlano(const QString& nombre)
     }
 
     auto* vista = new PestanaTabla(nombre, m_pestanas);
+    static const QRegularExpression rx("^Tabla\\d+$",QRegularExpression::CaseInsensitiveOption);
+    if(!rx.match(nombre).hasMatch())
+    {
 
-    // ✅ si no existe snapshot previo, crear uno inicial desde la vista
-    if (!m_memTablas.contains(nombre)) {
+        vista->establecerNombre(nombre);
+
+    }
+
+    // si no existe snapshot previo, crear uno inicial desde la vista
+    if(!m_memTablas.contains(nombre))
+    {
         TablaSnapshot s;
-        s.schema = vista->esquemaActual();
-        s.rows   = vista->filasActuales();
+        s.schema=vista->esquemaActual();
+        s.rows=vista->filasActuales();
         m_memTablas.insert(nombre, s);
         emit esquemaTablaCambiado(nombre, s.schema);
     }
@@ -225,11 +233,12 @@ void VentanaPrincipal::abrirOTraerAPrimerPlano(const QString& nombre)
         vista->cargarSnapshot(snap.schema, snap.rows);
     }
 
-    connect(vista, &PestanaTabla::estadoCambioSolicitado, this, [this, vista]() {
+    connect(vista, &PestanaTabla::estadoCambioSolicitado, this, [this, vista]()
+    {
         const QString nombreActual = vista->nombreTabla();
         TablaSnapshot s;
         s.schema = vista->esquemaActual();
-        s.rows   = vista->filasActuales();
+        s.rows =vista->filasActuales();
         m_memTablas[nombreActual] = std::move(s);
         emit esquemaTablaCambiado(nombreActual, m_memTablas[nombreActual].schema);
     });

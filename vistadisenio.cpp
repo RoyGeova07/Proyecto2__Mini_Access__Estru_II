@@ -9,6 +9,8 @@
 #include <QComboBox>
 #include<QMessageBox>
 #include<QLineEdit>
+#include<QShowEvent>
+#include<QTimer>
 
 class TipoDatoDelegate : public QStyledItemDelegate
 {
@@ -150,8 +152,7 @@ void VistaDisenio::establecerEsquema(const QList<Campo>& campos)
 
         it1->setFlags(it1->flags()|Qt::ItemIsEditable);
         it2->setData(campos[r].formatoMoneda, RoleFormatoMoneda);
-        if(r==0)it2->setEditable(false);
-        else        it2->setFlags(it2->flags() | Qt::ItemIsEditable);
+        it2->setData(int(campos[r].indexado),RoleIndexado);
 
         m_modelo->setItem(r, 1, it1);
         m_modelo->setItem(r, 2, it2);
@@ -162,6 +163,7 @@ void VistaDisenio::establecerEsquema(const QList<Campo>& campos)
     m_pkRow=0;
     RefrescarIconPk();
     emit esquemaCambiado();
+    AjustarColumnas();
 }
 
 VistaDisenio::VistaDisenio(QWidget*parent):QWidget(parent)
@@ -185,7 +187,6 @@ VistaDisenio::VistaDisenio(QWidget*parent):QWidget(parent)
 
     m_modelo->setItem(0,2,new QStandardItem(QStringLiteral("Entero")));
 
-    m_modelo->item(0,2)->setEditable(false);
     m_modelo->setItem(1,0,new QStandardItem());
     m_modelo->setItem(1,1,new QStandardItem(QStringLiteral("Campo1")));
     m_modelo->setItem(1,2,new QStandardItem(QStringLiteral("Texto")));
@@ -209,10 +210,13 @@ VistaDisenio::VistaDisenio(QWidget*parent):QWidget(parent)
     connect(m_modelo, &QStandardItemModel::rowsInserted, this, [this](const QModelIndex&, int, int){ emit esquemaCambiado(); });
     connect(m_modelo, &QStandardItemModel::rowsRemoved, this, [this](const QModelIndex&, int, int){ emit esquemaCambiado(); });
 
-    connect(m_tabla->selectionModel(), &QItemSelectionModel::currentRowChanged,
-            this, [this](const QModelIndex& cur, const QModelIndex&){
-                emit filaSeleccionada(cur.isValid()? cur.row() : -1);
-            });
+    connect(m_tabla->selectionModel(), &QItemSelectionModel::currentRowChanged,this,[this](const QModelIndex& cur, const QModelIndex&)
+    {
+
+        emit filaSeleccionada(cur.isValid()? cur.row():-1);
+
+    });
+    AjustarColumnas();
 }
 void VistaDisenio::ponerIconoLlave(const QIcon &icono)
 {
@@ -232,9 +236,9 @@ QList<Campo> VistaDisenio::esquema() const
         c.pk=(r==m_pkRow);
         c.nombre= m_modelo->index(r,1).data().toString().trimmed();
         c.tipo=m_modelo->index(r,2).data().toString().trimmed();
+        c.indexado=CampoIndexado::Modo(m_modelo->index(r,2).data(RoleIndexado).toInt());
         if(c.nombre.isEmpty()) c.nombre = (r==0? "Id" : QString("Campo%1").arg(r));
         if(c.tipo.isEmpty()) c.tipo = (r==0? "Entero":"Texto");
-        c.tipo= m_modelo->index(r,2).data().toString().trimmed();
         c.formatoMoneda = m_modelo->index(r,2).data(RoleFormatoMoneda).toString();
         out.push_back(c);
     }
@@ -368,5 +372,54 @@ void VistaDisenio::setFormatoMonedaEnFila(int fila, const QString &code)
     auto idxTipo=m_modelo->index(fila,2);
     m_modelo->setData(idxTipo, code, RoleFormatoMoneda);
     emit esquemaCambiado();
+
+}
+void VistaDisenio::setIndexadoEnFila(int fila, CampoIndexado::Modo m)
+{
+
+    if(fila<0||fila>=m_modelo->rowCount())return;
+    if(fila==m_pkRow) m=CampoIndexado::SinDuplicados; // PK siempre unica
+    m_modelo->setData(m_modelo->index(fila,2),int(m),RoleIndexado);
+    emit esquemaCambiado();
+
+}
+CampoIndexado::Modo VistaDisenio::indexadoEnFila(int fila) const
+{
+
+    if(fila<0||fila>=m_modelo->rowCount())return CampoIndexado::NoIndex;
+    return CampoIndexado::Modo(m_modelo->index(fila,2).data(RoleIndexado).toInt());
+
+}
+void VistaDisenio::AjustarColumnas()
+{
+
+    if(!m_tabla)return;
+    auto*hh=m_tabla->horizontalHeader();
+
+    //no dejar q la ultima seccion se estire sola
+    hh->setStretchLastSection(false);
+
+    //Columna 0: el icono de PK, fijo
+    hh->setSectionResizeMode(0,QHeaderView::Fixed);
+    m_tabla->setColumnWidth(0,28);
+
+    //Columna 2 (“Tipo de datos”): a contenido, con minimo razonable e interactiva
+    hh->setSectionResizeMode(2,QHeaderView::ResizeToContents);
+    m_tabla->setColumnWidth(2,qMax(130,m_tabla->columnWidth(2)));
+    hh->setMinimumSectionSize(60);
+    hh->setSectionResizeMode(2,QHeaderView::Interactive); // el usuario puede ajustar
+
+    //Columna 1 (“Nombre del campo”): que se lleve el resto
+    hh->setSectionResizeMode(1,QHeaderView::Stretch);
+
+}
+//Reajusta tambien cuando se muestra por primera vez o al volver a esta vista
+void VistaDisenio::showEvent(QShowEvent *e)
+{
+
+    QWidget::showEvent(e);
+    AjustarColumnas();
+    //despues del layout, vuelve a ajustar (evita parpadeos y deformes puntuales)
+    QTimer::singleShot(0,this,[this]{AjustarColumnas();});
 
 }

@@ -92,17 +92,17 @@ private:
     std::function<QVector<QVector<QVariant>>(const QString&)> m_rowsOf;
 
     // ========= UI =========
-    QSplitter*           m_split          = nullptr;   // diseño (arriba/abajo)
-    QGraphicsView*       m_view           = nullptr;
-    QGraphicsScene*      m_scene          = nullptr;
-    QTableWidget*        m_grid           = nullptr;   // rejilla Access (filas fijas / columnas dinámicas)
-    QPushButton*         m_btnRun         = nullptr;   // Ejecutar
-    QPushButton*         m_btnBack        = nullptr;   // Vista Diseño
-    QPushButton*         m_btnAdd         = nullptr;   // + Agregar consultas
+    QSplitter*m_split=nullptr;   // diseño (arriba/abajo)
+    QGraphicsView*m_view=nullptr;
+    QGraphicsScene*m_scene=nullptr;
+    QTableWidget*m_grid=nullptr;   // rejilla Access (filas fijas / columnas dinámicas)
+    QPushButton*m_btnRun=nullptr;   // Ejecutar
+    QPushButton*m_btnBack=nullptr;   // Vista Diseño
+    QPushButton*m_btnAdd=nullptr;   // + Agregar consultas
 
-    QWidget*             m_resultsPanel   = nullptr;
-    QTableView*          m_resultsView    = nullptr;
-    QStandardItemModel*  m_resultsModel   = nullptr;
+    QWidget*m_resultsPanel=nullptr;
+    QTableView*m_resultsView=nullptr;
+    QStandardItemModel*m_resultsModel=nullptr;
 
     QHash<QString, TableItem*> m_cards;   // tarjetas visibles en el lienzo
     bool m_selectorMostrado=false;
