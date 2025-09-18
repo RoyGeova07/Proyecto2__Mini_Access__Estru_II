@@ -38,6 +38,14 @@ protected:
     bool eventFilter(QObject* obj, QEvent* ev) override;
     void resizeEvent(QResizeEvent* e) override;
 
+signals:
+
+    void relacionSeleccionada(bool activa);
+
+public slots:
+
+    void eliminarRelacionSeleccionada();
+
 private:
     struct Rel
     {

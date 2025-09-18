@@ -17,6 +17,7 @@ public:
     void MostrarBotonClavePrimaria(bool vis);
     void setIconoVerHojaDatos();
     void setIconoVerDisenio();
+    void setEliminarRelacionVisible(bool vis);
 
 signals:
     void verHojaDatos();
@@ -30,7 +31,8 @@ signals:
     void eliminarTablasRelPulsado();
     void ConsultaPulsado();
     void ClavePrimarioPulsado();
-    void FormularioPulsado();        // <-- NUEVA
+    void FormularioPulsado();
+    void eliminarRelacionPulsado();
 
 private:
     QWidget* crearPaginaInicio();
@@ -46,6 +48,7 @@ private:
 
     QToolButton* m_btnClavePrimaria=nullptr;
     QToolButton* btnVer=nullptr;
+    QToolButton*m_btnEliminarRelacion=nullptr;
 
     QIcon m_iconVistaDatos;
     QIcon m_iconVistaDisenio;

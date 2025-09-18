@@ -527,17 +527,47 @@ void PestanaTabla::aplicarFormatoFechaActual()
     const QString t=campos[fila].tipo.trimmed().toLower();
     if(t!="fecha")return;
 
-    const QString visible=m_cFormato->currentText();
-    QString mask;
-    if(visible==tr("Fecha corta"))mask="yyyy-MM-dd";
-    else if(visible==tr("Fecha larga"))mask="dddd, dd 'de' MMMM 'de' yyyy";
-    else if(visible==tr("Fecha y hora (minutos)"))mask="yyyy-MM-dd hh:mm AP";
-    else if(visible==tr("Fecha y hora (segundos)"))mask="yyyy-MM-dd hh:mm:ss AP";
-    else if(visible==tr("Hora (h:mm AM/PM)"))mask="h:mm AP";
-    else if(visible==tr("Hora (h:mm:ss AM/PM)"))mask="h:mm:ss AP";
-    else mask="yyyy-MM-dd";
+    //Mapea la opcion visible del combo a un patron de formato
+    const QString opcion=m_cFormato->currentText();
+    QString fmt;
 
-    m_hoja->setDateFormatForColumn(fila, mask);
+    if(opcion.contains("Fecha corta", Qt::CaseInsensitive))
+    {
+        //tipico: 12/11/2015  -> usamos día/mes/año
+        fmt="dd/MM/yyyy";
+    }else if(opcion.contains("Fecha larga", Qt::CaseInsensitive)){
+
+        // jueves, 12 de noviembre de 2015
+        fmt="dddd, dd 'de' MMMM 'de' yyyy";
+
+    }else if (opcion.contains("minutos", Qt::CaseInsensitive)){
+
+        // 12/11/2015 05:34 PM
+        fmt="dd/MM/yyyy hh:mm AP";
+
+    }else if (opcion.contains("segundos", Qt::CaseInsensitive)){
+        // 12/11/2015 05:34:23 PM
+        fmt="dd/MM/yyyy hh:mm:ss AP";
+
+    }else if (opcion.contains("ss", Qt::CaseInsensitive)){
+
+        // Hora (h:mm:ss AM/PM)
+        fmt="h:mm:ss AP";
+
+    }else if (opcion.contains("Hora", Qt::CaseInsensitive)){
+
+        // Hora (h:mm AM/PM)
+        fmt="h:mm AP";
+
+    }else{
+
+        // Respaldo: fecha corta ISO si algo no coincide
+        fmt="yyyy-MM-dd";
+
+    }
+
+    // Enviamos el formato a la Hoja (ella pinta y edita con este patrón)
+    m_hoja->setDateFormatForColumn(fila,fmt);
     m_hoja->update();
 }
 
@@ -561,8 +591,8 @@ void PestanaTabla::setMonedaEnColumnaActual(const QString &code)
     if(m_cFormato)
     {
         QSignalBlocker b1(m_cFormato);
-        int idx = m_cFormato->findData(code);
-        if (idx < 0) idx = 0;
+        int idx= m_cFormato->findData(code);
+        if(idx< 0) idx =0;
         m_cFormato->setCurrentIndex(idx);
     }
 

@@ -19,6 +19,8 @@
 #include "formdesignerwidget.h"
 #include "form_types.h"
 #include "relacioneswidget.h"
+#include<QPointer>
+#include<QApplication>
 
 VentanaPrincipal::VentanaPrincipal(QWidget* parent): QMainWindow(parent)
 {
@@ -161,7 +163,7 @@ VentanaPrincipal::VentanaPrincipal(QWidget* parent): QMainWindow(parent)
             return rel->validarValorFK(tabla, campo, valor.toString(), msg);
         });
 
-        const int idx = m_pestanas->addTab(fv, QIcon(":/im/image/form.png"), def.name);
+        const int idx = m_pestanas->addTab(fv, QIcon(":/im/image/formulario.png"), def.name);
         m_pestanas->setCurrentIndex(idx);
     });
 
@@ -372,59 +374,68 @@ void VentanaPrincipal::cerrarPestana(int idx)
 {
     if(auto* p = qobject_cast<PestanaTabla*>(m_pestanas->widget(idx)))
     {
+        //forzar fin de edicion activa en la hoja
+        if(auto*hoja=p->hojaDatosWidget())
+        {
 
+            hoja->setFocus(Qt::OtherFocusReason);
+
+        }
+        QApplication::processEvents(QEventLoop::AllEvents,50);
         TablaSnapshot s;
-        s.schema = p->esquemaActual();
-        s.rows   = p->filasActuales();
+        s.schema=p->esquemaActual();
+        s.rows=p->filasActuales();
         const QString nombreTabla=p->nombreTabla();
-        m_memTablas[p->nombreTabla()] = std::move(s);
+        m_memTablas[p->nombreTabla()]=std::move(s);
 
         //Emitir señal al cerrar para actualizar relaciones
         emit esquemaTablaCambiado(nombreTabla,m_memTablas[nombreTabla].schema);
 
     }
-
-    QWidget* w = m_pestanas->widget(idx);
+    QWidget*w=m_pestanas->widget(idx);
     m_pestanas->removeTab(idx);
     delete w;
 }
 
 void VentanaPrincipal::mostrarHojaDatosActual()
 {
-
     if(auto*p=qobject_cast<PestanaTabla*>(m_pestanas->currentWidget()))
     {
-
+        // Mostrar/asegurar la hoja de datos de la pestaña actual
         p->mostrarHojaDatos();
+
         if(auto*hoja=p->hojaDatosWidget())
         {
-            hoja->setValidadorCelda([this](const QString& tabla,const QString& campo,
-                                           const QVariant& valor,QString* msg) -> bool {
-                // Busca un RelacionesWidget abierto
-                RelacionesWidget* rel = nullptr;
-                for (int i = 0; i < m_pestanas->count(); ++i) {
-                    rel = qobject_cast<RelacionesWidget*>(m_pestanas->widget(i));
-                    if (rel) break;
-                }
-                if (!rel) return true; // si no está abierto, no bloqueamos
+            // Localiza (si existe) un RelacionesWidget abierto y se protege con QPointer
+            RelacionesWidget* rel=nullptr;
+            for(int i=0;i<m_pestanas->count();++i)
+            {
+                rel=qobject_cast<RelacionesWidget*>(m_pestanas->widget(i));
+                if(rel)break;
+            }
+            QPointer<RelacionesWidget>relPtr=rel;// se vuelve nullptr si se cierra la pestaña
 
-                const QString v = valor.toString();
-                return rel->validarValorFK(tabla, campo, v, msg);
+            // Validador seguro: si Relaciones se cierra despuess, no crashea
+            hoja->setValidadorCelda([this, relPtr](const QString& tabla,const QString& campo,const QVariant& valor,QString* msg) -> bool
+            {
+                RelacionesWidget*r=relPtr.data();
+                if(!r)return true;//si Relaciones ya no existe, no bloqueamos
+                return r->validarValorFK(tabla, campo, valor.toString(), msg);
             });
         }
+
         if(statusBar())
         {
-
             const int filas=p->filasActuales().size();
             statusBar()->showMessage(tr("Hoja de datos • %1 registros").arg(filas));
-
         }
-
     }
-    m_cinta->MostrarBotonClavePrimaria(false);//ocultar boton en hoja de datos
-    m_cinta->setIconoVerHojaDatos();
 
+    // Ajustes de la cinta para la vista Hoja de datos
+    m_cinta->MostrarBotonClavePrimaria(false); // ocultar boton en hoja de datos
+    m_cinta->setIconoVerHojaDatos();
 }
+
 
 void VentanaPrincipal::mostrarDisenioActual()
 {
@@ -527,6 +538,7 @@ void VentanaPrincipal::AbrirRelaciones()
         connect(this, &VentanaPrincipal::esquemaTablaCambiado,rel,&RelacionesWidget::aplicarEsquema);
         connect(this, &VentanaPrincipal::tablaRenombradaSignal,rel,&RelacionesWidget::tablaRenombrada);
 
+
         // Push inicial de todos los esquemas conocidos
         for(auto it = m_memTablas.begin(); it != m_memTablas.end(); ++it)
             emit esquemaTablaCambiado(it.key(), it.value().schema);
@@ -574,6 +586,10 @@ void VentanaPrincipal::AbrirRelaciones()
     }
     rel->MostrarSelectorTablas(tablas, true);
     m_cinta->MostrarBotonClavePrimaria(false);
+
+    connect(rel, &RelacionesWidget::relacionSeleccionada,m_cinta, &CintaOpciones::setEliminarRelacionVisible,Qt::UniqueConnection);
+
+    connect(m_cinta, &CintaOpciones::eliminarRelacionPulsado,rel, &RelacionesWidget::eliminarRelacionSeleccionada,Qt::UniqueConnection);
 }
 
 void VentanaPrincipal::renombrarTablaPorSolicitud(const QString &viejo, const QString &nuevo)
@@ -624,29 +640,34 @@ void VentanaPrincipal::renombrarTablaPorSolicitud(const QString &viejo, const QS
 }
 void VentanaPrincipal::instalarValidadorFKEn(PestanaTabla* pt)
 {
-    if (!pt) return;
+    if(!pt)return;
 
-    //Si la hoja de datos no existe (p.ej. esta en "Diseño"),
-    //no hacemos nada; se instalara cuando llames mostrarHojaDatosActual().
-    auto*hoja= pt->hojaDatosWidget();
+    auto* hoja=pt->hojaDatosWidget();
     if(!hoja)return;
 
-    //Buscar un RelacionesWidget abierto (si no hay, no bloqueamos)
-    RelacionesWidget* rel=nullptr;
-    for(int i =0; i<m_pestanas->count(); ++i)
+    //Buscar Relaciones abierto
+    RelacionesWidget*rel=nullptr;
+    for(int i=0;i<m_pestanas->count();++i)
     {
-        rel= qobject_cast<RelacionesWidget*>(m_pestanas->widget(i));
-        if(rel) break;
+        rel=qobject_cast<RelacionesWidget*>(m_pestanas->widget(i));
+        if(rel)break;
     }
-    if(!rel)return;
-
-    // Instalar el validador que usa RelacionesWidget::validarValorFK(...)
-    hoja->setValidadorCelda([this, rel](const QString& tabla,const QString& campo,const QVariant& valor,QString* msg) -> bool
+    if(!rel)
     {
+        // Sin Relaciones: no bloqueamos; opcionalmente limpia validador
+        hoja->setValidadorCelda({});
+        return;
+    }
 
-        const QString v=valor.toString();
-        return rel->validarValorFK(tabla,campo,v,msg);
-
+    //puntero seguro
+    QPointer<RelacionesWidget> relPtr=rel;
+    hoja->setValidadorCelda([this, relPtr](const QString& tabla,
+                                           const QString& campo,
+                                           const QVariant& valor,
+                                           QString* msg) -> bool {
+        RelacionesWidget* r = relPtr.data();
+        if (!r) return true; // si cerraron Relaciones, no bloqueamos ni crasheamos
+        return r->validarValorFK(tabla, campo, valor.toString(), msg);
     });
 }
 

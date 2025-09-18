@@ -66,7 +66,7 @@ private:
 private:
 
     QTableView* m_tabla=nullptr;
-    QStandardItemModel* m_modelo = nullptr;
+    QStandardItemModel* m_modelo=nullptr;
     QHash<int, int> m_maxLenByCol;
 
     // Delegates por columna

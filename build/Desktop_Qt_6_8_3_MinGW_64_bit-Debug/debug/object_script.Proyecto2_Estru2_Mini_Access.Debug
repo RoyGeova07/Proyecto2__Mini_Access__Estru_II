@@ -1,6 +1,10 @@
 debug/accesstheme.o
 debug/cintaopciones.o
 debug/consultawidget.o
+debug/form_types.o
+debug/formdesignerwidget.o
+debug/formview.o
+debug/formwizarddialog.o
 debug/main.o
 debug/mainwindow.o
 debug/panelobjetos.o
@@ -16,6 +20,9 @@ debug/vistahojadatos.o
 debug/qrc_img.o
 debug/moc_cintaopciones.o
 debug/moc_consultawidget.o
+debug/moc_formdesignerwidget.o
+debug/moc_formview.o
+debug/moc_formwizarddialog.o
 debug/moc_mainwindow.o
 debug/moc_panelobjetos.o
 debug/moc_pestanatabla.o

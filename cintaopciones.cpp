@@ -159,7 +159,7 @@ QWidget* CintaOpciones::crearPaginaInicio()
     auto* btnForm = new QToolButton(gForm);
     btnForm->setProperty("rol","accion");
     btnForm->setText(tr("Formulario"));
-    btnForm->setIcon(QIcon(":/im/image/form.png"));
+    btnForm->setIcon(QIcon(":/im/image/formulario.png"));
     btnForm->setIconSize(QSize(24,24));
     btnForm->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
     gForm->addWidget(btnForm,0,0);
@@ -193,6 +193,17 @@ QWidget* CintaOpciones::crearPaginaHBD()
     btnRel->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
     connect(btnRel, &QToolButton::clicked, this, &CintaOpciones::relacionesPulsado);
     gRel->addWidget(btnRel, 0, 0);
+
+    m_btnEliminarRelacion = new QToolButton(gRel);
+    m_btnEliminarRelacion->setProperty("rol","accion");
+    m_btnEliminarRelacion->setText(tr("Eliminar relación"));
+    m_btnEliminarRelacion->setIcon(QIcon(":/im/image/eliminar_relacion.png"));
+    m_btnEliminarRelacion->setIconSize(QSize(24,24));
+    m_btnEliminarRelacion->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+    m_btnEliminarRelacion->setVisible(false);
+    connect(m_btnEliminarRelacion, &QToolButton::clicked,
+            this, &CintaOpciones::eliminarRelacionPulsado);
+    gRel->addWidget(m_btnEliminarRelacion, 0, 1);
 
     auto* gTabla = new ribbongroup(tr("Tabla"), w);
     auto* btnAgregar = new QToolButton(gTabla); btnAgregar->setProperty("rol","accion");
@@ -238,3 +249,9 @@ void CintaOpciones::setIconoVerDisenio()
 {
     if (btnVer) btnVer->setIcon(m_iconVistaDisenio);
 }
+void CintaOpciones::setEliminarRelacionVisible(bool vis)
+{
+    if (m_btnEliminarRelacion)
+        m_btnEliminarRelacion->setVisible(vis);
+}
+

@@ -19,6 +19,7 @@
 #include<QMenu>
 #include<QDateTimeEdit>
 #include<schema.h>
+#include<QSignalBlocker>
 
 static constexpr int kCurrencyDecimals=2;
 
@@ -119,9 +120,10 @@ public:
                 bool ok1=false, ok2=false;
                 const double d1 =nv.toDouble(&ok1);
                 const double d2= cv.toDouble(&ok2);
-                if((ok1 && ok2 && qFuzzyCompare(1.0+d1,1.0+d2))||
-                    (!ok1||!ok2)&& (QString::compare(nv, cv, Qt::CaseInsensitive)==0))
+                if((ok1 && ok2 && qFuzzyCompare(1.0+d1,1.0+d2))||((!ok1||!ok2)&&(QString::compare(nv, cv, Qt::CaseInsensitive)==0)))
+                {
                     return true;
+                }
             }
             return false;
         };
@@ -529,14 +531,27 @@ QVector<QVector<QVariant>> VistaHojaDatos::snapshotFilas(bool excluirUltimaVacia
 
 void VistaHojaDatos::cargarFilas(const QVector<QVector<QVariant>>& rows)
 {
+    //Bloquea dataChanged/rowsInserted mientra se carga para que NO se mueva nada
+    QSignalBlocker block(m_modelo);
+
     m_modelo->setRowCount(rows.size());
-    for (int r=0; r<rows.size(); ++r) {
+    for(int r = 0; r < rows.size(); ++r)
+    {
         const auto& fila = rows[r];
-        for (int c=0; c<m_modelo->columnCount() && c<fila.size(); ++c) {
-            m_modelo->setData(m_modelo->index(r,c), fila[c]);
+        for(int c = 0; c < m_modelo->columnCount() && c < fila.size(); ++c)
+        {
+            m_modelo->setData(m_modelo->index(r, c), fila[c]);
         }
     }
+
+    // Fila "(Nuevo)" al final
     m_modelo->insertRow(m_modelo->rowCount());
+
+    // Al salir QSignalBlocker se liberan señales; deja el estado consistente:
+    //- Recalcular huecos del estado actual
+    recomputarHuecos();
+    // - Normalizar por si habian dos vacias al final
+    normalizarUltimaFilaNueva();
 }
 
 QString VistaHojaDatos::currencyForCol_(int c) const {

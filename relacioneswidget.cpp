@@ -35,6 +35,18 @@ RelacionesWidget::RelacionesWidget(QWidget* parent) : QWidget(parent) {
     // Captar tecla Delete desde la vista y su viewport
     m_view->installEventFilter(this);
     m_view->viewport()->installEventFilter(this);
+
+    connect(m_scene, &QGraphicsScene::selectionChanged, this, [this]
+    {
+        bool any=false;
+        const auto sel=m_scene->selectedItems();
+        for(QGraphicsItem* gi : sel)
+        {
+            if(dynamic_cast<RelationItem*>(gi)){any=true;break;}
+        }
+        emit relacionSeleccionada(any);
+    });
+
 }
 
 // === Borrado de selección (solo del UML) =====================================
@@ -120,11 +132,19 @@ QPointF RelacionesWidget::proximaPosicion_()
     return pos;
 }
 
-void RelacionesWidget::asegurarItemTabla_(const QString& nombre) {
-    if (m_items.contains(nombre)) return;
+void RelacionesWidget::asegurarItemTabla_(const QString& nombre)
+{
+    if(m_items.contains(nombre))
+    {
+
+        QMessageBox::warning(this,tr("Microsoft Access"),tr("Esta tabla ya existe en relaciones: '%1'.").arg(nombre));
+        return;
+
+    }
 
     QList<Campo> schema = m_schemas.value(nombre);
-    if (schema.isEmpty()) {
+    if(schema.isEmpty())
+    {
         Campo pk;  pk.pk = true;  pk.nombre = "Id";     pk.tipo = "Entero";
         Campo c1;  c1.pk = false; c1.nombre = "Campo1"; c1.tipo = "Texto";
         schema << pk << c1;
@@ -591,7 +611,8 @@ void RelacionesWidget::MostrarSelectorTablas(const QStringList& tablas, bool sol
     QObject::connect(box, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
     lay->addWidget(box);
 
-    if (dlg.exec() == QDialog::Accepted) {
+    if(dlg.exec() ==QDialog::Accepted)
+    {
         QStringList seleccion;
         auto collect=[&](QListWidget* lw){ for (auto* it : lw->selectedItems()) seleccion << it->text(); };
         if (tabs->currentIndex()==0) collect(listTablas);
@@ -768,3 +789,35 @@ bool RelacionesWidget::nombresCamposSimilares(const QString &a, const QString &b
 
 
 }
+void RelacionesWidget::eliminarRelacionSeleccionada()
+{
+    const auto selected=m_scene->selectedItems();
+    if(selected.isEmpty())return;
+
+    QList<QString> borrarRelKeys;
+    for(QGraphicsItem*gi:selected)
+    {
+        if(auto*r=dynamic_cast<RelationItem*>(gi))
+        {
+            // buscar su key en el mapa
+            for(auto it=m_relaciones.begin(); it != m_relaciones.end(); ++it)
+            {
+                if(it->item==r){borrarRelKeys<<it.key();break;}
+            }
+        }
+    }
+    for(const QString&k:borrarRelKeys)
+    {
+        auto rel=m_relaciones.take(k);
+        if(rel.item)
+        {
+            if(rel.item->scene()) rel.item->scene()->removeItem(rel.item);
+            rel.item->setParent(nullptr);
+            rel.item->deleteLater();
+        }
+    }
+
+    // tras eliminar, fuerza ocultar el boton si ya no hay ninguna relacion seleccionada
+    emit relacionSeleccionada(false);
+}
+
