@@ -1,6 +1,10 @@
 release/accesstheme.o
 release/cintaopciones.o
 release/consultawidget.o
+release/form_types.o
+release/formdesignerwidget.o
+release/formview.o
+release/formwizarddialog.o
 release/main.o
 release/mainwindow.o
 release/panelobjetos.o
@@ -16,6 +20,9 @@ release/vistahojadatos.o
 release/qrc_img.o
 release/moc_cintaopciones.o
 release/moc_consultawidget.o
+release/moc_formdesignerwidget.o
+release/moc_formview.o
+release/moc_formwizarddialog.o
 release/moc_mainwindow.o
 release/moc_panelobjetos.o
 release/moc_pestanatabla.o

@@ -1,18 +1,17 @@
 #ifndef VENTANAPRINCIPAL_H
 #define VENTANAPRINCIPAL_H
 
+#include "schema.h"
 #include<QMainWindow>
 
 class CintaOpciones;
 class PanelObjetos;
 class QTabWidget;
 class PestanaTabla;
+#include <QMap>
 #include <QHash>
-#include "vistadisenio.h"   // por 'Campo'
 #include <QVariant>
-#include"relacioneswidget.h"
-#include"vistahojadatos.h"
-
+#include <QHash>
 struct TablaSnapshot
 {
 
@@ -30,7 +29,7 @@ public:
 
     explicit VentanaPrincipal(QWidget*parent=nullptr);
 
-private slots:
+public slots:
 
     void crearTablaNueva();
     void abrirTablaDesdeLista(const QString&nombre);
@@ -51,7 +50,8 @@ signals:
     void tablaRenombradaSignal(const QString& viejo, const QString& nuevo);
 
 private:
-
+    QMap<QString, QByteArray> m_formulariosGuardados;
+    QHash<QString, QByteArray> m_consultasGuardadas;
     QHash<QString, TablaSnapshot> m_memTablas;
     CintaOpciones*m_cinta;
     PanelObjetos*m_panel;

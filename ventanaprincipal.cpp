@@ -1,41 +1,44 @@
 #include "VentanaPrincipal.h"
-#include"CintaOpciones.h"
-#include"PanelObjetos.h"
-#include"pestanatabla.h"
-#include<QTabWidget>
-#include<QSplitter>
-#include<QWidget>
-#include<QVBoxLayout>
-#include<QIcon>
-#include<QInputDialog>
-#include<QRegularExpression>
-#include"consultawidget.h"
-#include"accesstheme.h"
-#include<QFrame>
-#include<QLocale>
-#include<QStatusBar>
+#include "CintaOpciones.h"
+#include "PanelObjetos.h"
+#include "pestanatabla.h"
+#include <QTabWidget>
+#include <QSplitter>
+#include <QWidget>
+#include <QVBoxLayout>
+#include <QIcon>
+#include <QInputDialog>
+#include <QRegularExpression>
+#include "consultawidget.h"
+#include "accesstheme.h"
+#include <QFrame>
+#include <QLocale>
+#include <QStatusBar>
+#include "formwizarddialog.h"
+#include "formview.h"
+#include "formdesignerwidget.h"
+#include "form_types.h"
+#include "relacioneswidget.h"
 
-VentanaPrincipal::VentanaPrincipal(QWidget*parent):QMainWindow(parent)
+VentanaPrincipal::VentanaPrincipal(QWidget* parent): QMainWindow(parent)
 {
+    QLocale::setDefault(QLocale(QLocale::Spanish, QLocale::Honduras));
 
-    //AccessTheme::apply(*qApp);
-    QLocale::setDefault(QLocale(QLocale::Spanish,QLocale::Honduras));
-
-    auto*central=new QWidget(this);
-    auto*vlay=new QVBoxLayout(central);
+    auto* central = new QWidget(this);
+    auto* vlay = new QVBoxLayout(central);
     vlay->setContentsMargins(0,0,0,0);
     vlay->setSpacing(0);
 
-    m_cinta=new CintaOpciones(this);
+    m_cinta = new CintaOpciones(this);
     vlay->addWidget(m_cinta);
 
-    auto*split=new QSplitter(Qt::Horizontal,central);
-    vlay->addWidget(split,1);
+    auto* split = new QSplitter(Qt::Horizontal, central);
+    vlay->addWidget(split, 1);
 
-    m_panel=new PanelObjetos(split);
+    m_panel = new PanelObjetos(split);
     split->addWidget(m_panel);
 
-    m_pestanas=new QTabWidget(split);
+    m_pestanas = new QTabWidget(split);
     m_pestanas->setTabsClosable(true);
     split->addWidget(m_pestanas);
 
@@ -47,64 +50,157 @@ VentanaPrincipal::VentanaPrincipal(QWidget*parent):QMainWindow(parent)
     setWindowIcon(QIcon(":/im/image/a.png"));
     resize(1200,700);
 
-    //Abrir Tabla1 por defecto
+    // Abrir Tabla1 por defecto
     abrirOTraerAPrimerPlano("Tabla1");
 
-    // Conexiones
+    // ===== Conexiones existentes =====
     connect(m_cinta, &CintaOpciones::eliminarTablaPulsado, this, &VentanaPrincipal::eliminarTablaActual);
-    connect(m_cinta,&CintaOpciones::tablaPulsado,this,&VentanaPrincipal::crearTablaNueva);
-    connect(m_panel,&PanelObjetos::tablaAbiertaSolicitada,this,&VentanaPrincipal::abrirTablaDesdeLista);
-    connect(m_pestanas,&QTabWidget::tabCloseRequested,this,&VentanaPrincipal::cerrarPestana);
-    connect(m_cinta, &CintaOpciones::verHojaDatos,this,&VentanaPrincipal::mostrarHojaDatosActual);
-    connect(m_cinta, &CintaOpciones::verDisenio,this,&VentanaPrincipal::mostrarDisenioActual);
+    connect(m_cinta, &CintaOpciones::tablaPulsado, this, &VentanaPrincipal::crearTablaNueva);
+    connect(m_panel, &PanelObjetos::tablaAbiertaSolicitada, this, &VentanaPrincipal::abrirTablaDesdeLista);
+    connect(m_pestanas, &QTabWidget::tabCloseRequested, this, &VentanaPrincipal::cerrarPestana);
+    connect(m_cinta, &CintaOpciones::verHojaDatos, this, &VentanaPrincipal::mostrarHojaDatosActual);
+    connect(m_cinta, &CintaOpciones::verDisenio, this, &VentanaPrincipal::mostrarDisenioActual);
     connect(m_cinta, &CintaOpciones::agregarColumnaPulsado, this, &VentanaPrincipal::agregarColumnaActual);
     connect(m_cinta, &CintaOpciones::eliminarColumnaPulsado, this, &VentanaPrincipal::eliminarColumnaActual);
-    connect(m_cinta,&CintaOpciones::ClavePrimarioPulsado,this,&VentanaPrincipal::HacerClavePrimariaActual);
-    connect(m_cinta,&CintaOpciones::relacionesPulsado,this,&VentanaPrincipal::AbrirRelaciones);
-    connect(m_cinta,&CintaOpciones::ConsultaPulsado,this,&VentanaPrincipal::AbrirConsultas);
-    connect(m_cinta,&CintaOpciones::agregarTablaHBDPulsado,this,[this]
-    {
+    connect(m_cinta, &CintaOpciones::ClavePrimarioPulsado, this, &VentanaPrincipal::HacerClavePrimariaActual);
+    connect(m_cinta, &CintaOpciones::relacionesPulsado, this, &VentanaPrincipal::AbrirRelaciones);
+    connect(m_cinta, &CintaOpciones::ConsultaPulsado, this, &VentanaPrincipal::AbrirConsultas);
 
+    connect(m_panel, &PanelObjetos::renombrarConsultaSolicitado, this,
+            [this](const QString& viejo, const QString& nuevo){
+                if (!m_consultasGuardadas.contains(viejo)) return;
+                m_consultasGuardadas.insert(nuevo, m_consultasGuardadas.take(viejo));
+                m_panel->renombrarConsulta(viejo, nuevo);
+            });
+    connect(m_panel, &PanelObjetos::eliminarConsultaSolicitado, this,
+            [this](const QString& nombre){
+                m_consultasGuardadas.remove(nombre);
+                m_panel->eliminarConsulta(nombre);
+            });
+    connect(m_panel, &PanelObjetos::consultaAbiertaSolicitada, this,
+            [this](const QString& nombreConsulta){
+                const auto it = m_consultasGuardadas.find(nombreConsulta);
+                if (it == m_consultasGuardadas.end()) return;
+                const QByteArray json = it.value();
+
+                AbrirConsultas();
+
+                ConsultaWidget* cw = qobject_cast<ConsultaWidget*>(m_pestanas->currentWidget());
+                if (!cw) {
+                    for (int i = 0; i < m_pestanas->count(); ++i) {
+                        if (auto* c2 = qobject_cast<ConsultaWidget*>(m_pestanas->widget(i))) {
+                            m_pestanas->setCurrentIndex(i);
+                            cw = c2;
+                            break;
+                        }
+                    }
+                }
+                if (cw) cw->applySavedQuery(json, /*ejecutarAlCargar=*/true);
+            });
+
+    connect(m_cinta, &CintaOpciones::agregarTablaHBDPulsado, this, [this]{
         AbrirRelaciones();
-
-        //aqui se obtiene el widget de relaciones y pide el dialogo
-        for(int i=0;i<m_pestanas->count();i++)
-        {
-
-            if(auto*rel=qobject_cast<RelacionesWidget*>(m_pestanas->widget(i)))
-            {
-
-                const QStringList tablas=m_panel?m_panel->todasLasTablas():QStringList{};
-                rel->MostrarSelectorTablas(tablas,false);
+        for (int i=0; i<m_pestanas->count(); ++i) {
+            if (auto* rel = qobject_cast<RelacionesWidget*>(m_pestanas->widget(i))) {
+                const QStringList tablas = m_panel ? m_panel->todasLasTablas() : QStringList{};
+                rel->MostrarSelectorTablas(tablas, false);
                 break;
-
             }
-
         }
-
     });
-    connect(m_panel, &PanelObjetos::renombrarTablaSolicitado,this,&VentanaPrincipal::renombrarTablaPorSolicitud);
-    connect(m_cinta,&CintaOpciones::eliminarTablasRelPulsado,this,[this]
-    {
 
-       AbrirRelaciones();
-        if(auto*rel=qobject_cast<RelacionesWidget*>(m_pestanas->currentWidget()))
-        {
+    connect(m_panel, &PanelObjetos::renombrarTablaSolicitado, this, &VentanaPrincipal::renombrarTablaPorSolicitud);
 
+    connect(m_cinta, &CintaOpciones::eliminarTablasRelPulsado, this, [this]{
+        AbrirRelaciones();
+        if (auto* rel = qobject_cast<RelacionesWidget*>(m_pestanas->currentWidget())) {
             rel->eliminarSeleccion();
-
         }
-
-
     });
 
+    // ======= INTEGRACIÓN FORMULARIOS (correctamente fuera del lambda) =======
+
+    // 1) Botón de la cinta -> Wizard -> guardar/abrir
+    connect(m_cinta, &CintaOpciones::FormularioPulsado, this, [this]{
+        FormWizardDialog dlg(this);
+
+        dlg.setAllTablesProvider([this]{
+            return m_panel ? m_panel->todasLasTablas() : QStringList{};
+        });
+        dlg.setSchemaProvider([this](const QString& t){
+            return m_memTablas.contains(t) ? m_memTablas[t].schema : QList<Campo>{};
+        });
+        dlg.setRelationProbe([this]{
+            QList<FormLink> out;
+            // (si propagas relaciones, rellena aquí)
+            return out;
+        });
+
+        if (dlg.exec() != QDialog::Accepted) return;
+
+        const FormDefinition def = dlg.result();
+        const QByteArray json = def.toJson();
+
+        m_formulariosGuardados[def.name] = json;
+        if (m_panel) m_panel->agregarFormulario(def.name);
+
+        auto* fv = new FormView(def, m_pestanas);
+        fv->setRowsProvider([this](const QString& t){
+            return m_memTablas.contains(t) ? m_memTablas[t].rows : QVector<QVector<QVariant>>{};
+        });
+        fv->setSchemaProvider([this](const QString& t){
+            return m_memTablas.contains(t) ? m_memTablas[t].schema : QList<Campo>{};
+        });
+        fv->setFkValidator([this](const QString& tabla, const QString& campo, const QVariant& valor, QString* msg){
+            RelacionesWidget* rel = nullptr;
+            for (int i=0; i<m_pestanas->count(); ++i) {
+                rel = qobject_cast<RelacionesWidget*>(m_pestanas->widget(i));
+                if (rel) break;
+            }
+            if (!rel) return true;
+            return rel->validarValorFK(tabla, campo, valor.toString(), msg);
+        });
+
+        const int idx = m_pestanas->addTab(fv, QIcon(":/im/image/form.png"), def.name);
+        m_pestanas->setCurrentIndex(idx);
+    });
+
+    // 2) Panel de objetos: abrir/renombrar/eliminar formularios
+    connect(m_panel, &PanelObjetos::formularioAbiertoSolicitado, this,
+            [this](const QString& nombre){
+                auto it = m_formulariosGuardados.find(nombre);
+                if (it == m_formulariosGuardados.end()) return;
+
+                FormDefinition def = FormDefinition::fromJson(it.value());
+                auto* fv = new FormView(def, m_pestanas);
+                fv->setRowsProvider([this](const QString& t){
+                    return m_memTablas.contains(t) ? m_memTablas[t].rows : QVector<QVector<QVariant>>{};
+                });
+                fv->setSchemaProvider([this](const QString& t){
+                    return m_memTablas.contains(t) ? m_memTablas[t].schema : QList<Campo>{};
+                });
+                const int idx = m_pestanas->addTab(fv, QIcon(":/im/image/form.png"), def.name);
+                m_pestanas->setCurrentIndex(idx);
+            });
+
+    connect(m_panel, &PanelObjetos::renombrarFormularioSolicitado, this,
+            [this](const QString& viejo, const QString& nuevo){
+                if (!m_formulariosGuardados.contains(viejo)) return;
+                m_formulariosGuardados.insert(nuevo, m_formulariosGuardados.take(viejo));
+                m_panel->renombrarFormulario(viejo, nuevo);
+            });
+
+    connect(m_panel, &PanelObjetos::eliminarFormularioSolicitado, this,
+            [this](const QString& nombre){
+                m_formulariosGuardados.remove(nombre);
+                m_panel->eliminarFormulario(nombre);
+            });
 }
+
 void VentanaPrincipal::AbrirConsultas()
 {
-    for(int i=0;i<m_pestanas->count();++i)
-    {
-        if(m_pestanas->tabText(i)==tr("Consultas"))
-        {
+    for (int i=0; i<m_pestanas->count(); ++i) {
+        if (m_pestanas->tabText(i) == tr("Consultas")) {
             m_pestanas->setCurrentIndex(i);
             m_cinta->MostrarBotonClavePrimaria(false);
             return;
@@ -122,12 +218,19 @@ void VentanaPrincipal::AbrirConsultas()
         return m_memTablas.contains(t) ? m_memTablas[t].schema : QList<Campo>{};
     });
     w->setRowsProvider([this](const QString& t){
-        return m_memTablas.contains(t) ? m_memTablas[t].rows   : QVector<QVector<QVariant>>{};
+        return m_memTablas.contains(t) ? m_memTablas[t].rows : QVector<QVector<QVariant>>{};
     });
-    const QStringList tablas=m_panel?m_panel->todasLasTablas():QStringList{};
-    w->MostrarSelectorTablas(tablas,true);
 
+    const QStringList tablas = m_panel ? m_panel->todasLasTablas() : QStringList{};
+    w->MostrarSelectorTablas(tablas, true);
 
+    connect(w, &ConsultaWidget::guardarConsulta, this,
+            [this](const QString& nombre, const QByteArray& json){
+                m_consultasGuardadas[nombre] = json;
+                if (m_panel) m_panel->agregarConsulta(nombre);
+            });
+
+    m_cinta->MostrarBotonClavePrimaria(false);
 }
 
 void VentanaPrincipal::crearTablaNueva()

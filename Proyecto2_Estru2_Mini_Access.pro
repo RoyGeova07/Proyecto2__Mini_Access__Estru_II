@@ -12,6 +12,10 @@ SOURCES += \
     accesstheme.cpp \
     cintaopciones.cpp \
     consultawidget.cpp \
+    form_types.cpp \
+    formdesignerwidget.cpp \
+    formview.cpp \
+    formwizarddialog.cpp \
     main.cpp \
     mainwindow.cpp \
     panelobjetos.cpp \
@@ -29,6 +33,10 @@ HEADERS += \
     accesstheme.h \
     cintaopciones.h \
     consultawidget.h \
+    form_types.h \
+    formdesignerwidget.h \
+    formview.h \
+    formwizarddialog.h \
     mainwindow.h \
     panelobjetos.h \
     pestanatabla.h \

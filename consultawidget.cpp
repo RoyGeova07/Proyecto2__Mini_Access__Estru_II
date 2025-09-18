@@ -22,7 +22,11 @@
 #include <QDialogButtonBox>
 #include <QListWidget>
 #include <QTabWidget>
-
+#include <QInputDialog>
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QJsonDocument>
+#include <QMessageBox>
 // ====== API pública ======
 ConsultaWidget::ConsultaWidget(QWidget* parent): QWidget(parent) {
     buildUi_();
@@ -129,18 +133,21 @@ void ConsultaWidget::buildUi_() {
 
         m_btnAdd  = new QPushButton(tr("+ Agregar consultas"), strip);
         m_btnRun  = new QPushButton(tr("Ejecutar"), strip);
+        m_btnSave = new QPushButton(tr("Guardar"), strip);
         m_btnBack = new QPushButton(tr("Vista Diseño"), strip);
         m_btnBack->setEnabled(false);
 
         h->addWidget(m_btnAdd);
         h->addStretch(1);
         h->addWidget(m_btnRun);
+        h->addWidget(m_btnSave);
         h->addWidget(m_btnBack);
         lay->addWidget(strip);
 
         connect(m_btnAdd,  &QPushButton::clicked, this, &ConsultaWidget::onAgregarConsulta);
         connect(m_btnRun,  &QPushButton::clicked, this, &ConsultaWidget::onEjecutar);
         connect(m_btnBack, &QPushButton::clicked, this, &ConsultaWidget::onVolver);
+        connect(m_btnSave, &QPushButton::clicked, this, &ConsultaWidget::onGuardarConsulta);
     }
 
     // superficie superior (tarjetas)
@@ -194,6 +201,148 @@ void ConsultaWidget::buildUi_() {
       QTableWidget::item { padding:2px; }
     )");
 }
+void ConsultaWidget::onGuardarConsulta()
+{
+    // 1) Leer especificación actual
+    const auto spec = readSpec_();
+    if (spec.isEmpty()) {
+        QMessageBox::information(this, tr("Consultas"),
+                                 tr("No hay columnas que guardar. Agrega al menos un Campo y una Tabla."));
+        return;
+    }
+
+    // 2) Pedir nombre (como Access)
+    bool ok = false;
+    const QString nombre = QInputDialog::getText(this, tr("Guardar consulta"),
+                                                 tr("Nombre de la consulta:"),
+                                                 QLineEdit::Normal,
+                                                 QString(), &ok).trimmed();
+    if (!ok || nombre.isEmpty())
+        return;
+
+    // 3) Serializar y emitir para que la ventana principal la persista/muestre
+    const QByteArray json = serializeQuery_(spec, nombre);
+    emit guardarConsulta(nombre, json);
+
+    // Feedback
+    QMessageBox::information(this, tr("Consultas"),
+                             tr("Consulta “%1” guardada.").arg(nombre));
+}
+QByteArray ConsultaWidget::serializeQuery_(const QList<ColSpec>& cols, const QString& name) const
+{
+    QJsonObject root;
+    root["name"] = name;
+
+    QJsonArray a;
+    for (const auto& c : cols) {
+        QJsonObject o;
+        o["tabla"]    = c.tabla;
+        o["campo"]    = c.campo;
+        o["orden"]    = c.orden;
+        o["mostrar"]  = c.mostrar;
+        o["criterio"] = c.criterio;
+        a.push_back(o);
+    }
+    root["cols"] = a;
+    return QJsonDocument(root).toJson(QJsonDocument::Compact);
+}
+
+QList<ConsultaWidget::ColSpec> ConsultaWidget::deserializeQuery_(const QByteArray& json)
+{
+    QList<ColSpec> out;
+    const auto doc = QJsonDocument::fromJson(json);
+    if (!doc.isObject()) return out;
+
+    const auto root = doc.object();
+    const auto arr  = root.value("cols").toArray();
+    for (const auto& v : arr) {
+        if (!v.isObject()) continue;
+        const auto o = v.toObject();
+        ColSpec c;
+        c.tabla   = o.value("tabla").toString();
+        c.campo   = o.value("campo").toString();
+        c.orden   = o.value("orden").toString();
+        c.mostrar = o.value("mostrar").toBool(true);
+        c.criterio= o.value("criterio").toString();
+        c.tieneCriterio = !c.criterio.trimmed().isEmpty();
+        if (!c.tabla.isEmpty() && !c.campo.isEmpty())
+            out.push_back(c);
+    }
+    return out;
+}
+void ConsultaWidget::setGridFromSpec_(const QList<ColSpec>& cols)
+{
+    if (!m_grid) return;
+
+    // 1) limpiar todas las columnas actuales
+    while (m_grid->columnCount() > 0)
+        m_grid->removeColumn(0);
+
+    // 2) crear una columna por ColSpec
+    int c = 0;
+    for (const auto& s : cols) {
+        createColumn_(c);
+
+        auto* cbCampo = qobject_cast<QComboBox*>(m_grid->cellWidget(0, c));
+        auto* cbTabla = qobject_cast<QComboBox*>(m_grid->cellWidget(1, c));
+        auto* cbOrden = qobject_cast<QComboBox*>(m_grid->cellWidget(2, c));
+        auto* cellChk = m_grid->cellWidget(3, c);
+        auto* chk     = cellChk ? cellChk->findChild<QCheckBox*>() : nullptr;
+        auto* eCrit   = qobject_cast<QLineEdit*>(m_grid->cellWidget(4, c));
+
+        // Tabla
+        if (cbTabla) {
+            int idx = cbTabla->findText(s.tabla, Qt::MatchFixedString);
+            if (idx < 0) { cbTabla->addItem(s.tabla); idx = cbTabla->findText(s.tabla, Qt::MatchFixedString); }
+            cbTabla->setCurrentIndex(idx < 0 ? 0 : idx);
+        }
+
+        // Campo
+        if (cbCampo) {
+            refillCampoCombo_(cbCampo, s.tabla);
+            int idxC = cbCampo->findText(s.campo, Qt::MatchFixedString);
+            if (idxC >= 0) cbCampo->setCurrentIndex(idxC);
+        }
+
+        // Orden
+        if (cbOrden) {
+            int idxO = cbOrden->findText(s.orden, Qt::MatchFixedString);
+            cbOrden->setCurrentIndex(idxO < 0 ? 0 : idxO);
+        }
+
+        // Mostrar
+        if (chk) chk->setChecked(s.mostrar);
+
+        // Criterio
+        if (eCrit) eCrit->setText(s.criterio);
+
+        ++c;
+    }
+
+    // 3) mantener una columna vacía extra (estilo Access) y refrescar tarjetas
+    ensureOneEmptyColumn_();
+    refreshDiagram_();
+}
+void ConsultaWidget::applySavedQuery(const QByteArray& json, bool ejecutarAlCargar)
+{
+    const auto cols = deserializeQuery_(json);
+    if (cols.isEmpty()) return;
+
+    setGridFromSpec_(cols);
+
+    if (ejecutarAlCargar) {
+        onEjecutar(); // abre directamente la vista de datos
+    } else {
+        // solo pasar a vista diseño con el layout cargado
+        m_resultsPanel->setVisible(false);
+        m_split->setVisible(true);
+        m_btnRun->setEnabled(true);
+        m_btnBack->setEnabled(false);
+        refreshDiagram_();
+        emit info(tr("Diseño de consulta cargado"));
+    }
+}
+
 
 // crea la columna 'c' con los 6 controles
 void ConsultaWidget::createColumn_(int c) {

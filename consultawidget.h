@@ -10,7 +10,6 @@
 #include <functional>
 #include "schema.h"
 #include "tableitem.h"
-
 class QTableWidget;
 class QGraphicsView;
 class QGraphicsScene;
@@ -24,31 +23,26 @@ class ConsultaWidget : public QWidget
 {
     Q_OBJECT
 public:
+     void applySavedQuery(const QByteArray& json, bool ejecutarAlCargar = true);
     explicit ConsultaWidget(QWidget* parent = nullptr);
-
-    // Proveedores: conéctalos desde VentanaPrincipal
     void setAllTablesProvider(std::function<QStringList()> fn);
     void setSchemaProvider(std::function<QList<Campo>(const QString&)> fn);
     void setRowsProvider(std::function<QVector<QVector<QVariant>>(const QString&)> fn);
-
-    // Abrir el selector de tablas
     void MostrarSelectorTablas(const QStringList& tablas, bool soloSiPrimeraVez=false);
-
 signals:
-    void info(const QString&);    // opcional (estado en barra)
-    void ejecutar();              // no usado, pero disponible
-
+    void info(const QString&);
+    void ejecutar();
+    void guardarConsulta(const QString& nombre, const QByteArray& json);
 private slots:
     void onEjecutar();
     void onVolver();
-    void onAgregarConsulta();     // abre el selector de tablas
-
+    void onAgregarConsulta();
+    void onGuardarConsulta();
 private:
-    // ================== estructuras de rejilla ==================
     struct ColSpec {
         QString tabla;
         QString campo;
-        QString orden;   // Ninguno | Ascendente | Descendente
+        QString orden;
         bool    mostrar = true;
         QString criterio;
         bool    tieneCriterio = false;
@@ -56,16 +50,16 @@ private:
 
     struct ResolvedTable {
         QString name;
-        QStringList headers;      // nombres de campo
-        QList<Campo> schema;      // tipos
-        QVector<QVector<QVariant>> rows; // sin la fila “(Nuevo)”
+        QStringList headers;
+        QList<Campo> schema;
+        QVector<QVector<QVariant>> rows;
     };
 
     enum class Op { EQ, NEQ, LT, LTE, GT, GTE, LIKE, NONE };
     struct Crit {
         Op op = Op::NONE;
-        QVariant rhs;       // valor tipado
-        QString rhsTxt;     // texto normalizado (para LIKE)
+        QVariant rhs;
+        QString rhsTxt;
         bool valid=false;
     };
 
@@ -86,28 +80,24 @@ private:
     };
 
 private:
-    // ========= Proveedores conectados desde fuera =========
     std::function<QStringList()> m_allTables;
     std::function<QList<Campo>(const QString&)> m_schemaOf;
     std::function<QVector<QVector<QVariant>>(const QString&)> m_rowsOf;
-
-    // ========= UI =========
-    QSplitter*m_split=nullptr;   // diseño (arriba/abajo)
+    QSplitter*m_split=nullptr;
     QGraphicsView*m_view=nullptr;
     QGraphicsScene*m_scene=nullptr;
-    QTableWidget*m_grid=nullptr;   // rejilla Access (filas fijas / columnas dinámicas)
-    QPushButton*m_btnRun=nullptr;   // Ejecutar
-    QPushButton*m_btnBack=nullptr;   // Vista Diseño
-    QPushButton*m_btnAdd=nullptr;   // + Agregar consultas
-
+    QTableWidget*m_grid=nullptr;
+    QPushButton*m_btnRun=nullptr;
+    QPushButton*m_btnBack=nullptr;
+    QPushButton*m_btnAdd=nullptr;
     QWidget*m_resultsPanel=nullptr;
     QTableView*m_resultsView=nullptr;
     QStandardItemModel*m_resultsModel=nullptr;
-
-    QHash<QString, TableItem*> m_cards;   // tarjetas visibles en el lienzo
+    QHash<QString, TableItem*> m_cards;
     bool m_selectorMostrado=false;
-
-    // ========= helpers UI =========
+    QByteArray serializeQuery_(const QList<ColSpec>& cols, const QString& name) const;
+    static QList<ColSpec> deserializeQuery_(const QByteArray& json);
+    void setGridFromSpec_(const QList<ColSpec>& cols);
     void buildUi_();
     void createColumn_(int c);
     void wireColumn_(int c);
@@ -123,16 +113,12 @@ private:
     int  schemaFieldCount_(const QString& tabla) const;
     QList<ColSpec> readSpec_() const;
     int selectedFieldCountForTableExcluding_(const QString& tabla, int excludeCol) const;
-    // ========= datos / ejecución =========
     bool resolveTables_(const QList<ColSpec>& cols, QMap<QString, ResolvedTable>& out, QString* err) const;
     Crit parseCrit_(const QString& raw, const QString& tipoCampo) const;
     QVector<int> filterTableWithIndexes_(const ResolvedTable& T, const QList<ColSpec>& specs, QString* err) const;
-
-    // proyección + orden + distinct + rellenar modelo resultados
     static QString makeDistinctKey_(const QVector<QVariant>& row, const QList<int>& cols);
     void buildResults_(const QList<ColSpec>& cols, const QMap<QString, ResolvedTable>& tabs, QString* err);
-
-    // util
+    QPushButton*         m_btnSave       = nullptr;
     static bool isEmpty_(const QVariant& v){ return (!v.isValid() || v.toString().trimmed().isEmpty()); }
 };
 
