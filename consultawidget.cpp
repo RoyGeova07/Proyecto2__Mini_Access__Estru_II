@@ -134,7 +134,7 @@ void ConsultaWidget::buildUi_() {
         m_btnAdd  = new QPushButton(tr("+ Agregar consultas"), strip);
         m_btnRun  = new QPushButton(tr("Ejecutar"), strip);
         m_btnSave = new QPushButton(tr("Guardar"), strip);
-        m_btnBack = new QPushButton(tr("Vista Diseño"), strip);
+        m_btnBack = new QPushButton(tr("Volver"), strip);
         m_btnBack->setEnabled(false);
 
         h->addWidget(m_btnAdd);

@@ -33,6 +33,7 @@ public:
     using ComprobadorTablaAbierta=std::function<bool(const QString& nombre)>;
     void setComprobadorTablaAbierta(ComprobadorTablaAbierta f){m_isTablaAbierta=std::move(f);}
     bool validarValorFK(const QString& tablaDestino,const QString& campoDestino,const QString& valor,QString* outError) const;
+    bool campoTieneRelacionActiva(const QString& tabla, const QString& campo) const;
 
 protected:
     bool eventFilter(QObject* obj, QEvent* ev) override;

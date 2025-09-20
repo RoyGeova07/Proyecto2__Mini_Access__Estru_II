@@ -311,30 +311,35 @@ VistaHojaDatos::VistaHojaDatos(const QString& nombreTabla, QWidget* parent):QWid
 
     // Renombrar encabezado por doble clic
     connect(hh, &QHeaderView::sectionDoubleClicked, this, [this](int col)
+    {
+        const QString actual=m_modelo->headerData(col, Qt::Horizontal).toString();
+
+        //validador nuevo: si el campo participa en una relacion activa, bloquear el cambio de nombre
+        if (m_bloqRenombre && m_bloqRenombre(m_nombreTabla, actual)) {
+            QMessageBox::warning(this, tr("Microsoft Access"),
+                                 tr("No se puede cambiar el nombre del campo “%1” porque participa en una relación activa. "
+                                    "Quite la relación y vuelva a intentarlo.").arg(actual));
+            return;
+        }
+
+        bool ok=false;
+        QString nuevo=QInputDialog::getText(this, tr("Renombrar campo"),tr("Nuevo nombre para %1:").arg(actual),QLineEdit::Normal, actual, &ok).trimmed();
+
+        if(!ok||nuevo.isEmpty()||nuevo==actual)return;
+
+        for(int c=0;c<m_modelo->columnCount();++c)
+        {
+            if(c==col)continue;
+            const QString ex=m_modelo->headerData(c,Qt::Horizontal).toString().trimmed();
+            if(QString::compare(ex,nuevo,Qt::CaseInsensitive)==0)
             {
-                const QString actual=m_modelo->headerData(col, Qt::Horizontal).toString();
-
-                bool ok=false;
-                QString nuevo=QInputDialog::getText(this, tr("Renombrar campo"),
-                                                      tr("Nuevo nombre para %1:").arg(actual),
-                                                      QLineEdit::Normal, actual, &ok).trimmed();
-
-                if(!ok||nuevo.isEmpty()||nuevo==actual)return;
-
-                for(int c=0;c<m_modelo->columnCount();++c)
-                {
-                    if(c==col)continue;
-                    const QString ex=m_modelo->headerData(c,Qt::Horizontal).toString().trimmed();
-                    if(QString::compare(ex,nuevo,Qt::CaseInsensitive)==0)
-                    {
-                        QMessageBox::warning(this,tr("Nombre Duplicado"),
-                                             tr("Ya existe un campo llamado “%1”.").arg(nuevo));
-                        return;
-                    }
-                }
-                m_modelo->setHeaderData(col,Qt::Horizontal,nuevo);
-                emit renombrarCampoSolicitado(col, nuevo);
-            });
+                QMessageBox::warning(this,tr("Nombre Duplicado"),tr("Ya existe un campo llamado “%1”.").arg(nuevo));
+                return;
+            }
+        }
+        m_modelo->setHeaderData(col,Qt::Horizontal,nuevo);
+        emit renombrarCampoSolicitado(col, nuevo);
+    });
 
     // Menú contextual en encabezado para elegir divisa en columnas "Moneda"
     hh->setContextMenuPolicy(Qt::CustomContextMenu);

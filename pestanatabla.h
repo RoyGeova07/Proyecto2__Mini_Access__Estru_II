@@ -29,6 +29,7 @@ public:
     bool tieneNombre()const{return m_tieneNombre; }
     void establecerNombre(const QString& n){m_nombre=n;m_tieneNombre=true;}
     VistaHojaDatos* hojaDatosWidget()const{return m_hoja;}
+    VistaDisenio*vistaDisenioWidget()const{return m_disenio;}
 
 signals:
 

@@ -25,11 +25,21 @@ public:
     static constexpr int RoleIndexado=Qt::UserRole+102;
     void ponerIconoLlave(const QIcon&icono);
     QList<Campo> esquema() const;
+    void setNombreTabla(const QString& t){m_nombreTabla=t.trimmed();}
+    QString nombreTabla() const{return m_nombreTabla;}
     Campo campoEnFila(int fila) const;
     int filaSeleccionadaActual() const;
     void setFormatoMonedaEnFila(int fila, const QString& code);
     void setIndexadoEnFila(int fila, CampoIndexado::Modo m);
     CampoIndexado::Modo indexadoEnFila(int fila) const;
+    using BloqueadorNombre=std::function<bool(const QString& tabla,const QString& campo)>;
+    void setBloqueadorNombre(BloqueadorNombre f){m_bloqRenombre=std::move(f);}
+    bool BloqueRenombreDesdeDisenio(const QString&campoActual)const
+    {
+
+        return m_bloqRenombre&&m_bloqRenombre(m_nombreTabla,campoActual);
+
+    }
 
 public slots:
 
@@ -61,6 +71,8 @@ private:
     int m_pkRow=0;
     QIcon m_iconPk;
     void RefrescarIconPk();
+    BloqueadorNombre m_bloqRenombre;
+    QString m_nombreTabla;
 
 };
 

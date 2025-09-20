@@ -36,8 +36,29 @@ public:
     void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const override
     {
 
-        if (auto* cb = qobject_cast<QComboBox*>(editor))
+        if(auto* cb=qobject_cast<QComboBox*>(editor))
+        {
+
+            //bloquear cambio de tipo si el campo participa en una relacion activa
+            if(auto*vd=qobject_cast<VistaDisenio*>(parent()))
+            {
+
+                //nombre actual del campo (columna 1 en la misma fila)
+                const QString nombreActual=model->index(index.row(),1).data().toString().trimmed();
+                if(vd->BloqueRenombreDesdeDisenio(nombreActual))
+                {
+
+                    QMessageBox::information(vd,QObject::tr("Microsoft Access"),QObject::tr("No se puede cambiar el tipo de datos o el tamaño de este campo porque forma parte de una o más relaciones.\n\n""Si desea cambiar el tipo de datos de este campo, elimine primero sus relaciones en la ventana Relaciones."));
+                    return; // no aplicar el cambio
+
+                }
+
+            }
+            //Si no esta en relacion -> aplicar el cambio normalmente
             model->setData(index, cb->currentText());
+
+        }
+
 
     }
 
@@ -80,6 +101,21 @@ public:
             QMessageBox::warning(owner_, QObject::tr("Nombre inválido"),QObject::tr("El nombre no puede estar vacío."));
             return; // conserva el nombre anterior
         }
+        //bloquear el campo si tiene relacion activa
+        QString nombreActual=model_->index(index.row(),1).data().toString().trimmed();
+        if(auto*vd=qobject_cast<VistaDisenio*>(owner_))
+        {
+
+            if(vd->BloqueRenombreDesdeDisenio(nombreActual))
+            {
+
+                QMessageBox::warning(owner_, QObject::tr("Renombre bloqueado"),QObject::tr("No se puede cambiar el nombre del campo porque tiene una relación activa."));
+                return;
+
+            }
+
+        }
+
         // comprobar duplicados (case-insensitive)
         for(int r = 0; r < model_->rowCount(); ++r)
         {
@@ -110,27 +146,39 @@ bool VistaDisenio::renombrarCampo(int fila, const QString& nuevoNombre)
 {
 
     if(fila<0)return false;
+
     const QString nn=nuevoNombre.trimmed();
     if(nn.isEmpty())return false;
 
-    //Duplicados (case-insensitive) en todas las filas excepto la editada
-    for(int r = 0; r < m_modelo->rowCount(); ++r)
+    //1) Bloquear solo si EL CAMPO a renombrar esta en relacion activa
+    const QString nombreActual=m_modelo->index(fila,1).data().toString().trimmed();
+    if (BloqueRenombreDesdeDisenio(nombreActual))
     {
 
-        if (r == fila) continue;
-        const QString ex = m_modelo->index(r,1).data().toString().trimmed();
-        if (QString::compare(ex, nn, Qt::CaseInsensitive) == 0)
-            return false;
+        QMessageBox::warning(this, tr("Renombre bloqueado"),tr("No se puede cambiar el nombre del campo porque tiene una relación activa."));
+        return false;
 
     }
 
+    //2)Duplicados (case-insensitive) en todas las filas EXCEPTO la editada
+    for(int r=0;r<m_modelo->rowCount();++r)
+    {
+        if(r==fila) continue;
+        const QString ex=m_modelo->index(r,1).data().toString().trimmed();
+        if(QString::compare(ex, nn, Qt::CaseInsensitive)==0)
+        {
+            QMessageBox::warning(this, tr("Nombre duplicado"),tr("Ya existe un campo llamado “%1”.").arg(nn));
+            return false;
+        }
+    }
+
+    //3) Aplicar cambio
     QStandardItem* it=m_modelo->item(fila, 1);
-    if(!it){it=new QStandardItem(nn); m_modelo->setItem(fila,1,it); }
-    else     {it->setText(nn); }
+    if(!it){it=new QStandardItem(nn); m_modelo->setItem(fila,1,it);}
+    else     {it->setText(nn);}
 
-    emit esquemaCambiado();//dispara la sync hacia Hoja/Relaciones
+    emit esquemaCambiado(); // disparara sync hacia Hoja/Relaciones
     return true;
-
 }
 void VistaDisenio::establecerEsquema(const QList<Campo>& campos)
 {

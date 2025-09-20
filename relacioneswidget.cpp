@@ -820,4 +820,25 @@ void RelacionesWidget::eliminarRelacionSeleccionada()
     // tras eliminar, fuerza ocultar el boton si ya no hay ninguna relacion seleccionada
     emit relacionSeleccionada(false);
 }
+bool RelacionesWidget::campoTieneRelacionActiva(const QString &tabla, const QString &campo) const
+{
+
+
+    const QString t=tabla.trimmed();
+    const QString c=campo.trimmed();
+
+    for(auto it=m_relaciones.begin(); it != m_relaciones.end(); ++it)
+    {
+        const Rel& r=it.value();
+        const bool esExtremoO=
+            (r.tablaO.compare(t, Qt::CaseInsensitive)==0)&&
+            (r.campoO.compare(c, Qt::CaseInsensitive)==0);
+        const bool esExtremoD=
+            (r.tablaD.compare(t, Qt::CaseInsensitive)==0)&&
+            (r.campoD.compare(c, Qt::CaseInsensitive)==0);
+        if(esExtremoO||esExtremoD)return true;
+    }
+    return false;
+
+}
 

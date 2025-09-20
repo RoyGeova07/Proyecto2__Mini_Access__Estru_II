@@ -652,6 +652,59 @@ void VentanaPrincipal::instalarValidadorFKEn(PestanaTabla* pt)
         rel=qobject_cast<RelacionesWidget*>(m_pestanas->widget(i));
         if(rel)break;
     }
+    //Si hay hoja y Relaciones, instalamos ademas el bloqueo de renombre
+    if(hoja)
+    {
+
+        if(rel)
+        {
+
+            hoja->setBloqueadorNombre([rel](const QString&tabla,const QString&campo)
+            {
+
+                return rel->campoTieneRelacionActiva(tabla,campo);
+
+            });
+
+        }else{
+
+            hoja->setBloqueadorNombre({});//sin relacions, no tiene bloqueo extra
+
+        }
+
+    }
+    if(auto* dis=pt->vistaDisenioWidget())
+    {
+
+        const QString nombreTabla=m_pestanas->tabText(m_pestanas->indexOf(pt));
+        dis->setNombreTabla(nombreTabla);
+
+        RelacionesWidget*rel=nullptr;
+        for(int i=0;i<m_pestanas->count();++i)
+        {
+
+            rel=qobject_cast<RelacionesWidget*>(m_pestanas->widget(i));
+            if(rel)break;
+
+        }
+        if(rel)
+        {
+
+            dis->setBloqueadorNombre([rel](const QString&tabla,const QString&campo)
+            {
+
+                return rel->campoTieneRelacionActiva(tabla,campo);
+
+            });
+
+        }else{
+
+            dis->setBloqueadorNombre({});//vacio, osea sin relaciones
+
+        }
+
+    }
+
     if(!rel)
     {
         // Sin Relaciones: no bloqueamos; opcionalmente limpia validador
@@ -661,13 +714,13 @@ void VentanaPrincipal::instalarValidadorFKEn(PestanaTabla* pt)
 
     //puntero seguro
     QPointer<RelacionesWidget> relPtr=rel;
-    hoja->setValidadorCelda([this, relPtr](const QString& tabla,
-                                           const QString& campo,
-                                           const QVariant& valor,
-                                           QString* msg) -> bool {
-        RelacionesWidget* r = relPtr.data();
-        if (!r) return true; // si cerraron Relaciones, no bloqueamos ni crasheamos
+    hoja->setValidadorCelda([this, relPtr](const QString& tabla,const QString& campo,const QVariant& valor,QString* msg) -> bool
+    {
+
+        RelacionesWidget*r=relPtr.data();
+        if(!r) return true; // si cerraron Relaciones, no bloqueamos ni crasheamos
         return r->validarValorFK(tabla, campo, valor.toString(), msg);
+
     });
 }
 

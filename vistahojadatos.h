@@ -28,6 +28,9 @@ public:
     void setTextMaxLengthForColumn(int col, int maxLen);
     int  maxLenForCol_(int col) const;
 
+    using BloqueadorNombre=std::function<bool(const QString&tabla,const QString&campo)>;
+    void setBloqueadorNombre(BloqueadorNombre f){m_bloqRenombre=std::move(f);}
+
 signals:
     void datosCambiaron();
     void renombrarCampoSolicitado(int col, const QString& nombre);
@@ -52,9 +55,9 @@ public:
     ValidadorCelda m_validador;
     QString m_nombreTabla;
 
-    // Marca una fila como "eliminada": se limpia y queda disponible para reutilizacion
+    //Marca una fila como "eliminada": se limpia y queda disponible para reutilizacion
     void eliminarFila(int r);
-    // Lectura del avail list (para debug/inspeccion)
+    //Lectura del avail list (para debug/inspeccion)
     const QVector<int>& huecosDisponibles()const{return m_availRows;}
     CampoIndexado::Modo indexadoForCol(int col)const;
     QHash<int,int>m_indexadoByCol;
@@ -82,6 +85,7 @@ private:
     void copiarFila(int from, int to);
     void limpiarFila(int r);
     void normalizarUltimaFilaNueva();
+    BloqueadorNombre m_bloqRenombre;
 
     QVector<int> m_availRows; // índices de filas reutilizables (excluye la última "(Nuevo)")
 
